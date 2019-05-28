@@ -1,0 +1,192 @@
+/*------------------------------------------------------------------------*/
+/*    (C) Copyright 2017-2019 Barcelona Supercomputing Center             */
+/*                            Centro Nacional de Supercomputacion         */
+/*                                                                        */
+/*    This file is part of OmpSs@FPGA toolchain.                          */
+/*                                                                        */
+/*    This code is free software; you can redistribute it and/or modify   */
+/*    it under the terms of the GNU General Public License as published   */
+/*    by the Free Software Foundation; either version 3 of the License,   */
+/*    or (at your option) any later version.                              */
+/*                                                                        */
+/*    OmpSs@FPGA toolchain is distributed in the hope that it will be     */
+/*    useful, but WITHOUT ANY WARRANTY; without even the implied          */
+/*    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.    */
+/*    See the GNU General Public License for more details.                */
+/*                                                                        */
+/*    You should have received a copy of the GNU General Public License   */
+/*    along with this code. If not, see <www.gnu.org/licenses/>.          */
+/*------------------------------------------------------------------------*/
+
+#include <ap_axi_sdata.h>
+#include <hls_stream.h>
+#include <stdint.h>
+#include <string.h>
+
+#define QUEUE_VALID           0x80
+#define QUEUE_INVALID         0x00
+#define MAX_ACCS              32
+#define ACC_IDX_BITS          5    //< log2(MAX_ACCS)
+#define BITS_MASK_16          0xFFFF
+#define BITS_MASK_8           0xFF
+#define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
+#define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
+#define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
+
+#define CMD_IN_QUEUE_SIZE              2048
+#define CMD_IN_QUEUE_IDX_BITS          11   //< log2(CMD_IN_QUEUE_SIZE)
+#define CMD_IN_SUBQUEUE_IDX_BITS       6    //< log2(CMD_IN_QUEUE_SIZE/MAX_ACCS)
+#define CMD_IN_VALID_OFFSET            56   //< Offset in bits of valid field
+#define CMD_IN_EXECTASK_NUMARGS_OFFSET 8
+#define CMD_IN_EXECTASK_ARG_WORDS      2    //< argId+flags,value
+
+#define ACC_AVAIL_FROM_NONE   0x0
+#define ACC_AVAIL_FROM_CMDIN  0x1
+#define ACC_AVAIL_FROM_INT    0x2
+
+typedef ap_axiu<64,1,8,5> axiData64_t;
+typedef hls::stream<axiData64_t> axiStream64_t;
+typedef uint64_t accAvailability_t;
+
+void sendCommand(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> offset,
+        const uint8_t length, axiStream64_t &outStream, const uint8_t accId)
+{
+	axiData64_t data;
+	data.keep = 0xFF;
+	data.dest = accId;
+	data.last = 0;
+
+	data.data = subqueue[offset++]; //< cmd header
+	outStream.write(data);
+
+	sendCommandToAccelerator:
+	for (uint8_t i = 0; i < length; i++) {
+#pragma HLS PIPELINE
+		data.last = (i == length);
+		data.data = subqueue[offset];
+		outStream.write(data);
+		// Clean the queue word
+		subqueue[offset++] = 0;
+	}
+}
+
+uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
+	uint8_t length = 0;
+	if (cmdCode == CMD_EXEC_TASK_CODE) {
+		// Execute task
+		const uint8_t numArgs = (header >> CMD_IN_EXECTASK_NUMARGS_OFFSET)&BITS_MASK_8;
+		length = 2 /*parent_id + task_id*/ + CMD_IN_EXECTASK_ARG_WORDS*numArgs;
+	} else if (cmdCode == CMD_SETUP_INS_CODE) {
+		// Setup instrumentation
+		length = 1 /*buffer_address*/;
+	} else if (cmdCode == CMD_FINI_EXEC_CODE) {
+		// Finished execute task
+		// NOTE: The command size in the command out queue is considered here.
+		//       The command size in the command out stream is +1 words as it includes the parent task id
+		length = 1 /*task_id*/;
+	}
+	return length;
+}
+
+#ifdef EXT_OMPSS_MANAGER
+void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE], uint64_t intCmdInQueue[CMD_IN_QUEUE_SIZE],
+	accAvailability_t accAvailability[MAX_ACCS], axiStream64_t &outStream)
+{
+#pragma HLS INTERFACE bram port=intCmdInQueue
+#pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
+#else
+void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
+	accAvailability_t accAvailability[MAX_ACCS], axiStream64_t &outStream)
+{
+#endif //EXT_OMPSS_MANAGER
+#pragma HLS INTERFACE axis port=outStream
+#pragma HLS INTERFACE bram port=cmdInQueue
+#pragma HLS INTERFACE bram port=accAvailability
+#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
+#pragma HLS INTERFACE ap_ctrl_none port=return
+
+	ap_uint<CMD_IN_QUEUE_IDX_BITS> queue_offset;
+	ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> subqueue_offset;
+	uint64_t word, invalidateMask;
+        uint8_t cmdLength;
+        ap_uint<8> cmdCode;
+	static ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> cmdInQueue_index[MAX_ACCS] = {0};
+	#pragma HLS RESET variable=cmdInQueue_index
+#ifdef EXT_OMPSS_MANAGER
+	static ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> intCmdInQueue_index[MAX_ACCS] = {0};
+	#pragma HLS RESET variable=intCmdInQueue_index
+#endif //EXT_OMPSS_MANAGER
+	static ap_uint<ACC_IDX_BITS> accId = 0;
+	#pragma HLS RESET variable=accId
+	static ap_uint<1> doCleanup = 1;
+	#pragma HLS RESET variable=doCleanup
+
+	if (doCleanup) {
+		doCleanup = 0;
+
+		accAvailability[0] = ACC_AVAIL_FROM_NONE;
+		for (accId = 1; accId != 0; accId++) {
+		#pragma HLS PIPELINE
+			accAvailability[accId] = ACC_AVAIL_FROM_NONE;
+		}
+	}
+
+	// Check if accelerator is available to receive a command
+	if (accAvailability[accId] == ACC_AVAIL_FROM_NONE) {
+		queue_offset = accId*(CMD_IN_QUEUE_SIZE/MAX_ACCS);
+
+		// Check cmdInQueue
+		subqueue_offset = cmdInQueue_index[accId];
+		word = cmdInQueue[queue_offset + subqueue_offset];
+		if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+			cmdCode = word&BITS_MASK_8;
+
+			// Mark accelerator as busy if the comand requires it
+			if (cmdCode.get_bit(0) == 1) {
+				accAvailability[accId] = ACC_AVAIL_FROM_CMDIN;
+			}
+
+			// Send command to accelerator
+			cmdLength = getCmdLength(cmdCode, word);
+			sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+
+			//NOTE: The head word cannot be set to 0, we must just clean the valid bits.
+			invalidateMask = BITS_MASK_8;
+			invalidateMask = ~(invalidateMask << CMD_IN_VALID_OFFSET);
+			word &= invalidateMask;
+			cmdInQueue[queue_offset + subqueue_offset] = word;
+
+			// Set next header idx
+			cmdInQueue_index[accId] = subqueue_offset + 1 /*command header*/ + cmdLength;
+#ifdef EXT_OMPSS_MANAGER
+		} else {
+			// Check intCmdInQueue
+			subqueue_offset = intCmdInQueue_index[accId];
+			word = intCmdInQueue[queue_offset + subqueue_offset];
+			if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+				cmdCode = word&BITS_MASK_8;
+
+				// Mark accelerator as busy if the comand requires it
+				if (cmdCode.get_bit(0) == 1) {
+					accAvailability[accId] = ACC_AVAIL_FROM_INT;
+				}
+
+				// Send command to accelerator
+				cmdLength = getCmdLength(cmdCode, word);
+				sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+
+				//NOTE: The head word cannot be set to 0, we must just clean the valid bits.
+				invalidateMask = BITS_MASK_8;
+				invalidateMask = ~(invalidateMask << CMD_IN_VALID_OFFSET);
+				word &= invalidateMask;
+				intCmdInQueue[queue_offset + subqueue_offset] = word;
+
+				// Set next header idx
+				intCmdInQueue_index[accId] = subqueue_offset + 1 /*command header*/ + cmdLength;
+			}
+#endif //EXT_OMPSS_MANAGER
+		}
+
+	}
+	accId++;
+}
