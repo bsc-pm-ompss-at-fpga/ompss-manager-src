@@ -5,23 +5,19 @@ variable board_part xczu9eg-ffvc900-1-e-es2
 
 cd ompss_manager_IP/Vivado/ext_tm/command_etm
 
+set root_dir "../../../../"
+set prj_dir "../../../"
+
 # Create project
 create_project -force [string tolower $name_IP] -part $board_part
 
 # If exists, add board IP repository
-set_property ip_repo_paths [list [get_property ip_repo_paths [current_project]] ../../../Vivado_HLS] [current_project]
-#if {[file isdirectory $path_Project/$board/ipdefs/]} {
-#    set_property ip_repo_paths [list [get_property ip_repo_paths [current_project]] $path_Project/$board/ipdefs] [current_project]
-#    update_ip_catalog
-#    foreach {IP} [glob -nocomplain $path_Project/$board/ipdefs/*.zip] {
-#        update_ip_catalog -add_ip $IP -repo_path $path_Project/$board/ipdefs
-#    }
-#}
+set_property ip_repo_paths [list [get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS] [current_project]
 
 # Update IP catalog
 update_ip_catalog
 
-if {[catch {source -notrace ../../../../scripts/extended_task_manager_bd.tcl}]} {
+if {[catch {source -notrace $root_dir/scripts/extended_task_manager_bd.tcl}]} {
 	error "ERROR: Failed sourcing board base design"
 }
 
@@ -29,13 +25,12 @@ generate_target all [get_files  ./[string tolower $name_IP].srcs/sources_1/bd/$n
 make_wrapper -files [get_files ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/$name_IP.bd] -top
 add_files -norecurse ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/hdl/${name_IP}_wrapper.v
 
-#source ./task_manager_bd.tcl
-
 set bram_list [regsub -all {/} [get_bd_intf_ports -filter {VLNV =~ xilinx.com:interface:bram_rtl*}] ""]
 
-ipx::package_project -root_dir ../../../IP_packager/${name_IP}_${num_version}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
-ipx::unload_core ../../../IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/component.xml
-ipx::edit_ip_in_project -upgrade true -name tmp_edit_project -directory ../../../IP_packager/${name_IP}_${num_version}_${vivado_version}_IP ../../../IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/component.xml
+
+ipx::package_project -root_dir $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
+ipx::unload_core $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/component.xml
+ipx::edit_ip_in_project -upgrade true -name tmp_edit_project -directory $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/component.xml
 
 set_property name [string tolower $name_IP] [ipx::current_core]
 set_property version $num_version [ipx::current_core]
@@ -113,6 +108,12 @@ ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamsp
 ipgui::move_param -component [ipx::current_core] -order 2 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:1.0 [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
+
+foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
+	encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
+}
+
+ipx::merge_project_changes files [ipx::current_core]
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
 ipx::save_core [ipx::current_core]

@@ -24,9 +24,7 @@ import os
 import sys
 import re
 import glob
-#import time
 import shutil
-#import fileinput
 import subprocess
 import argparse
 from distutils import spawn
@@ -186,7 +184,7 @@ if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
     if (int(retval) == 1):
         msg.error("Your current version of Vivado does not support part " + args.board_part)
 
-    msg.info('Success')
+    msg.success('Success')
 
 else:
     msg.error('vivado_hls or vivado not found. Please set PATH correctly')
