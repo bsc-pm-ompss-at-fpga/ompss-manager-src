@@ -160,6 +160,10 @@ CONFIG.MASTER_TYPE {BRAM_CTRL} \
   set_property -dict [ list \
 CONFIG.MASTER_TYPE {BRAM_CTRL} \
  ] $accAvailability_COTM
+  set bitInfo [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 bitInfo ]
+  set_property -dict [ list \
+CONFIG.MASTER_TYPE {BRAM_CTRL} \
+ ] $bitInfo
   set cmdInQueue [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 cmdInQueue ]
   set_property -dict [ list \
 CONFIG.MASTER_TYPE {BRAM_CTRL} \
@@ -753,6 +757,7 @@ CONFIG.NUM_SI {1} \
   connect_bd_intf_net -intf_net S14_AXIS_2 [get_bd_intf_ports ext_inStream_14] [get_bd_intf_pins ext_inStream_Inter/S14_AXIS]
   connect_bd_intf_net -intf_net S15_AXIS_1 [get_bd_intf_ports inStream_15] [get_bd_intf_pins inStream_Inter/S15_AXIS]
   connect_bd_intf_net -intf_net S15_AXIS_2 [get_bd_intf_ports ext_inStream_15] [get_bd_intf_pins ext_inStream_Inter/S15_AXIS]
+  connect_bd_intf_net -intf_net Scheduler_Task_Manager_bitInfo_PORTA [get_bd_intf_ports bitInfo] [get_bd_intf_pins Scheduler_Task_Manager/bitInfo_PORTA]
   connect_bd_intf_net -intf_net Scheduler_Task_Manager_intCmdInQueue_PORTA [get_bd_intf_ports intCmdInQueue_STM] [get_bd_intf_pins Scheduler_Task_Manager/intCmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Taskwait_Task_Manager_outStream [get_bd_intf_pins Taskwait_Task_Manager/outStream] [get_bd_intf_pins twOutStream_Inter/S00_AXIS]
   connect_bd_intf_net -intf_net Taskwait_Task_Manager_twInfo_PORTA [get_bd_intf_ports twInfo] [get_bd_intf_pins Taskwait_Task_Manager/twInfo_PORTA]
