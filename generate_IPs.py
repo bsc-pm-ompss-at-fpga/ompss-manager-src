@@ -82,7 +82,6 @@ class ArgParser:
         self.parser.add_argument('--disable_extended_tm', help='disables generation of Command ETM IP', action='store_true', default=False)
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('-i', '--verbose_info', help='prints extra information messages', action='store_true', default=False)
-        self.parser.add_argument('--keep_files', help='keeps files on error', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
@@ -110,8 +109,6 @@ def generate_IP(extended=False):
 
     retval = p.wait()
     if retval:
-        if not args.keep_files:
-            shutil.rmtree(prj_path, ignore_errors=True)
         msg.error('Generation of Command ' + ('E' if extended else '') + 'TM IP failed')
     else:
         msg.success('Finished generation of Command ' + ('E' if extended else '') + 'TM IP')
@@ -156,8 +153,6 @@ def synthesize_hls(file_, extended=False):
 
     retval = p.wait()
     if retval:
-        if not args.keep_files:
-            shutil.rmtree(dst_path + acc_name, ignore_errors=True)
         msg.error('Synthesis of \'' + acc_name + '\' failed')
     else:
         msg.success('Finished synthesis of \'' + acc_name + '\'')

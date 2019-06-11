@@ -117,7 +117,7 @@ foreach bram_intf $bram_list {
 		} elseif {[string match -nocase "*twInfo*" $bram_intf]} {
 			set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 			set_property value 4096 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		} elseif {[string match -nocase "*inQueue*" $bram_intf]} {
+		} elseif {[string match "*inQueue*" $bram_intf]} {
 			set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 			set_property value 16384 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 		}
