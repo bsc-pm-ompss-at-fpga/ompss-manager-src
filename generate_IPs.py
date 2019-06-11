@@ -192,10 +192,12 @@ if os.path.exists('./ompss_manager_IP'):
 os.makedirs('./ompss_manager_IP/Vivado_HLS')
 
 if not args.disable_tm:
+    msg.info('Synthesizing Command TM HLS sources')
     for file_ in glob.glob('./src/*.cpp'):
         synthesize_hls(file_)
 
 if not args.disable_extended_tm:
+    msg.info('Synthesizing Command ETM HLS sources')
     for file_ in glob.glob('./src/*.cpp'):
         synthesize_hls(file_, True)
 
