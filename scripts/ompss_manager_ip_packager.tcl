@@ -40,7 +40,7 @@ set_property display_name $name_IP [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
-set_property supported_families {zynquplus Beta zynq Beta} [ipx::current_core]
+set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
 
 # Add num_accs parameter
 variable name_param "num_accs"
