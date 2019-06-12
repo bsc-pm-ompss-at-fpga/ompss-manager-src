@@ -34,7 +34,7 @@ import xml.etree.cElementTree as cET
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout
-        self.log = open('./ompss_manager.log', "w+")
+        self.log = open('./ompss_manager.log', 'w+')
         self.subprocess = subprocess.PIPE if args.verbose else self.log
         self.re_color = re.compile(r'\033\[[0,1][0-9,;]*m')
 
@@ -85,6 +85,16 @@ class ArgParser:
 
     def parse_args(self):
         return self.parser.parse_args()
+
+
+def compute_resource_utilization(acc_path):
+    report_file = acc_path + '/solution1/syn/report/' + os.path.basename(acc_path) + '_wrapper_csynth.xml'
+
+    tree = cET.parse(report_file)
+    root = tree.getroot()
+
+    for resource in root.find('AreaEstimates').find('Resources'):
+        used_resources[resource.tag] = int(resource.text) + (int(used_resources[resource.tag]) if resource.tag in used_resources else 0)
 
 
 def generate_IP(extended=False):
@@ -139,7 +149,7 @@ def synthesize_hls(file_, extended=False):
                        + 'export_design -rtl verilog -format ip_catalog -vendor bsc -library ompss -display_name ' + acc_name + ' -taxonomy /BSC/OmpSs\n' \
                        + 'exit\n'
 
-    accel_tcl_script_file = open(dst_path + acc_name + '/HLS_' + acc_name + '.tcl', "w")
+    accel_tcl_script_file = open(dst_path + acc_name + '/HLS_' + acc_name + '.tcl', 'w')
     accel_tcl_script_file.write(accel_tcl_script)
     accel_tcl_script_file.close()
 
@@ -156,8 +166,7 @@ def synthesize_hls(file_, extended=False):
         msg.error('Synthesis of \'' + acc_name + '\' failed')
     else:
         msg.success('Finished synthesis of \'' + acc_name + '\'')
-
-    #update_resource_utilization(file_)
+        compute_resource_utilization(dst_path + acc_name)
 
 
 msg = Messages()
@@ -172,7 +181,7 @@ if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
     retval = p.wait()
     os.system('rm ./board_part_check.tcl')
     if (int(retval) == 1):
-        msg.error("Your current version of Vivado does not support part " + args.board_part)
+        msg.error('Your current version of Vivado does not support part ' + args.board_part)
 
     msg.success('Success')
 
@@ -185,6 +194,7 @@ if os.path.exists('./ompss_manager_IP'):
 
 # Synthesize HLS source codes
 os.makedirs('./ompss_manager_IP/Vivado_HLS')
+used_resources = {}
 
 if not args.disable_tm:
     msg.info('Synthesizing Command TM HLS sources')
@@ -205,78 +215,12 @@ os.makedirs('./ompss_manager_IP/IP_packager')
 
 if not args.disable_tm:
     os.makedirs('./ompss_manager_IP/Vivado/command_tm')
+    f = open('./ompss_manager_IP/IP_packager/command_tm_resource_utilization.txt', 'w')
+    f.write(str(used_resources) + '\n')
     generate_IP()
 
 if not args.disable_extended_tm:
     os.makedirs('./ompss_manager_IP/Vivado/ext_tm/command_etm')
+    f = open('./ompss_manager_IP/IP_packager/command_etm_resource_utilization.txt', 'w')
+    f.write(str(used_resources) + '\n')
     generate_IP(True)
-
-    #global available_resources
-    #global used_resources
-
-    #available_resources = dict()
-    #used_resources = dict()
-
-    #for acc in range(0, num_accels):
-    #    file_ = accels[acc]
-
-    #    synthesize_accelerator(file_)
-
-    #if len(accels) > num_accels:
-    #    msg.info('Synthesizing ' + str(len(accels) - num_accels) + ' additional support IP' + ('s' if len(accels) - num_accels > 1 else ''))
-
-    #    for acc in range(num_accels, len(accels)):
-    #        file_ = accels[acc]
-
-    #        synthesize_accelerator(file_)
-
-    #for resource in used_resources.items():
-    #    available = available_resources[resource[0]]
-    #    used = used_resources[resource[0]]
-    #    if available > 0:
-    #        utilization_percentage = str(round(float(used) / float(available) * 100, 2))
-    #        report_string = '{0:<9} {1:>6} used | {2:>6} available - {3:>6}% utilization'
-    #        report_string_formatted = report_string.format(resource[0], used, available, utilization_percentage)
-    #        msg.info(report_string_formatted)
-
-
-used_resources = {}
-
-#for report in sys.argv[1:]:
-#    tree = cET.parse(report)
-#    root = tree.getroot()
-#
-#    for resource in root.find('AreaEstimates').find('Resources'):
-#        used_resources[resource.tag] = int(resource.text) + (int(used_resources[resource.tag]) if resource.tag in used_resources else 0)
-#
-#
-#print(used_resources)
-
-#acc_file = os.path.basename(file_)
-#acc_num_instances = int(acc_file.split(':')[1]) if len(acc_file.split(':')) > 1 else 1
-#acc_file = acc_file.split(':')[2] if len(acc_file.split(':')) > 2 else acc_file
-#acc_name = os.path.splitext(acc_file)[0].replace('_hls_automatic_mcxx', '')
-#
-#report_file = project_Vivado_HLS_path + '/' + acc_name + '/solution1/syn/report/' + acc_file.split('.')[0] + '_wrapper_csynth.xml'
-#
-#tree = cET.parse(report_file)
-#root = tree.getroot()
-#
-#for resource in root.find('AreaEstimates').find('AvailableResources'):
-#    available_resources[resource.tag] = int(resource.text)
-#
-#if args.verbose_info:
-#    res_msg = 'Resources estimation for \'' + acc_name + '\''
-#    first = True
-#    for resource in root.find('AreaEstimates').find('Resources'):
-#        res_msg += ': ' if first else ', '
-#        res_msg += resource.text +  ' ' + resource.tag
-#        first = False
-#    msg.log(res_msg)
-#
-#for resource in root.find('AreaEstimates').find('Resources'):
-#    used_resources[resource.tag] = int(resource.text) * acc_num_instances + (int(used_resources[resource.tag]) if resource.tag in used_resources else 0)
-#    if used_resources[resource.tag] > available_resources[resource.tag] and not args.disable_utilization_check:
-#        msg.error(resource.tag + ' utilization over 100% (' + str(used_resources[resource.tag]) + '/' + str(available_resources[resource.tag]) + ')')
-#
-#
