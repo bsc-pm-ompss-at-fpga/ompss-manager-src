@@ -43,17 +43,17 @@
 #define CMD_IN_EXECTASK_NUMARGS_OFFSET 8
 #define CMD_IN_EXECTASK_NUMDEPS_OFFSET 16
 #define CMD_IN_EXECTASK_NUMCPYS_OFFSET 24
-#define CMD_IN_EXECTASK_ARG_IDX_OFFSET 8
 #define CMD_IN_EXECTASK_DEST_ID_OFFSET 32
 #define CMD_IN_EXECTASK_ARG_WORDS      2    //< argId+flags,value
 #define CMD_IN_EXECTASK_HEAD_WORDS     3    //< cmdHeader,parentId,taskId
+#define CMD_IN_EXECTASK_ARG_ID_OFFSET  32
+#define CMD_IN_EXECTASK_COPY_ARG_IDX_OFFSET 8
 
 #define COMPUTE_ENABLED_FLAG           0x1
 #define MAX_ARGS                       256  //< 2^8
 #define CMD_OUT_TM_ID                  0x11
 #define DEFAULT_ARG_FLAGS              0x31 //< enable wrapper copies,private
-#define INT_READY_TASK_ARG_ID_OFFSET   32
-#define NUM_TASK_TYPES (sizeof(scheduleData)/sizeof(schedInfo_t))
+#define MAX_ACCS_TYPES                 MAX_ACCS
 
 typedef ap_axiu<64,1,1,5> axiData64_t;
 typedef hls::stream<axiData64_t> axiStream64_t;
@@ -63,11 +63,6 @@ typedef struct schedInfo_s {
 	uint8_t  firstId; //< Accelerator id of first accelerator with the type
 	uint8_t  count;   //< Number of accelerators with this type. [firstId, firstId+count) are accels of the type
 } schedInfo_t;
-
-const schedInfo_t scheduleData[] = {
-{0, 0, 0} //dummy
-//PLACEHOLDER_FOR_TASK_TYPES_INFO
-};
 
 typedef enum {
 	SCHED_TM_RESET = 0,
@@ -84,11 +79,12 @@ typedef enum {
 	SCHED_TM_CLEAN
 } sched_tm_state_t;
 
-void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream) {
+void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream, uint32_t bitInfo[256]) {
 #pragma HLS INTERFACE axis port=inStream
 #pragma HLS INTERFACE bram port=intCmdInQueue bundle=intCmdInQueue
 #pragma HLS DATA_PACK variable=intCmdInQueue struct_level
 #pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
+#pragma HLS INTERFACE bram port=bitInfo
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
 	static ap_uint<CMD_IN_QUEUE_IDX_BITS> _queueOffset; //< Offset where the current writing subqueue of intCmdInQueue starts
@@ -103,10 +99,12 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 	static ap_uint<8> _numCopies = 0; //< Number of copies that current task has
 	static ap_uint<8> _accId; //< Accelerator ID where the current task will be executed
 
-	static uint8_t  _lastAccId[NUM_TASK_TYPES];
+	static schedInfo_t _scheduleData[MAX_ACCS_TYPES];
+	static uint8_t _numAccsTypes;
+	static uint8_t  _lastAccId[MAX_ACCS_TYPES];
 	static uint64_t _bufferHead[CMD_IN_EXECTASK_HEAD_WORDS];
 	static uint8_t  _bufferArgFlags[MAX_ARGS];
-        static uint64_t _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
+	static uint64_t _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
 
 	if (_state == SCHED_TM_RESET) {
 		//Under reset
@@ -116,7 +114,7 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 			_rIdx[i] = 0;
 			_availSlots[i] = CMD_IN_QUEUE_SIZE/MAX_ACCS;
 		};
-		for (size_t i = 0; i < NUM_TASK_TYPES; i++) {
+		for (size_t i = 0; i < MAX_ACCS_TYPES; i++) {
 		#pragma HLS PIPELINE
 			_lastAccId[i] = 0;
 		};
@@ -134,6 +132,46 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 		while (!inStream.empty()) {
 			inStream.read();
 		}
+
+		//Update the scheduleData reading the info from the bitstream info BRAM
+		_numAccsTypes = 0;
+		size_t offset = 4 /*words before the xtasks.config data*/ + 5 /*words of xtasks.config header*/;
+		uint8_t firstFreeId = 0;
+		union {
+			uint32_t raw;
+			char text[4];
+		} bitinfoCast;
+
+		bitinfoCast.raw = bitInfo[offset++];
+		do {
+			//Get the accelerator type
+			uint64_t type = 0;
+			for (uint8_t w = 0; w < 5; w++) {
+				//NOTE: Skip the \t character at the end of 5th word
+				for (uint8_t c = 0; c < 4 && (c < 3 || w != 4); c++) {
+					type = type*10 + (bitinfoCast.text[c] - '0');
+				}
+				bitinfoCast.raw = bitInfo[offset++];
+			}
+
+			//Get the number of instances
+			uint8_t numInstances = 0;
+			for (uint8_t c = 0; c < 3; c++) {
+				numInstances = numInstances*10 + (bitinfoCast.text[c] - '0');
+			}
+
+			//Add the type in the _scheduleData
+			_scheduleData[_numAccsTypes].type = type;
+			_scheduleData[_numAccsTypes].firstId = firstFreeId;
+			_scheduleData[_numAccsTypes].count = numInstances;
+			_numAccsTypes++;
+			firstFreeId += numInstances;
+
+			//Increase the offset until next accelerator type or the ending mark
+			offset += 9 /*8 words of name + 1 word of frequency*/;
+			bitinfoCast.raw = bitInfo[offset++];
+
+		} while (bitinfoCast.raw != 0xFFFFFFFF && firstFreeId < MAX_ACCS && _numAccsTypes < MAX_ACCS_TYPES);
 
 		_state = SCHED_TM_READ_W1;
 	} else if (_state == SCHED_TM_READ_W1) {
@@ -166,13 +204,13 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 	} else if (_state == SCHED_TM_ASSIGN) {
 		//Decide where the task will be executed
 		uint16_t dataIdx = 0; //< Using 0 as not_found value
-		for (uint8_t i = 1; i < NUM_TASK_TYPES; i++) {
-			if (scheduleData[i].type == _bufferHead[2]) {
+		for (uint8_t i = 1; i < _numAccsTypes; i++) {
+			if (_scheduleData[i].type == _bufferHead[2]) {
 				dataIdx = i;
 				break;
 			}
 		}
-		_accId = (_lastAccId[dataIdx] % scheduleData[dataIdx].count) + scheduleData[dataIdx].firstId/*round robin between the accelerators*/;
+		_accId = (_lastAccId[dataIdx] % _scheduleData[dataIdx].count) + _scheduleData[dataIdx].firstId/*round robin between the accelerators*/;
 		_queueOffset = _accId*(CMD_IN_QUEUE_SIZE/MAX_ACCS);
 		_lastAccId[dataIdx]++;
 
@@ -206,7 +244,7 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
                         //Argument idx and flags
                         uint8_t flags = _bufferArgFlags[_wArgIdx];
                         uint64_t argInfo = _wArgIdx;
-                        argInfo = (argInfo << INT_READY_TASK_ARG_ID_OFFSET);
+                        argInfo = (argInfo << CMD_IN_EXECTASK_ARG_ID_OFFSET);
                         argInfo |= flags ? flags : DEFAULT_ARG_FLAGS;
                         intCmdInQueue[idx] = argInfo;
 
@@ -234,7 +272,7 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 			inStream.read(); //< [ accessed length | offset ]
 
 			uint8_t flags = word&BITS_MASK_8;
-			uint8_t arg_idx = (word >> CMD_IN_EXECTASK_ARG_WORDS)&BITS_MASK_8;
+			uint8_t arg_idx = (word >> CMD_IN_EXECTASK_COPY_ARG_IDX_OFFSET)&BITS_MASK_8;
 			//NOTE: Copies of new task use bits [1:0] and ready task uses bits [5:4]
 			_bufferArgFlags[arg_idx] |= (flags << 4);
 		}
