@@ -87,14 +87,14 @@ class ArgParser:
         return self.parser.parse_args()
 
 
-def compute_resource_utilization(acc_path):
+def compute_resource_utilization(acc_path, extended=False):
     report_file = acc_path + '/solution1/syn/report/' + os.path.basename(acc_path) + '_wrapper_csynth.xml'
 
     tree = cET.parse(report_file)
     root = tree.getroot()
 
     for resource in root.find('AreaEstimates').find('Resources'):
-        used_resources[resource.tag] = int(resource.text) + (int(used_resources[resource.tag]) if resource.tag in used_resources else 0)
+        used_resources[extended][resource.tag] = int(resource.text) + (int(used_resources[resource.tag]) if resource.tag in used_resources else 0)
 
 
 def generate_IP(extended=False):
@@ -165,8 +165,8 @@ def synthesize_hls(file_, extended=False):
     if retval:
         msg.error('Synthesis of \'' + acc_name + '\' failed')
     else:
+        compute_resource_utilization(dst_path + acc_name, extended)
         msg.success('Finished synthesis of \'' + acc_name + '\'')
-        compute_resource_utilization(dst_path + acc_name)
 
 
 msg = Messages()
@@ -194,7 +194,7 @@ if os.path.exists('./ompss_manager_IP'):
 
 # Synthesize HLS source codes
 os.makedirs('./ompss_manager_IP/Vivado_HLS')
-used_resources = {}
+used_resources = {True:{},False:{}}
 
 if not args.disable_tm:
     msg.info('Synthesizing Command TM HLS sources')
@@ -216,11 +216,11 @@ os.makedirs('./ompss_manager_IP/IP_packager')
 if not args.disable_tm:
     os.makedirs('./ompss_manager_IP/Vivado/command_tm')
     f = open('./ompss_manager_IP/IP_packager/command_tm_resource_utilization.txt', 'w')
-    f.write(str(used_resources) + '\n')
+    f.write(str(used_resources[False]) + '\n')
     generate_IP()
 
 if not args.disable_extended_tm:
     os.makedirs('./ompss_manager_IP/Vivado/ext_tm/command_etm')
     f = open('./ompss_manager_IP/IP_packager/command_etm_resource_utilization.txt', 'w')
-    f.write(str(used_resources) + '\n')
+    f.write(str(used_resources[True]) + '\n')
     generate_IP(True)
