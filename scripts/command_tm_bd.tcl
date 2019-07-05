@@ -385,7 +385,10 @@ CONFIG.ASSOCIATED_RESET {interconnect_aresetn:peripheral_aresetn} \
   set interconnect_aresetn [ create_bd_port -dir I -type rst interconnect_aresetn ]
   set managed_aresetn [ create_bd_port -dir O -from 0 -to 0 managed_aresetn ]
   set peripheral_aresetn [ create_bd_port -dir I -type rst peripheral_aresetn ]
-  set ps_rst_n [ create_bd_port -dir I -type rst ps_rst_n ]
+  set ps_rst [ create_bd_port -dir I -type rst ps_rst ]
+  set_property -dict [ list \
+CONFIG.POLARITY {ACTIVE_HIGH} \
+ ] $ps_rst
 
   # Create instance: Cmd_In_Task_Manager, and set properties
   set Cmd_In_Task_Manager [ create_bd_cell -type ip -vlnv bsc:ompss:Cmd_In_Task_Manager_wrapper Cmd_In_Task_Manager ]
@@ -416,6 +419,14 @@ CONFIG.NUM_MI {16} \
   set_property -dict [ list \
 CONFIG.C_SIZE {1} \
  ] $rst_AND
+
+  # Create instance: rst_NOT, and set properties
+  set rst_NOT [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic rst_NOT ]
+  set_property -dict [ list \
+CONFIG.C_OPERATION {not} \
+CONFIG.C_SIZE {1} \
+CONFIG.LOGO_FILE {data/sym_notgate.png} \
+ ] $rst_NOT
 
   # Create interface connections
   connect_bd_intf_net -intf_net Cmd_In_Task_Manager_accAvailability_PORTA [get_bd_intf_ports accAvailability_CITM] [get_bd_intf_pins Cmd_In_Task_Manager/accAvailability_PORTA]
@@ -461,8 +472,9 @@ CONFIG.C_SIZE {1} \
   connect_bd_net -net aclk_1 [get_bd_ports aclk] [get_bd_pins Cmd_In_Task_Manager/ap_clk] [get_bd_pins Cmd_Out_Task_Manager/ap_clk] [get_bd_pins inStream_Inter/ACLK] [get_bd_pins inStream_Inter/M00_AXIS_ACLK] [get_bd_pins inStream_Inter/S00_AXIS_ACLK] [get_bd_pins inStream_Inter/S01_AXIS_ACLK] [get_bd_pins inStream_Inter/S02_AXIS_ACLK] [get_bd_pins inStream_Inter/S03_AXIS_ACLK] [get_bd_pins inStream_Inter/S04_AXIS_ACLK] [get_bd_pins inStream_Inter/S05_AXIS_ACLK] [get_bd_pins inStream_Inter/S06_AXIS_ACLK] [get_bd_pins inStream_Inter/S07_AXIS_ACLK] [get_bd_pins inStream_Inter/S08_AXIS_ACLK] [get_bd_pins inStream_Inter/S09_AXIS_ACLK] [get_bd_pins inStream_Inter/S10_AXIS_ACLK] [get_bd_pins inStream_Inter/S11_AXIS_ACLK] [get_bd_pins inStream_Inter/S12_AXIS_ACLK] [get_bd_pins inStream_Inter/S13_AXIS_ACLK] [get_bd_pins inStream_Inter/S14_AXIS_ACLK] [get_bd_pins inStream_Inter/S15_AXIS_ACLK] [get_bd_pins outStream_Inter/ACLK] [get_bd_pins outStream_Inter/M00_AXIS_ACLK] [get_bd_pins outStream_Inter/M01_AXIS_ACLK] [get_bd_pins outStream_Inter/M02_AXIS_ACLK] [get_bd_pins outStream_Inter/M03_AXIS_ACLK] [get_bd_pins outStream_Inter/M04_AXIS_ACLK] [get_bd_pins outStream_Inter/M05_AXIS_ACLK] [get_bd_pins outStream_Inter/M06_AXIS_ACLK] [get_bd_pins outStream_Inter/M07_AXIS_ACLK] [get_bd_pins outStream_Inter/M08_AXIS_ACLK] [get_bd_pins outStream_Inter/M09_AXIS_ACLK] [get_bd_pins outStream_Inter/M10_AXIS_ACLK] [get_bd_pins outStream_Inter/M11_AXIS_ACLK] [get_bd_pins outStream_Inter/M12_AXIS_ACLK] [get_bd_pins outStream_Inter/M13_AXIS_ACLK] [get_bd_pins outStream_Inter/M14_AXIS_ACLK] [get_bd_pins outStream_Inter/M15_AXIS_ACLK] [get_bd_pins outStream_Inter/S00_AXIS_ACLK]
   connect_bd_net -net interconnect_aresetn_1 [get_bd_ports interconnect_aresetn] [get_bd_pins inStream_Inter/ARESETN] [get_bd_pins outStream_Inter/ARESETN]
   connect_bd_net -net peripheral_aresetn_1 [get_bd_ports peripheral_aresetn] [get_bd_pins inStream_Inter/M00_AXIS_ARESETN] [get_bd_pins inStream_Inter/S00_AXIS_ARESETN] [get_bd_pins inStream_Inter/S01_AXIS_ARESETN] [get_bd_pins inStream_Inter/S02_AXIS_ARESETN] [get_bd_pins inStream_Inter/S03_AXIS_ARESETN] [get_bd_pins inStream_Inter/S04_AXIS_ARESETN] [get_bd_pins inStream_Inter/S05_AXIS_ARESETN] [get_bd_pins inStream_Inter/S06_AXIS_ARESETN] [get_bd_pins inStream_Inter/S07_AXIS_ARESETN] [get_bd_pins inStream_Inter/S08_AXIS_ARESETN] [get_bd_pins inStream_Inter/S09_AXIS_ARESETN] [get_bd_pins inStream_Inter/S10_AXIS_ARESETN] [get_bd_pins inStream_Inter/S11_AXIS_ARESETN] [get_bd_pins inStream_Inter/S12_AXIS_ARESETN] [get_bd_pins inStream_Inter/S13_AXIS_ARESETN] [get_bd_pins inStream_Inter/S14_AXIS_ARESETN] [get_bd_pins inStream_Inter/S15_AXIS_ARESETN] [get_bd_pins outStream_Inter/M00_AXIS_ARESETN] [get_bd_pins outStream_Inter/M01_AXIS_ARESETN] [get_bd_pins outStream_Inter/M02_AXIS_ARESETN] [get_bd_pins outStream_Inter/M03_AXIS_ARESETN] [get_bd_pins outStream_Inter/M04_AXIS_ARESETN] [get_bd_pins outStream_Inter/M05_AXIS_ARESETN] [get_bd_pins outStream_Inter/M06_AXIS_ARESETN] [get_bd_pins outStream_Inter/M07_AXIS_ARESETN] [get_bd_pins outStream_Inter/M08_AXIS_ARESETN] [get_bd_pins outStream_Inter/M09_AXIS_ARESETN] [get_bd_pins outStream_Inter/M10_AXIS_ARESETN] [get_bd_pins outStream_Inter/M11_AXIS_ARESETN] [get_bd_pins outStream_Inter/M12_AXIS_ARESETN] [get_bd_pins outStream_Inter/M13_AXIS_ARESETN] [get_bd_pins outStream_Inter/M14_AXIS_ARESETN] [get_bd_pins outStream_Inter/M15_AXIS_ARESETN] [get_bd_pins outStream_Inter/S00_AXIS_ARESETN] [get_bd_pins rst_AND/Op1]
-  connect_bd_net -net ps_rst_n_1 [get_bd_ports ps_rst_n] [get_bd_pins rst_AND/Op2]
+  connect_bd_net -net ps_rst_1 [get_bd_ports ps_rst] [get_bd_pins rst_NOT/Op1]
   connect_bd_net -net rst_AND_Res [get_bd_ports managed_aresetn] [get_bd_pins Cmd_In_Task_Manager/ap_rst_n] [get_bd_pins Cmd_Out_Task_Manager/ap_rst_n] [get_bd_pins rst_AND/Res]
+  connect_bd_net -net rst_NOT_Res [get_bd_pins rst_AND/Op2] [get_bd_pins rst_NOT/Res]
 
   # Create address segments
 

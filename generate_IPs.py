@@ -74,14 +74,13 @@ class Messages:
 
 class ArgParser:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, prog='gen_ompss_ips')
+        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-        self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD', type=str.lower, required=True)
+        self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower, required=True)
         self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('--disable_tm', help='disables generation of Command TM IP', action='store_true', default=False)
         self.parser.add_argument('--disable_extended_tm', help='disables generation of Command ETM IP', action='store_true', default=False)
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
-        self.parser.add_argument('-i', '--verbose_info', help='prints extra information messages', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
