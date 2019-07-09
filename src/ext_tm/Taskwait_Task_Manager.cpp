@@ -35,9 +35,9 @@
 
 #define TASKWAIT_TASK_MANAGER_ID   0x13
 
-// The accID has 8 bits so at most we will have 256 concurrent tasks
-#define CACHE_SIZE 256
-#define CACHE_IDX_BITS 8
+//NOTE: We should not have more than 1 task per accelerator
+#define CACHE_SIZE 32
+#define CACHE_IDX_BITS 5
 
 typedef ap_axis<8,1,1,5> axiData8_t;
 typedef ap_axis<64,1,1,5> axiData64_t;
@@ -124,16 +124,17 @@ void Taskwait_Task_Manager_wrapper(axiStream64_t &inStream, axiStream8_t &outStr
 		}
 		_cachedInfo.taskId = _taskId;
 		_cachedInfo.valid = TASKWAIT_ENTRY_VALID;
-		int32_t componentsBlock = _cachedInfo.components + _components;
-		int32_t componentsFinish = _cachedInfo.components - _components;
+		const int32_t componentsBlock = _cachedInfo.components + _components;
+		const int32_t componentsFinish = _cachedInfo.components - _components;
 		_cachedInfo.components = _type == TASKWAIT_TYPE_BLOCK ? componentsBlock : componentsFinish;
+		_cachedInfo.accId = _type == TASKWAIT_TYPE_BLOCK ? _accId : _cachedInfo.accId;
 
 		_state = _cachedInfo.components == 0 ? STATE_WAKEUP_ACC : STATE_UPDATE_ENTRY;
 	} else if (_state == STATE_WAKEUP_ACC) {
 		//Send the wake up signal to the blocked accelerator and invalidate the info entry
 		axiData8_t data;
 		data.keep = 0xFF;
-		data.dest = _accId;
+		data.dest = _cachedInfo.accId;
 		data.last = 1;
 		data.data = 1;
 		outStream.write(data);
