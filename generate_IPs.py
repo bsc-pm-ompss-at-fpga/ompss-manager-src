@@ -188,7 +188,7 @@ else:
     msg.error('vivado_hls or vivado not found. Please set PATH correctly')
 
 if os.path.exists('./ompss_manager_IP'):
-    shutil.rmtree('./ompss_manager_IP_old')
+    shutil.rmtree('./ompss_manager_IP_old', ignore_errors=True)
     os.rename('./ompss_manager_IP', './ompss_manager_IP_old')
 
 # Synthesize HLS source codes
