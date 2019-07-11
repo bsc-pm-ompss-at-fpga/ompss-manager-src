@@ -42,6 +42,11 @@ set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ip
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
 set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
 
+ipx::add_file_group -type utility {} [ipx::current_core]
+file copy $root_dir/vivado_ompss_fpga_logo.png $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/
+ipx::add_file $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/vivado_ompss_fpga_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
+set_property type LOGO [ipx::get_files src/vivado_ompss_fpga_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
+
 # Add num_accs parameter
 variable name_param "num_accs"
 ipx::add_user_parameter $name_param [ipx::current_core]
@@ -62,8 +67,8 @@ if {$extended_tm} {
 	ipx::add_user_parameter $name_param [ipx::current_core]
 	set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 	ipgui::add_param -name $name_param -component [ipx::current_core]
-	set_property display_name {Number of accelerators} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property tooltip "Number of task-creator accelerators" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+	set_property display_name {Number of task-creator accelerators} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+	set_property tooltip "Number of accelerators with task creating capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 	set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 	set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 	set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
@@ -76,8 +81,8 @@ if {$extended_tm} {
 	ipx::add_user_parameter $name_param [ipx::current_core]
 	set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 	ipgui::add_param -name $name_param -component [ipx::current_core]
-	set_property display_name {Number of accelerators} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property tooltip "Number of accelerators with taskwait" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+	set_property display_name {Number of accelerators with taskwait} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+	set_property tooltip "Number of accelerators with taskwait capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 	set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 	set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 	set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
