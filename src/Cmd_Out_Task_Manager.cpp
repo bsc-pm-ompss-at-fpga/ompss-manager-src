@@ -170,20 +170,20 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 			}
 		}
 	} else if (_state == CMD_OUT_TM_READ_FINI_EXEC) {
-		//Read the out command payload: parent task id
-		uint64_t word = inStream.read().data;
-#ifdef EXT_OMPSS_MANAGER
-		if (word) {
-			//NOTE: The 1st payload word is the parent task id
-			notifyTaskCompletion(outStream, word);
-		}
-#endif //EXT_OMPSS_MANAGER
-
 		//Read the out command payload: task id
-		word = inStream.read().data;
+		uint64_t taskId = inStream.read().data;
 		ap_uint<CMD_OUT_SUBQUEUE_IDX_BITS> subqueueIdx = _wIdx[_accId] + 1 /*header*/;
 		ap_uint<CMD_OUT_QUEUE_IDX_BITS> idx = _queueOffset + subqueueIdx;
-		cmdOutQueue[idx] = word;
+		cmdOutQueue[idx] = taskId;
+
+		//Read the out command payload: parent task id
+		uint64_t parentId = inStream.read().data;
+#ifdef EXT_OMPSS_MANAGER
+		if (parentId) {
+			//NOTE: The 1st payload word is the parent task id
+			notifyTaskCompletion(outStream, parentId);
+		}
+#endif //EXT_OMPSS_MANAGER
 
 		// Mark accelerator as available
 		accAvailability[_accId] = ACC_AVAIL_FROM_NONE;
@@ -191,14 +191,14 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 		_state = CMD_OUT_TM_WRITE_HEAD;
 #ifdef EXT_OMPSS_MANAGER
 	} else if (_state == CMD_OUT_TM_READ_FINI_EXEC_INT) {
-		//Read the out command payload: parent task id
-		uint64_t word = inStream.read().data;
-		if (word) {
-			notifyTaskCompletion(outStream, word);
-		}
-
 		//Read the out command payload: task id
 		inStream.read();
+
+		//Read the out command payload: parent task id
+		uint64_t parentId = inStream.read().data;
+		if (parentId) {
+			notifyTaskCompletion(outStream, parentId);
+		}
 
 		// Mark accelerator as available
 		accAvailability[_accId] = ACC_AVAIL_FROM_NONE;
