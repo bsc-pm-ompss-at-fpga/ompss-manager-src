@@ -284,12 +284,12 @@ void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE
 
 		++subqueueIdx;
 		idx = _queueOffset + subqueueIdx;
-		intCmdInQueue[idx] = _bufferHead[1]; //< parentTaskId
+		//NOTE: Using odd ids, so they will fail if used outside the FPGA
+		intCmdInQueue[idx] = ((++_lastTaskId) << 1) | 1; //< taskId
 
 		++subqueueIdx;
 		idx = _queueOffset + subqueueIdx;
-                //NOTE: Using odd ids, so they will fail if used outside the FPGA
-		intCmdInQueue[idx] = ((++_lastTaskId) << 1) | 1; //< taskId
+		intCmdInQueue[idx] = _bufferHead[1]; //< parentTaskId
 
 		_state = SCHED_TM_WRITE_VALID;
 	} else if (_state == SCHED_TM_WRITE_VALID) {
