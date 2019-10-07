@@ -28,7 +28,7 @@ typedef ap_axis<64,1,1,5> axiData64_t;
 typedef hls::stream<axiData8_t> axiStream8_t;
 typedef hls::stream<axiData64_t> axiStream64_t;
 
-// An element of the taskwaitMemory and remoteCmdOutQueue
+// An element of the remoteCmdOutQueue
 typedef struct taskwaitEntry_t {
 	ap_uint<8>  valid;
 	ap_uint<8>  accId;
@@ -36,6 +36,7 @@ typedef struct taskwaitEntry_t {
 	ap_uint<8>  type;
 	ap_int<32>  components;
 	ap_uint<64> taskId;
+	ap_uint<64> parentId;
 } taskwaitEntry_t;
 
 #define TASKWAIT_ENTRY_VALID   0x80
@@ -81,11 +82,12 @@ void Remote_Finished_Task_Manager_wrapper(taskwaitEntry_t inQueue[QUEUE_SLOTS], 
 		// Format of the information:
 		// | 8b    | 8b    | 8b    | 8b    | 32b               |
 		// |       | accID |       | type  | components        |
-		// | taskId (parent based on type)                     |
-                // accID and type are ignored and the values are fixed
+		// | taskId                                            |
+		// | parentId                                          |
+		// NOTE: accID, type, taskId and components are ignored. Some values are fixed
 		uint64_t tmp = 0 /*_buffer.accId*/;
 		tmp = (tmp << 16) | TASKWAIT_TYPE_FINISH /*_buffer.type*/;
-		tmp = (tmp << 32) | _buffer.components;
+		tmp = (tmp << 32) | 1 /*_buffer.components*/;
 
 		axiData64_t data;
 		data.keep = 0xFF;
@@ -95,7 +97,7 @@ void Remote_Finished_Task_Manager_wrapper(taskwaitEntry_t inQueue[QUEUE_SLOTS], 
 		outStream.write(data);
 
 		data.last = 1;
-		data.data = _buffer.taskId;
+		data.data = _buffer.parentId;
 		outStream.write(data);
 
 		_state = 1;
