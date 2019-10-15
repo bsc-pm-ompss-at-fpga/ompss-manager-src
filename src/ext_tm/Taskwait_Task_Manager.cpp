@@ -71,7 +71,6 @@ void Taskwait_Task_Manager_wrapper(axiStream64_t &inStream, axiStream8_t &outStr
 #pragma HLS RESOURCE variable=twInfo core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
-	; //< This may change if CACHE_SIZE changes
 	static state_t _state = STATE_RESET;
 	#pragma HLS RESET variable=_state
 	static uint64_t _taskId;

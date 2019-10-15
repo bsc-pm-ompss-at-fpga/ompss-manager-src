@@ -23,71 +23,86 @@
 #include <stdint.h>
 #include <string.h>
 
+#define QUEUE_VALID           0x80
+#define QUEUE_INVALID         0x00
+#define BITS_MASK_8           0xFF
+
+#define TASKWAIT_TYPE_BLOCK        0x01
+#define TASKWAIT_TYPE_FINISH       0x10
+#define TASKWAIT_TASK_MANAGER_ID   0x13
+
+#define REM_FINI_QUEUE_SIZE        2048
+#define REM_FINI_QUEUE_IDX_BITS    11   //< log2(REM_FINI_QUEUE_SIZE)
+#define REM_FINI_VALID_OFFSET      56   //< Offset in bits of valid field
+#define REM_FINI_ENTRY_WORDS       3    //< header, taskId, parentId
+
 typedef ap_axis<8,1,1,5> axiData8_t;
 typedef ap_axis<64,1,1,5> axiData64_t;
 typedef hls::stream<axiData8_t> axiStream8_t;
 typedef hls::stream<axiData64_t> axiStream64_t;
 
-// An element of the remoteCmdOutQueue
-typedef struct taskwaitEntry_t {
-	ap_uint<8>  valid;
-	ap_uint<8>  accId;
-	ap_uint<8>  reserved_0;
-	ap_uint<8>  type;
-	ap_int<32>  components;
-	ap_uint<64> taskId;
-	ap_uint<64> parentId;
-} taskwaitEntry_t;
+typedef enum {
+  STATE_RESET = 0,
+  STATE_READ_HEADER,
+  STATE_READ_BODY,
+  STATE_UPDATE_ENTRY,
+  STATE_NOTIFY_TW
+} state_t;
 
-#define TASKWAIT_ENTRY_VALID   0x80
-#define TASKWAIT_ENTRY_INVALID 0x00
-#define TASKWAIT_TYPE_BLOCK    0x01
-#define TASKWAIT_TYPE_FINISH   0x10
-
-#define TASKWAIT_TASK_MANAGER_ID   0x13
-
-//NOTE: The QUEUE_SLOTS value must match with the width of _rIdx
-#define QUEUE_SLOTS       1024
-
-void Remote_Finished_Task_Manager_wrapper(taskwaitEntry_t inQueue[QUEUE_SLOTS], axiStream64_t &outStream) {
+void Remote_Finished_Task_Manager_wrapper(uint64_t inQueue[REM_FINI_QUEUE_SIZE], axiStream64_t &outStream) {
 #pragma HLS INTERFACE axis port=outStream
 #pragma HLS INTERFACE bram port=inQueue
-#pragma HLS DATA_PACK variable=inQueue field_level
 #pragma HLS RESOURCE variable=inQueue core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
-	static ap_uint<10> _rIdx = 0;     //< Slot to read in inQueue
-	static uint8_t _state = 0;        //< Current state
+	static state_t _state = STATE_RESET;
 	#pragma HLS RESET variable=_state
-	static taskwaitEntry_t _buffer;   //< Temporary storage for read data
+	static ap_uint<REM_FINI_QUEUE_IDX_BITS> _rIdx = 0; //< Slot to read in inQueue
+	static uint64_t _header; //< Temporary storage for head word
+	static uint64_t _taskId; //< Temporary storage for taskId word
+	static uint64_t _parentId; //< Temporary storage for parentId word
 
-	if (_state == 0) {
+	if (_state == STATE_RESET) {
 		//Under reset
 		_rIdx = 0;
 
-		_state = 1;
-	} else if (_state == 1) {
+		_state = STATE_READ_HEADER;
+	} else if (_state == STATE_READ_HEADER) {
 		//Waiting for a valid entry
-		_buffer = inQueue[_rIdx];
-		if (_buffer.valid == TASKWAIT_ENTRY_VALID) {
-			_state = 2;
+		_header = inQueue[_rIdx];
+		if (((_header >> REM_FINI_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+			_state = STATE_READ_BODY;
 		}
-	} else if (_state == 2) {
+	} else if (_state == STATE_READ_BODY) {
+		static ap_uint<REM_FINI_QUEUE_IDX_BITS> idx;
+
+		//Read the taskId
+		idx = _rIdx + 1;
+		_taskId = inQueue[idx];
+		inQueue[idx] = 0;
+
+		//Read the parentId
+		idx = _rIdx + 2;
+		_parentId = inQueue[idx];
+		inQueue[idx] = 0;
+
+		_state = STATE_UPDATE_ENTRY;
+	} else if (_state == STATE_UPDATE_ENTRY) {
 		//Mark the entry as invalid and increase the read index
-		inQueue[_rIdx].valid = TASKWAIT_ENTRY_INVALID;
-		_rIdx++;
-		_state = 3;
-	} else if (_state == 3) {
+
+		inQueue[_rIdx] = 0;
+		_rIdx = _rIdx + REM_FINI_ENTRY_WORDS;
+
+		_state = STATE_NOTIFY_TW;
+	} else if (_state == STATE_NOTIFY_TW) {
 		//Sent the data to outStream
-		// Format of the information:
+		// Header format:
 		// | 8b    | 8b    | 8b    | 8b    | 32b               |
 		// |       | accID |       | type  | components        |
-		// | taskId                                            |
-		// | parentId                                          |
-		// NOTE: accID, type, taskId and components are ignored. Some values are fixed
-		uint64_t tmp = 0 /*_buffer.accId*/;
-		tmp = (tmp << 16) | TASKWAIT_TYPE_FINISH /*_buffer.type*/;
-		tmp = (tmp << 32) | 1 /*_buffer.components*/;
+		// NOTE: accID, type and components are ignored. Their values are fixed
+		uint64_t tmp = 0 /*accId*/;
+		tmp = (tmp << 16) | TASKWAIT_TYPE_FINISH /*type*/;
+		tmp = (tmp << 32) | 1 /*components*/;
 
 		axiData64_t data;
 		data.keep = 0xFF;
@@ -97,13 +112,9 @@ void Remote_Finished_Task_Manager_wrapper(taskwaitEntry_t inQueue[QUEUE_SLOTS], 
 		outStream.write(data);
 
 		data.last = 1;
-		data.data = _buffer.parentId;
+		data.data = _parentId;
 		outStream.write(data);
 
-		_state = 1;
+		_state = STATE_READ_HEADER;
 	}
 }
-
-#undef QUEUE_
-#undef QUEUE_VALID
-#undef QUEUE_SLOTS

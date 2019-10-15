@@ -32,7 +32,7 @@
 #define NUM_DEPS_OFFSET   16
 #define NUM_COPIES_OFFSET 24
 #define VALID_OFFSET      56
-#define NEW_QUEUE_TASK_HEAD_WORDS 3 //< cmdHeader,parentId,taskType
+#define NEW_QUEUE_TASK_HEAD_WORDS 4 //< cmdHeader,taskId,parentId,taskType
 #define NEW_QUEUE_TASK_ARG_WORDS  1 //< argValue
 #define NEW_QUEUE_TASK_DEP_WORDS  1 //< flags+address
 #define NEW_QUEUE_TASK_COPY_WORDS 3 //< address,size+idx+flags,lenght+offset
@@ -43,8 +43,7 @@ typedef hls::stream<axiData_t> axiStream_t;
 typedef enum {
 	NEW_TM_RESET = 0,
 	NEW_TM_READ_W1,
-	NEW_TM_READ_W2,
-	NEW_TM_READ_W3,
+	NEW_TM_READ_HEAD,
 	NEW_TM_WAIT,
 	NEW_TM_READ_ARG,
 	NEW_TM_READ_DEP,
@@ -95,14 +94,14 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		_wCopyIdx = 0;
 
 		_state = NEW_TM_WAIT;
-	} else if (_state == NEW_TM_READ_W2) {
-		//Waiting for the 2nd word of new task header
-		_buffer[1] = inStream.read().data;
-
-		_state = NEW_TM_READ_W3;
-	} else if (_state == NEW_TM_READ_W3) {
-		//Waiting for the 3rd word of new task header
-		_buffer[2] = inStream.read().data;
+	} else if (_state == NEW_TM_READ_HEAD) {
+		//Waiting for the remaining task header words
+		//NOTE: The accelerator does not send the taskId as it does not known
+		_buffer[1 /*taskId idx*/] = 0xFFFF44446666AAAA;
+		for (size_t i = 2; i < NEW_QUEUE_TASK_HEAD_WORDS; i++) {
+		#pragma HLS UNROLL
+			_buffer[i] = inStream.read().data;
+		};
 
 		_state = NEW_TM_READ_CPY;
 	} else if (_state == NEW_TM_WAIT) {
@@ -113,7 +112,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 			_numDeps*NEW_QUEUE_TASK_DEP_WORDS +
 			_numCopies*NEW_QUEUE_TASK_COPY_WORDS;
 		if (neededSlots <= _availSlots) {
-			_state = NEW_TM_READ_W2;
+			_state = NEW_TM_READ_HEAD;
 		} else {
 			uint64_t head0 = newQueue[_rIdx];
 			if (((head0 >> VALID_OFFSET)&BITS_MASK_8) == NEW_QUEUE_INVALID) {
@@ -168,12 +167,12 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 			_wCopyIdx += 1;
 		}
 	} else if (_state == NEW_TM_WRITE_HEAD) {
-		//Write 2nd and 3rd words of header
-		ap_uint<10> idx;
-		idx = _wIdx + 1;
-		newQueue[idx] = _buffer[1];
-		idx = _wIdx + 2;
-		newQueue[idx] = _buffer[2];
+		//Write all words of header, but 1st one
+		for (size_t i = 1; i < NEW_QUEUE_TASK_HEAD_WORDS; i++) {
+		#pragma HLS UNROLL
+			ap_uint<10> idx = _wIdx + i;
+			newQueue[idx] = _buffer[i];
+		};
 
 		_state = NEW_TM_WRITE_VALID;
 	} else if (_state == NEW_TM_WRITE_VALID) {
