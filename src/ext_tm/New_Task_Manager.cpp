@@ -161,9 +161,11 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		} else {
 			ap_uint<10> idx = _wIdx + NEW_QUEUE_TASK_HEAD_WORDS +
 				_wCopyIdx*NEW_QUEUE_TASK_COPY_WORDS;
-			newQueue[idx + 0] = inStream.read().data;
-			newQueue[idx + 1] = inStream.read().data;
-			newQueue[idx + 2] = inStream.read().data;
+			newQueue[idx] = inStream.read().data;
+			idx += 1;
+			newQueue[idx] = inStream.read().data;
+			idx += 1;
+			newQueue[idx] = inStream.read().data;
 			_wCopyIdx += 1;
 		}
 	} else if (_state == NEW_TM_WRITE_HEAD) {
