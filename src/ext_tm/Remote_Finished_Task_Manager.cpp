@@ -31,8 +31,8 @@
 #define TASKWAIT_TYPE_FINISH       0x10
 #define TASKWAIT_TASK_MANAGER_ID   0x13
 
-#define REM_FINI_QUEUE_SIZE        2048
-#define REM_FINI_QUEUE_IDX_BITS    11   //< log2(REM_FINI_QUEUE_SIZE)
+#define REM_FINI_QUEUE_SIZE        1024
+#define REM_FINI_QUEUE_IDX_BITS    10   //< log2(REM_FINI_QUEUE_SIZE)
 #define REM_FINI_VALID_OFFSET      56   //< Offset in bits of valid field
 #define REM_FINI_ENTRY_WORDS       3    //< header, taskId, parentId
 
