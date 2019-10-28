@@ -63,7 +63,7 @@ typedef enum {
 	STATE_UPDATE_ENTRY,
 } state_t;
 
-void Taskwait_Task_Manager_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwaitEntry_t twInfo[CACHE_SIZE]) {
+void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwaitEntry_t twInfo[CACHE_SIZE]) {
 #pragma HLS INTERFACE axis port=inStream
 #pragma HLS INTERFACE axis port=outStream
 #pragma HLS INTERFACE bram port=twInfo

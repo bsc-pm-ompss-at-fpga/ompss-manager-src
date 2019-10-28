@@ -3,7 +3,6 @@ variable num_version [lindex $argv 1]
 variable board_part [lindex $argv 2]
 variable root_dir [lindex $argv 3]
 variable prj_dir [lindex $argv 4]
-variable extended_tm [lindex $argv 5]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -11,16 +10,13 @@ variable vivado_version [regsub -all {\.} [version -short] {_}]
 create_project -force [string tolower $name_IP] -part $board_part
 
 # If exists, add board IP repository
-if {$extended_tm} {
-	set_property ip_repo_paths [list [get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS/ext_tm] [current_project]
-} else {
-	set_property ip_repo_paths [list [get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS] [current_project]
-}
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS/extended" [current_project]
 
 # Update IP catalog
 update_ip_catalog
 
-if {[catch {source -notrace $root_dir/scripts/[string tolower $name_IP]_bd.tcl}]} {
+if {[catch {source $root_dir/scripts/[string tolower $name_IP]_bd.tcl}]} {
 	error "ERROR: Failed sourcing board base design"
 }
 
@@ -28,6 +24,7 @@ generate_target all [get_files  ./[string tolower $name_IP].srcs/sources_1/bd/$n
 make_wrapper -files [get_files ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/$name_IP.bd] -top
 add_files -norecurse ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/hdl/${name_IP}_wrapper.v
 
+set internal_IP_list [get_bd_cells * -filter {VLNV =~ bsc:ompss:* && VLNV !~ bsc:ompss:Command*}]
 set bram_list [regsub -all {/} [get_bd_intf_ports -filter {VLNV =~ xilinx.com:interface:bram_rtl*}] ""]
 
 ipx::package_project -root_dir $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
@@ -47,49 +44,70 @@ file copy $root_dir/vivado_ompss_fpga_logo.png $prj_dir/IP_packager/${name_IP}_$
 ipx::add_file $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/vivado_ompss_fpga_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
 set_property type LOGO [ipx::get_files src/vivado_ompss_fpga_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
+# Add extended_mode parameter to HDL files
+exec sed -i s/module\ ${name_IP}\$/\\0\ #(extended_mode=0)/g $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/${name_IP}.v
+exec sed -i s/${name_IP}\ ${name_IP}_i/parameter\ extended_mode=0\;\\n\\n${name_IP}\ #(.extended_mode(extended_mode))\ ${name_IP}_i/g $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/${name_IP}_wrapper.v
+
+# Encapsulate modules' instantiations with conditional generate construct
+foreach internal_IP_name $internal_IP_list {
+	set internal_IP_name ${name_IP}_[string trimleft $internal_IP_name "/"]_0
+	exec cat $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/${name_IP}.v | tr \$'\n' \$'\x01' | sed s/${internal_IP_name}\[^\;\]*\;/generate\\x01if(extended_mode)\\x01\\0\\x01endgenerate/g | tr \$'\x01' \$'\n' | tee $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/${name_IP}.v > /dev/null
+}
+
+update_compile_order -fileset sources_1
+ipx::merge_project_changes hdl_parameters [ipx::current_core]
+
 # Add num_accs parameter
 variable name_param "num_accs"
 ipx::add_user_parameter $name_param [ipx::current_core]
 set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 ipgui::add_param -name $name_param -component [ipx::current_core]
-set_property display_name {Number of accelerators} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property display_name "Number of accelerators" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 set_property tooltip "Number of accelerators to be managed by $name_IP" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property value 1 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 1 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
-if {$extended_tm} {
-	# Add num_tc_accs parameter
-	variable name_param "num_tc_accs"
-	ipx::add_user_parameter $name_param [ipx::current_core]
-	set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	ipgui::add_param -name $name_param -component [ipx::current_core]
-	set_property display_name {Number of task-creator accelerators} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property tooltip "Number of accelerators with task creating capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+# Add num_tc_accs parameter
+variable name_param "num_tc_accs"
+ipx::add_user_parameter $name_param [ipx::current_core]
+set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+ipgui::add_param -name $name_param -component [ipx::current_core]
+set_property display_name "Number of task-creator accelerators" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property tooltip "Number of accelerators with task creating capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
-	# Add num_tw_accs parameter
-	variable name_param "num_tw_accs"
-	ipx::add_user_parameter $name_param [ipx::current_core]
-	set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	ipgui::add_param -name $name_param -component [ipx::current_core]
-	set_property display_name {Number of accelerators with taskwait} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property tooltip "Number of accelerators with taskwait capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-	set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-	set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-}
+# Add num_tw_accs parameter
+variable name_param "num_tw_accs"
+ipx::add_user_parameter $name_param [ipx::current_core]
+set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+ipgui::add_param -name $name_param -component [ipx::current_core] -show_label {true}
+set_property display_name "Number of accelerators with taskwait" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property tooltip "Number of accelerators with taskwait capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+
+# Add extended_mode parameter
+variable name_param "extended_mode"
+set_property value_validation_type list [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_list {0 1} [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+ipgui::add_param -name $name_param -component [ipx::current_core] -display_name "Enable extended mode" -show_label {true} -show_range {true}
+set_property tooltip "Enable Smart OmpSs Manager extended mode features" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property widget "checkBox" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 
 foreach bram_intf $bram_list {
 	ipx::remove_bus_interface ${bram_intf}_clk [ipx::current_core]
@@ -113,37 +131,33 @@ foreach bram_intf $bram_list {
 		set_property value 256 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {[string match -nocase "*bitInfo*" $bram_intf]} {
 		set_property value 32 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-	}
-
-	if {$extended_tm} {
-		if {[string match -nocase "*newQueue*" $bram_intf]} {
-			set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-			set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		} elseif {[string match -nocase "*twInfo*" $bram_intf]} {
-			set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-			set_property value 4096 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		} elseif {[string match "*inQueue*" $bram_intf]} {
-			set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-			set_property value 16384 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		}
+	} elseif {[string match -nocase "*newQueue*" $bram_intf]} {
+		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+	} elseif {[string match -nocase "*twInfo*" $bram_intf]} {
+		set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value 4096 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+	} elseif {[string match "*inQueue*" $bram_intf]} {
+		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	}
 }
 
 for {set i 0} {$i < 16} {incr i} {
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces inStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces outStream_$i -of_objects [ipx::current_core]]
-
-	if {$extended_tm} {
-		set_property enablement_dependency "\$num_tc_accs > $i" [ipx::get_bus_interfaces ext_inStream_$i -of_objects [ipx::current_core]]
-		set_property enablement_dependency "\$num_tw_accs > $i" [ipx::get_bus_interfaces twOutStream_$i -of_objects [ipx::current_core]]
-	}
+	set_property enablement_dependency "\$num_tc_accs > $i" [ipx::get_bus_interfaces ext_inStream_$i -of_objects [ipx::current_core]]
+	set_property enablement_dependency "\$num_tw_accs > $i" [ipx::get_bus_interfaces twOutStream_$i -of_objects [ipx::current_core]]
 }
 
-ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
-if {$extended_tm} {
-	ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
-	ipgui::move_param -component [ipx::current_core] -order 2 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
-}
+ipgui::remove_page -component [ipx::current_core] [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
+ipgui::add_group -name "Extended Mode" -component [ipx::current_core] -display_name "Extended Mode" -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+
+ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "extended_mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:1.0 [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
@@ -152,6 +166,7 @@ foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_v
 	encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
 }
 
+update_compile_order -fileset sources_1
 ipx::merge_project_changes files [ipx::current_core]
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]

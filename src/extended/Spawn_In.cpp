@@ -49,15 +49,15 @@ typedef enum {
   STATE_NOTIFY_TW
 } state_t;
 
-void Remote_Finished_Task_Manager_wrapper(uint64_t inQueue[REM_FINI_QUEUE_SIZE], axiStream64_t &outStream) {
+void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t &outStream) {
 #pragma HLS INTERFACE axis port=outStream
-#pragma HLS INTERFACE bram port=inQueue
-#pragma HLS RESOURCE variable=inQueue core=RAM_1P_BRAM
+#pragma HLS INTERFACE bram port=SpawnInQueue
+#pragma HLS RESOURCE variable=SpawnInQueue core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
 	static state_t _state = STATE_RESET;
 	#pragma HLS RESET variable=_state
-	static ap_uint<REM_FINI_QUEUE_IDX_BITS> _rIdx = 0; //< Slot to read in inQueue
+	static ap_uint<REM_FINI_QUEUE_IDX_BITS> _rIdx = 0; //< Slot to read in SpawnInQueue
 	static uint64_t _header; //< Temporary storage for head word
 	static uint64_t _taskId; //< Temporary storage for taskId word
 	static uint64_t _parentId; //< Temporary storage for parentId word
@@ -69,7 +69,7 @@ void Remote_Finished_Task_Manager_wrapper(uint64_t inQueue[REM_FINI_QUEUE_SIZE],
 		_state = STATE_READ_HEADER;
 	} else if (_state == STATE_READ_HEADER) {
 		//Waiting for a valid entry
-		_header = inQueue[_rIdx];
+		_header = SpawnInQueue[_rIdx];
 		if (((_header >> REM_FINI_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
 			_state = STATE_READ_BODY;
 		}
@@ -78,19 +78,19 @@ void Remote_Finished_Task_Manager_wrapper(uint64_t inQueue[REM_FINI_QUEUE_SIZE],
 
 		//Read the taskId
 		idx = _rIdx + 1;
-		_taskId = inQueue[idx];
-		inQueue[idx] = 0;
+		_taskId = SpawnInQueue[idx];
+		SpawnInQueue[idx] = 0;
 
 		//Read the parentId
 		idx = _rIdx + 2;
-		_parentId = inQueue[idx];
-		inQueue[idx] = 0;
+		_parentId = SpawnInQueue[idx];
+		SpawnInQueue[idx] = 0;
 
 		_state = STATE_UPDATE_ENTRY;
 	} else if (_state == STATE_UPDATE_ENTRY) {
 		//Mark the entry as invalid and increase the read index
 
-		inQueue[_rIdx] = 0;
+		SpawnInQueue[_rIdx] = 0;
 		_rIdx = _rIdx + REM_FINI_ENTRY_WORDS;
 
 		_state = STATE_NOTIFY_TW;

@@ -79,7 +79,7 @@ typedef enum {
 	SCHED_TM_CLEAN
 } sched_tm_state_t;
 
-void Scheduler_Task_Manager_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream, uint32_t bitInfo[256]) {
+void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream, uint32_t bitInfo[256]) {
 #pragma HLS INTERFACE axis port=inStream
 #pragma HLS INTERFACE bram port=intCmdInQueue bundle=intCmdInQueue
 #pragma HLS DATA_PACK variable=intCmdInQueue struct_level
