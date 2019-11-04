@@ -131,6 +131,7 @@ foreach bram_intf $bram_list {
 		set_property value 256 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "bitInfo"} {
 		set_property value 32 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
 	} elseif {[string match "intCmdInQueue_*" $bram_intf]} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
