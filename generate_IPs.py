@@ -24,6 +24,7 @@ import os
 import sys
 import re
 import glob
+import json
 import shutil
 import subprocess
 import argparse
@@ -214,12 +215,12 @@ os.makedirs('./ompss_manager_IP/IP_packager')
 
 if not args.disable_tm:
     os.makedirs('./ompss_manager_IP/Vivado/command_tm')
-    f = open('./ompss_manager_IP/IP_packager/command_tm_resource_utilization.txt', 'w')
-    f.write(str(used_resources[False]) + '\n')
+    f = open('./ompss_manager_IP/IP_packager/command_tm_resource_utilization.json', 'w')
+    f.write(json.dumps(used_resources[False]) + '\n')
     generate_IP()
 
 if not args.disable_extended_tm:
     os.makedirs('./ompss_manager_IP/Vivado/ext_tm/command_etm')
-    f = open('./ompss_manager_IP/IP_packager/command_etm_resource_utilization.txt', 'w')
-    f.write(str(used_resources[True]) + '\n')
+    f = open('./ompss_manager_IP/IP_packager/command_etm_resource_utilization.json', 'w')
+    f.write(json.dumps(used_resources[True]) + '\n')
     generate_IP(True)
