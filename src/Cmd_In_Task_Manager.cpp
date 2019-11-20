@@ -113,7 +113,7 @@ void compareAndSendTask(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX
 			ap_uint<1> copyFlag_bit = next_arg[0].range(4,4) & !arg[0].range(7,7) & !arg[0].range(4,4);
 			next_arg[0].range(7,7) = !copyFlag_bit & next_arg[0].range(4,4);
 			next_arg[0].range(4,4) = copyFlag_bit;
-			//arg[0].range(5,5) = arg[0].range(5,5) & !next_arg[0].range(5,5);
+			arg[0].range(5,5) = arg[0].range(5,5) & !next_arg[0].range(5,5);
 
 			subqueue[ap_uint<CMD_IN_SUBQUEUE_IDX_BITS>(next_offset + i)] = next_arg[0];
 		}
