@@ -134,6 +134,14 @@ void compareAndSendTask(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX
 
 }
 
+uint8_t getCmdValid(const uint64_t header) {
+	return (header >> CMD_IN_VALID_OFFSET)&BITS_MASK_8;
+}
+
+uint8_t getCmdCode(const uint64_t header) {
+	return header&BITS_MASK_8;
+}
+
 uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 	uint8_t length = 0;
 	if (cmdCode == CMD_EXEC_TASK_CODE) {
@@ -202,8 +210,8 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 		// Check cmdInQueue
 		subqueue_offset = cmdInQueue_index[accId];
 		word = cmdInQueue[queue_offset + subqueue_offset];
-		if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
-			cmdCode = word&BITS_MASK_8;
+		if (getCmdValid(word) == QUEUE_VALID) {
+			cmdCode = getCmdCode(word);
 
 			// Mark accelerator as busy if the command requires it
 			if (cmdCode.get_bit(0) == 1) {
@@ -212,21 +220,11 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 
 			// Send command to accelerator
 			cmdLength = getCmdLength(cmdCode, word);
-
-			// Execute Task command
-			if (cmdCode == CMD_EXEC_TASK_CODE) {
-				next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
-				next_word = cmdInQueue[queue_offset + next_subqueue_offset];
-				if (((next_word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
-					next_cmdCode = next_word&BITS_MASK_8;
-					if (next_cmdCode == 1) {
-						compareAndSendTask(&cmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
-					} else {
-						sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
-					}
-				} else {
-					sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
-				}
+			next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
+			next_word = cmdInQueue[queue_offset + next_subqueue_offset];
+			if (cmdCode == CMD_EXEC_TASK_CODE && getCmdCode(next_word) == CMD_EXEC_TASK_CODE && getCmdValid(next_word) == QUEUE_VALID) {
+				// Two consecutive Execute Task commands that may be optimized
+				compareAndSendTask(&cmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
 			} else {
 				sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
 			}
@@ -244,8 +242,8 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 			// Check intCmdInQueue
 			subqueue_offset = intCmdInQueue_index[accId];
 			word = intCmdInQueue[queue_offset + subqueue_offset];
-			if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
-				cmdCode = word&BITS_MASK_8;
+			if (getCmdValid(word) == QUEUE_VALID) {
+				cmdCode = getCmdCode(word);
 
 				// Mark accelerator as busy if the command requires it
 				if (cmdCode.get_bit(0) == 1) {
@@ -254,7 +252,14 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 
 				// Send command to accelerator
 				cmdLength = getCmdLength(cmdCode, word);
-				sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+				next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
+				next_word = intCmdInQueue[queue_offset + next_subqueue_offset];
+				if (cmdCode == CMD_EXEC_TASK_CODE && getCmdCode(next_word) == CMD_EXEC_TASK_CODE && getCmdValid(next_word) == QUEUE_VALID) {
+					// Two consecutive Execute Task commands that may be optimized
+					compareAndSendTask(&intCmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
+				} else {
+					sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+				}
 
 				//NOTE: The head word cannot be set to 0, we must just clean the valid bits.
 				invalidateMask = BITS_MASK_8;
