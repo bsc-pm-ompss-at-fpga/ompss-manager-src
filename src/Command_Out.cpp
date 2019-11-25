@@ -164,11 +164,8 @@ void Command_Out_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailabili
 		cmdOutQueue[idx] = taskId;
 
 		//Read the out command payload: parent task id
-		uint64_t parentId = inStream.read().data;
-		if (parentId) {
-			//NOTE: The 1st payload word is the parent task id
-			notifyTaskCompletion(outStream, parentId);
-		}
+		inStream.read().data;
+		//NOTE: If any, the finalization notification to the TW will be sent by the host
 
 		// Mark accelerator as available
 		accAvailability[_accId] = ACC_AVAIL_FROM_NONE;

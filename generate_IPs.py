@@ -24,6 +24,7 @@ import os
 import sys
 import re
 import glob
+import json
 import shutil
 import subprocess
 import argparse
@@ -201,11 +202,11 @@ os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
 os.makedirs('./som_IP/IP_packager')
 
 # SmartOmpSsManager utilization
-f = open('./som_IP/IP_packager/som_resource_utilization.txt', 'w')
-f.write(str(used_resources[False]) + '\n')
+f = open('./som_IP/IP_packager/som__resource_utilization.json', 'w')
+f.write(json.dumps(used_resources[False]) + '\n')
 
 # Extended SmartOmpSsManager utilization
-f = open('./som_IP/IP_packager/ext_som_resource_utilization.txt', 'w')
-f.write(str(used_resources[True]) + '\n')
+f = open('./som_IP/IP_packager/ext_som_resource_utilization.json', 'w')
+f.write(json.dumps(used_resources[True]) + '\n')
 
 generate_IP()
