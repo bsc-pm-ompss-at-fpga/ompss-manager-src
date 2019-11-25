@@ -205,7 +205,7 @@ os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
 os.makedirs('./som_IP/IP_packager')
 
 # SmartOmpSsManager utilization
-f = open('./som_IP/IP_packager/som__resource_utilization.json', 'w')
+f = open('./som_IP/IP_packager/som_resource_utilization.json', 'w')
 f.write(json.dumps(used_resources[False]) + '\n')
 
 # Extended SmartOmpSsManager utilization
