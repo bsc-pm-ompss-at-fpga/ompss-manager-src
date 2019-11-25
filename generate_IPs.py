@@ -92,7 +92,10 @@ def compute_resource_utilization(acc_path, extended=False):
     root = tree.getroot()
 
     for resource in root.find('AreaEstimates').find('Resources'):
-        used_resources[extended][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
+        if not extended:
+            used_resources[False][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
+
+        used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
 
 
 def generate_IP():
