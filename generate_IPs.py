@@ -104,7 +104,7 @@ def generate_IP():
     prj_path = './som_IP/Vivado/SmartOmpSsManager'
 
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/ompss_manager_ip_packager.tcl -tclargs '
+                         + os.getcwd() + '/scripts/som_ip_packager.tcl -tclargs '
                          + 'SmartOmpSsManager '
                          + '1.0 ' + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/som_IP'), cwd=prj_path,

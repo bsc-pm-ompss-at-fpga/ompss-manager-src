@@ -16,7 +16,7 @@ set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $prj_
 # Update IP catalog
 update_ip_catalog
 
-if {[catch {source $root_dir/scripts/[string tolower $name_IP]_bd.tcl}]} {
+if {[catch {source $root_dir/scripts/${name_IP}_bd.tcl}]} {
 	error "ERROR: Failed sourcing board base design"
 }
 
