@@ -25,16 +25,16 @@
 
 #define QUEUE_VALID           0x80
 #define QUEUE_INVALID         0x00
-#define MAX_ACCS              32
-#define ACC_IDX_BITS          5    //< log2(MAX_ACCS)
+#define MAX_ACCS              16
+#define ACC_IDX_BITS          4    //< log2(MAX_ACCS)
 #define BITS_MASK_16          0xFFFF
 #define BITS_MASK_8           0xFF
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
 #define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
 #define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
 
-#define CMD_IN_QUEUE_SIZE              2048
-#define CMD_IN_QUEUE_IDX_BITS          11   //< log2(CMD_IN_QUEUE_SIZE)
+#define CMD_IN_QUEUE_SIZE              1024
+#define CMD_IN_QUEUE_IDX_BITS          10   //< log2(CMD_IN_QUEUE_SIZE)
 #define CMD_IN_SUBQUEUE_IDX_BITS       6    //< log2(CMD_IN_QUEUE_SIZE/MAX_ACCS)
 #define CMD_IN_VALID_OFFSET            56   //< Offset in bits of valid field
 #define CMD_IN_EXECTASK_NUMARGS_OFFSET 8

@@ -36,8 +36,8 @@
 #define TASKWAIT_TASK_MANAGER_ID   0x13
 
 //NOTE: We should not have more than 1 task per accelerator
-#define CACHE_SIZE 32
-#define CACHE_IDX_BITS 5
+#define CACHE_SIZE 16
+#define CACHE_IDX_BITS 4
 
 typedef ap_axis<8,1,1,5> axiData8_t;
 typedef ap_axis<64,1,1,5> axiData64_t;
