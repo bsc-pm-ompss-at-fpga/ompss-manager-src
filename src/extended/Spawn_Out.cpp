@@ -53,10 +53,10 @@ typedef enum {
 	NEW_TM_CLEAN
 } new_tm_state_t;
 
-void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiStream_t &inStream) {
+void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStream_t &inStream) {
 #pragma HLS INTERFACE axis port=inStream
-#pragma HLS INTERFACE bram port=newQueue bundle=newQueue
-#pragma HLS RESOURCE variable=newQueue core=RAM_1P_BRAM
+#pragma HLS INTERFACE bram port=SpawnOutQueue bundle=SpawnOutQueue
+#pragma HLS RESOURCE variable=SpawnOutQueue core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
 	static ap_uint<10> _wIdx = 0; //< Slot where the current task creation starts
@@ -105,7 +105,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 
 		_state = NEW_TM_READ_CPY;
 	} else if (_state == NEW_TM_WAIT) {
-		//Waiting for enough available slots in newQueue
+		//Waiting for enough available slots in SpawnOutQueue
 		ap_uint<10> neededSlots =
 			NEW_QUEUE_TASK_HEAD_WORDS +
 			_numArgs*NEW_QUEUE_TASK_ARG_WORDS +
@@ -114,7 +114,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		if (neededSlots <= _availSlots) {
 			_state = NEW_TM_READ_HEAD;
 		} else {
-			uint64_t head0 = newQueue[_rIdx];
+			uint64_t head0 = SpawnOutQueue[_rIdx];
 			if (((head0 >> VALID_OFFSET)&BITS_MASK_8) == NEW_QUEUE_INVALID) {
 				uint64_t tmpArgs = (head0 >> NUM_ARGS_OFFSET)&BITS_MASK_8;
 				ap_uint<8> tmpNumArgs = tmpArgs;
@@ -140,7 +140,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 				_wArgIdx*NEW_QUEUE_TASK_ARG_WORDS +
 				_numDeps*NEW_QUEUE_TASK_DEP_WORDS +
 				_numCopies*NEW_QUEUE_TASK_COPY_WORDS;
-			newQueue[idx] = inStream.read().data;
+			SpawnOutQueue[idx] = inStream.read().data;
 			_wArgIdx += 1;
 		}
 	} else if (_state == NEW_TM_READ_DEP) {
@@ -151,7 +151,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 			ap_uint<10> idx = _wIdx + NEW_QUEUE_TASK_HEAD_WORDS +
 				_wDepIdx*NEW_QUEUE_TASK_DEP_WORDS +
 				_numCopies*NEW_QUEUE_TASK_COPY_WORDS;
-			newQueue[idx] = inStream.read().data;
+			SpawnOutQueue[idx] = inStream.read().data;
 			_wDepIdx += 1;
 		}
 	} else if (_state == NEW_TM_READ_CPY) {
@@ -161,11 +161,11 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		} else {
 			ap_uint<10> idx = _wIdx + NEW_QUEUE_TASK_HEAD_WORDS +
 				_wCopyIdx*NEW_QUEUE_TASK_COPY_WORDS;
-			newQueue[idx] = inStream.read().data;
+			SpawnOutQueue[idx] = inStream.read().data;
 			idx += 1;
-			newQueue[idx] = inStream.read().data;
+			SpawnOutQueue[idx] = inStream.read().data;
 			idx += 1;
-			newQueue[idx] = inStream.read().data;
+			SpawnOutQueue[idx] = inStream.read().data;
 			_wCopyIdx += 1;
 		}
 	} else if (_state == NEW_TM_WRITE_HEAD) {
@@ -173,7 +173,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		for (size_t i = 1; i < NEW_QUEUE_TASK_HEAD_WORDS; i++) {
 		#pragma HLS UNROLL
 			ap_uint<10> idx = _wIdx + i;
-			newQueue[idx] = _buffer[i];
+			SpawnOutQueue[idx] = _buffer[i];
 		};
 
 		_state = NEW_TM_WRITE_VALID;
@@ -181,7 +181,7 @@ void New_Task_Manager_wrapper(uint64_t volatile newQueue[NEW_QUEUE_SLOTS], axiSt
 		//Write 1st word of header
 		uint64_t tmp = NEW_QUEUE_VALID;
 		tmp = (tmp << VALID_OFFSET) | _buffer[0]; //< Ensure task entry is marked as ready
-		newQueue[_wIdx] = tmp;
+		SpawnOutQueue[_wIdx] = tmp;
 
 		_state = NEW_TM_CLEAN;
 	} else if (_state == NEW_TM_CLEAN) {

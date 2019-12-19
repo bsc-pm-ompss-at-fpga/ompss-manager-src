@@ -25,8 +25,8 @@
 
 #define QUEUE_VALID           0x80
 #define QUEUE_INVALID         0x00
-#define MAX_ACCS              32
-#define ACC_IDX_BITS          5    //< log2(MAX_ACCS)
+#define MAX_ACCS              16
+#define ACC_IDX_BITS          4    //< log2(MAX_ACCS)
 #define BITS_MASK_8           0xFF
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
 #define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
@@ -34,7 +34,7 @@
 
 #define CMD_OUT_QUEUE_SIZE             1024
 #define CMD_OUT_QUEUE_IDX_BITS         10   //< log2(CMD_OUT_QUEUE_SIZE)
-#define CMD_OUT_SUBQUEUE_IDX_BITS      5    //< log2(CMD_OUT_QUEUE_SIZE/MAX_ACCS)
+#define CMD_OUT_SUBQUEUE_IDX_BITS      6    //< log2(CMD_OUT_QUEUE_SIZE/MAX_ACCS)
 #define CMD_OUT_VALID_OFFSET           56   //< Offset in bits of valid field
 
 #define ACC_AVAIL_FROM_NONE   0x0
@@ -60,7 +60,6 @@ typedef enum {
 	CMD_OUT_TM_CLEAN
 } cmd_out_tm_state_t;
 
-#ifdef EXT_OMPSS_MANAGER
 void notifyTaskCompletion(axiStream64_t &tw_stream, ap_uint<64> parent_id) {
 	axiData64_t data;
 	data.data = 0x8000001000000001; //< See TW Task Manager source. Set bits are: VALID, FINISH TYPE, 1 TASK COUNT
@@ -72,7 +71,6 @@ void notifyTaskCompletion(axiStream64_t &tw_stream, ap_uint<64> parent_id) {
 	data.last = 1;
 	tw_stream.write(data);
 }
-#endif //EXT_OMPSS_MANAGER
 
 uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 	uint8_t length = 0;
@@ -91,21 +89,15 @@ uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 	return length;
 }
 
-#ifdef EXT_OMPSS_MANAGER
-void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailability_t accAvailability[MAX_ACCS],
+void Command_Out_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailability_t accAvailability[MAX_ACCS],
 	axiStream64_t &inStream, axiStream64_t &outStream)
 {
-#pragma HLS INTERFACE axis port=outStream
-#else
-void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailability_t accAvailability[MAX_ACCS],
-	axiStream64_t &inStream)
-{
-#endif //EXT_OMPSS_MANAGER
-#pragma HLS INTERFACE axis port=inStream
-#pragma HLS INTERFACE bram port=cmdOutQueue
-#pragma HLS INTERFACE bram port=accAvailability
-#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
-#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS INTERFACE axis port=outStream
+	#pragma HLS INTERFACE axis port=inStream
+	#pragma HLS INTERFACE bram port=cmdOutQueue
+	#pragma HLS INTERFACE bram port=accAvailability
+	#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
 	static ap_uint<CMD_OUT_QUEUE_IDX_BITS> _queueOffset; //< Offset where the current writing subqueue of finshedQueue starts
 	static ap_uint<CMD_OUT_SUBQUEUE_IDX_BITS> _wIdx[MAX_ACCS]; //< Slot where the current out command starts
@@ -114,7 +106,7 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 	static cmd_out_tm_state_t _state = CMD_OUT_TM_RESET; //< Current state
 	#pragma HLS RESET variable=_state
 	static ap_uint<8> _accId; //< Accelerator ID that is sending the out command
-        static ap_uint<8> _cmdCode; //< Out command code
+	static ap_uint<8> _cmdCode; //< Out command code
 	static uint64_t _cmdHeader; //< Out command header
 	static uint8_t _cmdLength; //< Number of words that payload of out command has
 
@@ -147,13 +139,8 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 		_accId = inPkg.id;
 		_queueOffset = _accId*(CMD_OUT_QUEUE_SIZE/MAX_ACCS);
 
-#ifdef EXT_OMPSS_MANAGER
 		accAvailability_t availInfo = accAvailability[_accId];
 		_state = availInfo == ACC_AVAIL_FROM_CMDIN ? CMD_OUT_TM_WAIT : CMD_OUT_TM_READ_FINI_EXEC_INT;
-#else
-		//NOTE: In this case the value will always be ACC_AVAIL_FROM_CMDIN
-		_state = CMD_OUT_TM_WAIT;
-#endif //EXT_OMPSS_MANAGER
 	} else if (_state == CMD_OUT_TM_WAIT) {
 		//Waiting for enough available slots in cmdOutQueue
 		ap_uint<CMD_OUT_SUBQUEUE_IDX_BITS> neededSlots = 1 /*header*/ + _cmdLength;
@@ -184,7 +171,6 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 		accAvailability[_accId] = ACC_AVAIL_FROM_NONE;
 
 		_state = CMD_OUT_TM_WRITE_HEAD;
-#ifdef EXT_OMPSS_MANAGER
 	} else if (_state == CMD_OUT_TM_READ_FINI_EXEC_INT) {
 		//Read the out command payload: task id
 		inStream.read();
@@ -199,7 +185,6 @@ void Cmd_Out_Task_Manager_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accA
 		accAvailability[_accId] = ACC_AVAIL_FROM_NONE;
 
 		_state = CMD_OUT_TM_READ_HEAD;
-#endif //EXT_OMPSS_MANAGER
 	} else if (_state == CMD_OUT_TM_WRITE_HEAD) {
 		//Write the command header
 		ap_uint<CMD_OUT_SUBQUEUE_IDX_BITS> subqueueIdx = _wIdx[_accId];

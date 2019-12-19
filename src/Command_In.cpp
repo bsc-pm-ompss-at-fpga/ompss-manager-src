@@ -25,16 +25,16 @@
 
 #define QUEUE_VALID           0x80
 #define QUEUE_INVALID         0x00
-#define MAX_ACCS              32
-#define ACC_IDX_BITS          5    //< log2(MAX_ACCS)
+#define MAX_ACCS              16
+#define ACC_IDX_BITS          4    //< log2(MAX_ACCS)
 #define BITS_MASK_16          0xFFFF
 #define BITS_MASK_8           0xFF
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
 #define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
 #define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
 
-#define CMD_IN_QUEUE_SIZE              2048
-#define CMD_IN_QUEUE_IDX_BITS          11   //< log2(CMD_IN_QUEUE_SIZE)
+#define CMD_IN_QUEUE_SIZE              1024
+#define CMD_IN_QUEUE_IDX_BITS          10   //< log2(CMD_IN_QUEUE_SIZE)
 #define CMD_IN_SUBQUEUE_IDX_BITS       6    //< log2(CMD_IN_QUEUE_SIZE/MAX_ACCS)
 #define CMD_IN_VALID_OFFSET            56   //< Offset in bits of valid field
 #define CMD_IN_EXECTASK_NUMARGS_OFFSET 8
@@ -61,7 +61,7 @@ void sendCommand(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> 
 
 	sendCommandToAccelerator:
 	for (uint8_t i = 0; i < length; i++) {
-#pragma HLS PIPELINE
+	#pragma HLS PIPELINE
 		data.last = ((i + 1) == length);
 		data.data = subqueue[offset];
 		outStream.write(data);
@@ -134,14 +134,6 @@ void compareAndSendTask(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX
 
 }
 
-uint8_t getCmdValid(const uint64_t header) {
-	return (header >> CMD_IN_VALID_OFFSET)&BITS_MASK_8;
-}
-
-uint8_t getCmdCode(const uint64_t header) {
-	return header&BITS_MASK_8;
-}
-
 uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 	uint8_t length = 0;
 	if (cmdCode == CMD_EXEC_TASK_CODE) {
@@ -160,22 +152,16 @@ uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 	return length;
 }
 
-#ifdef EXT_OMPSS_MANAGER
-void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE], uint64_t intCmdInQueue[CMD_IN_QUEUE_SIZE],
+void Command_In_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE], uint64_t intCmdInQueue[CMD_IN_QUEUE_SIZE],
 	accAvailability_t accAvailability[MAX_ACCS], axiStream64_t &outStream)
 {
-#pragma HLS INTERFACE bram port=intCmdInQueue
-#pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
-#else
-void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
-	accAvailability_t accAvailability[MAX_ACCS], axiStream64_t &outStream)
-{
-#endif //EXT_OMPSS_MANAGER
-#pragma HLS INTERFACE axis port=outStream
-#pragma HLS INTERFACE bram port=cmdInQueue
-#pragma HLS INTERFACE bram port=accAvailability
-#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
-#pragma HLS INTERFACE ap_ctrl_none port=return
+	#pragma HLS INTERFACE bram port=intCmdInQueue
+	#pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
+	#pragma HLS INTERFACE axis port=outStream
+	#pragma HLS INTERFACE bram port=cmdInQueue
+	#pragma HLS INTERFACE bram port=accAvailability
+	#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
+	#pragma HLS INTERFACE ap_ctrl_none port=return
 
 	ap_uint<CMD_IN_QUEUE_IDX_BITS> queue_offset;
 	ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> subqueue_offset, next_subqueue_offset;
@@ -184,10 +170,8 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 	ap_uint<8> cmdCode, next_cmdCode;
 	static ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> cmdInQueue_index[MAX_ACCS] = {0};
 	#pragma HLS RESET variable=cmdInQueue_index
-#ifdef EXT_OMPSS_MANAGER
 	static ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> intCmdInQueue_index[MAX_ACCS] = {0};
 	#pragma HLS RESET variable=intCmdInQueue_index
-#endif //EXT_OMPSS_MANAGER
 	static ap_uint<ACC_IDX_BITS> accId = 0;
 	#pragma HLS RESET variable=accId
 	static ap_uint<1> doCleanup = 1;
@@ -210,8 +194,8 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 		// Check cmdInQueue
 		subqueue_offset = cmdInQueue_index[accId];
 		word = cmdInQueue[queue_offset + subqueue_offset];
-		if (getCmdValid(word) == QUEUE_VALID) {
-			cmdCode = getCmdCode(word);
+		if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+			cmdCode = word&BITS_MASK_8;
 
 			// Mark accelerator as busy if the command requires it
 			if (cmdCode.get_bit(0) == 1) {
@@ -220,11 +204,21 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 
 			// Send command to accelerator
 			cmdLength = getCmdLength(cmdCode, word);
-			next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
-			next_word = cmdInQueue[queue_offset + next_subqueue_offset];
-			if (cmdCode == CMD_EXEC_TASK_CODE && getCmdCode(next_word) == CMD_EXEC_TASK_CODE && getCmdValid(next_word) == QUEUE_VALID) {
-				// Two consecutive Execute Task commands that may be optimized
-				compareAndSendTask(&cmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
+
+			// Execute Task command
+			if (cmdCode == CMD_EXEC_TASK_CODE) {
+				next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
+				next_word = cmdInQueue[queue_offset + next_subqueue_offset];
+				if (((next_word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+					next_cmdCode = next_word&BITS_MASK_8;
+					if (next_cmdCode == 1) {
+						compareAndSendTask(&cmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
+					} else {
+						sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+					}
+				} else {
+					sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+				}
 			} else {
 				sendCommand(&cmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
 			}
@@ -237,13 +231,12 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 
 			// Set next header idx
 			cmdInQueue_index[accId] = subqueue_offset + 1 /*command header*/ + cmdLength;
-#ifdef EXT_OMPSS_MANAGER
 		} else {
 			// Check intCmdInQueue
 			subqueue_offset = intCmdInQueue_index[accId];
 			word = intCmdInQueue[queue_offset + subqueue_offset];
-			if (getCmdValid(word) == QUEUE_VALID) {
-				cmdCode = getCmdCode(word);
+			if (((word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+				cmdCode = word&BITS_MASK_8;
 
 				// Mark accelerator as busy if the command requires it
 				if (cmdCode.get_bit(0) == 1) {
@@ -252,14 +245,7 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 
 				// Send command to accelerator
 				cmdLength = getCmdLength(cmdCode, word);
-				next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
-				next_word = intCmdInQueue[queue_offset + next_subqueue_offset];
-				if (cmdCode == CMD_EXEC_TASK_CODE && getCmdCode(next_word) == CMD_EXEC_TASK_CODE && getCmdValid(next_word) == QUEUE_VALID) {
-					// Two consecutive Execute Task commands that may be optimized
-					compareAndSendTask(&intCmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
-				} else {
-					sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
-				}
+				sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
 
 				//NOTE: The head word cannot be set to 0, we must just clean the valid bits.
 				invalidateMask = BITS_MASK_8;
@@ -270,7 +256,6 @@ void Cmd_In_Task_Manager_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE],
 				// Set next header idx
 				intCmdInQueue_index[accId] = subqueue_offset + 1 /*command header*/ + cmdLength;
 			}
-#endif //EXT_OMPSS_MANAGER
 		}
 
 	}
