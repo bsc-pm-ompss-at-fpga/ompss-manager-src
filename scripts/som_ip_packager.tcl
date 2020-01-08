@@ -1,8 +1,9 @@
 variable name_IP [lindex $argv 0]
-variable num_version [lindex $argv 1]
-variable board_part [lindex $argv 2]
-variable root_dir [lindex $argv 3]
-variable prj_dir [lindex $argv 4]
+variable current_version [lindex $argv 1]
+variable previous_version [lindex $argv 2]
+variable board_part [lindex $argv 3]
+variable root_dir [lindex $argv 4]
+variable prj_dir [lindex $argv 5]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -167,7 +168,7 @@ ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec 
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 
-set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:1.0 [ipx::current_core]
+set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
 
 foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${num_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
