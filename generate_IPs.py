@@ -31,6 +31,8 @@ import argparse
 from distutils import spawn
 import xml.etree.cElementTree as cET
 
+MAJOR_VERSION = 1
+MINOR_VERSION = 0
 
 class Logger(object):
     def __init__(self):
@@ -106,7 +108,7 @@ def generate_IP():
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/som_ip_packager.tcl -tclargs '
                          + 'SmartOmpSsManager '
-                         + '1.0 ' + args.board_part + ' ' + os.getcwd() + ' '
+                         + MAJOR_VERSION + '.' + MINOR_VERSION + ' ' + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/som_IP'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
