@@ -32,7 +32,7 @@ from distutils import spawn
 import xml.etree.cElementTree as cET
 
 MAJOR_VERSION = 1
-MINOR_VERSION = 0
+MINOR_VERSION = 1
 
 PREVIOUS_MAJOR_VERSION = 1
 PREVIOUS_MINOR_VERSION = 0
