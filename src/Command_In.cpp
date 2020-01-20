@@ -245,7 +245,22 @@ void Command_In_wrapper(uint64_t cmdInQueue[CMD_IN_QUEUE_SIZE], uint64_t intCmdI
 
 				// Send command to accelerator
 				cmdLength = getCmdLength(cmdCode, word);
-				sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+				if (cmdCode == CMD_EXEC_TASK_CODE) {
+					next_subqueue_offset = subqueue_offset + 1 /*command header*/ + cmdLength;
+					next_word = intCmdInQueue[queue_offset + next_subqueue_offset];
+					if (((next_word >> CMD_IN_VALID_OFFSET)&BITS_MASK_8) == QUEUE_VALID) {
+						next_cmdCode = next_word&BITS_MASK_8;
+						if (next_cmdCode == 1) {
+							compareAndSendTask(&intCmdInQueue[queue_offset], subqueue_offset, next_subqueue_offset, cmdLength, outStream, accId);
+						} else {
+							sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+						}
+					} else {
+						sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+					}
+				} else {
+					sendCommand(&intCmdInQueue[queue_offset], subqueue_offset, cmdLength, outStream, accId);
+				}
 
 				//NOTE: The head word cannot be set to 0, we must just clean the valid bits.
 				invalidateMask = BITS_MASK_8;
