@@ -210,9 +210,9 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 				break;
 			}
 		}
-		_accId = (_lastAccId[dataIdx] % _scheduleData[dataIdx].count) + _scheduleData[dataIdx].firstId/*round robin between the accelerators*/;
+		_accId = _lastAccId[dataIdx] + _scheduleData[dataIdx].firstId;
 		_queueOffset = _accId*(CMD_IN_QUEUE_SIZE/MAX_ACCS);
-		_lastAccId[dataIdx]++;
+		_lastAccId[dataIdx] = (_lastAccId[dataIdx] + 1) % _scheduleData[dataIdx].count /*round robin between the accelerators*/;
 
 		_state = SCHED_TM_WAIT;
 	} else if (_state == SCHED_TM_WAIT) {
