@@ -108,21 +108,22 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		_state = STATE_GET_ENTRY;
 	} else if (_state == STATE_GET_ENTRY) {
 		//Get an entry in the info memory for the taskId
-		bool foundUnusedEntry = false;
+		_entryIdx = CACHE_SIZE; //< Not found value
 		for (size_t i = 0; i < CACHE_SIZE; i++) {
 			#pragma HLS PIPELINE
-			_cachedInfo = twInfo[i];
-			if (_cachedInfo.valid == TASKWAIT_ENTRY_VALID && _cachedInfo.taskId == _taskId) {
+			taskwaitEntry_t entry = twInfo[i];
+			if (entry.valid == TASKWAIT_ENTRY_VALID && entry.taskId == _taskId) {
+				_cachedInfo = entry;
 				_entryIdx = i;
 				break;
-			} else if (_cachedInfo.valid == TASKWAIT_ENTRY_INVALID && !foundUnusedEntry) {
-				//NOTE: The number of components in an invalid entry always will be zero
+			} else if (entry.valid == TASKWAIT_ENTRY_INVALID && _entryIdx == CACHE_SIZE) {
+				_cachedInfo = entry;
 				_entryIdx = i;
-				foundUnusedEntry = true;
+				_cachedInfo.components = 0;
 			}
 		}
 		_cachedInfo.taskId = _taskId;
-		_cachedInfo.valid = TASKWAIT_ENTRY_VALID;
+		_cachedInfo.valid = _entryIdx != CACHE_SIZE ? TASKWAIT_ENTRY_VALID : TASKWAIT_ENTRY_INVALID;
 		const int32_t componentsBlock = _cachedInfo.components + _components;
 		const int32_t componentsFinish = _cachedInfo.components - _components;
 		_cachedInfo.components = _type == TASKWAIT_TYPE_BLOCK ? componentsBlock : componentsFinish;
