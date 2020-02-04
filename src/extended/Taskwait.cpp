@@ -113,13 +113,13 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 			#pragma HLS PIPELINE
 			taskwaitEntry_t entry = twInfo[i];
 			if (entry.valid == TASKWAIT_ENTRY_VALID && entry.taskId == _taskId) {
-				_cachedInfo = entry;
+				_cachedInfo.accId = entry.accId;
+				_cachedInfo.components = entry.components;
 				_entryIdx = i;
 				break;
 			} else if (entry.valid == TASKWAIT_ENTRY_INVALID && _entryIdx == CACHE_SIZE) {
-				_cachedInfo = entry;
-				_entryIdx = i;
 				_cachedInfo.components = 0;
+				_entryIdx = i;
 			}
 		}
 		_cachedInfo.taskId = _taskId;
