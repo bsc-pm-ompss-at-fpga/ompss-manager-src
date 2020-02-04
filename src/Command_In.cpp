@@ -32,6 +32,7 @@
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
 #define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
 #define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
+#define CMD_PERI_TASK_CODE    0x05 ///< Command code for execute periodic task commands
 
 #define CMD_IN_QUEUE_SIZE              1024
 #define CMD_IN_QUEUE_IDX_BITS          10   //< log2(CMD_IN_QUEUE_SIZE)
@@ -148,6 +149,10 @@ uint8_t getCmdLength(const uint8_t cmdCode, const uint64_t header) {
 		// NOTE: The command size in the command out queue is considered here.
 		//       The command size in the command out stream is +1 words as it includes the parent task id
 		length = 1 /*task_id*/;
+	} else if (cmdCode == CMD_PERI_TASK_CODE) {
+		// Execute task
+		const uint8_t numArgs = (header >> CMD_IN_EXECTASK_NUMARGS_OFFSET)&BITS_MASK_8;
+		length = 3 /*parent_id + task_id + period_info*/ + CMD_IN_EXECTASK_ARG_WORDS*numArgs;
 	}
 	return length;
 }
