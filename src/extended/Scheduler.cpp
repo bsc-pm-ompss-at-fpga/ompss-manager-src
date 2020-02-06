@@ -127,7 +127,7 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 			_bufferArgFlags[i] = 0;
 		};
 		_accId = 0;
-                _lastTaskId = 0;
+		_lastTaskId = 0;
 
 		while (!inStream.empty()) {
 			inStream.read();
