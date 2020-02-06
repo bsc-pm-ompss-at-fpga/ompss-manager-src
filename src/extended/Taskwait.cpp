@@ -37,7 +37,8 @@
 
 //NOTE: We should not have more than 1 task per accelerator
 #define CACHE_SIZE 16
-#define CACHE_IDX_BITS 4
+//NOTE: The number of bits must be >= log2(CACHE_SIZE+1)
+#define CACHE_IDX_BITS 5
 
 typedef ap_axis<8,1,1,5> axiData8_t;
 typedef ap_axis<64,1,1,5> axiData64_t;
@@ -57,8 +58,9 @@ typedef struct taskwaitEntry_t {
 typedef enum {
 	STATE_RESET = 0,
 	STATE_READ_HEADER,
-	STATE_READ_TASKID,
 	STATE_GET_ENTRY,
+	STATE_CALC_COMPONENTS_BLOCK,
+	STATE_CALC_COMPONENTS_FINISH,
 	STATE_WAKEUP_ACC,
 	STATE_UPDATE_ENTRY,
 } state_t;
@@ -73,7 +75,6 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 
 	static state_t _state = STATE_RESET;
 	#pragma HLS RESET variable=_state
-	static uint64_t _taskId;
 	static int32_t _components;
 	static uint8_t _type, _accId;
 	static taskwaitEntry_t _cachedInfo;
@@ -81,7 +82,7 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 
 	if (_state == STATE_RESET) {
 		//Under reset
-		for (size_t i = 0; i < CACHE_SIZE; i++) {
+		for (ap_uint<CACHE_IDX_BITS> i = 0; i < CACHE_SIZE; i++) {
 		#pragma HLS PIPELINE
 			taskwaitEntry_t tmpInfo;
 			tmpInfo.components = 0;
@@ -100,19 +101,17 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		_components = (header >> COMPONENTS_OFFSET)&BITS_MASK_32;
 		_accId = (header >> ACC_ID_OFFSET)&BITS_MASK_8;
 
-		_state = STATE_READ_TASKID;
-	} else if (_state == STATE_READ_TASKID) {
 		//Read the taskId word (self or parent based on type)
-		_taskId = inStream.read().data;
+		_cachedInfo.taskId = inStream.read().data;
 
 		_state = STATE_GET_ENTRY;
 	} else if (_state == STATE_GET_ENTRY) {
 		//Get an entry in the info memory for the taskId
 		_entryIdx = CACHE_SIZE; //< Not found value
-		for (size_t i = 0; i < CACHE_SIZE; i++) {
+		for (ap_uint<CACHE_IDX_BITS> i = 0; i < CACHE_SIZE; i++) {
 			#pragma HLS PIPELINE
 			taskwaitEntry_t entry = twInfo[i];
-			if (entry.valid == TASKWAIT_ENTRY_VALID && entry.taskId == _taskId) {
+			if (entry.valid == TASKWAIT_ENTRY_VALID && entry.taskId == _cachedInfo.taskId) {
 				_cachedInfo.accId = entry.accId;
 				_cachedInfo.components = entry.components;
 				_entryIdx = i;
@@ -122,12 +121,17 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 				_entryIdx = i;
 			}
 		}
-		_cachedInfo.taskId = _taskId;
-		_cachedInfo.valid = _entryIdx != CACHE_SIZE ? TASKWAIT_ENTRY_VALID : TASKWAIT_ENTRY_INVALID;
-		const int32_t componentsBlock = _cachedInfo.components + _components;
-		const int32_t componentsFinish = _cachedInfo.components - _components;
-		_cachedInfo.components = _type == TASKWAIT_TYPE_BLOCK ? componentsBlock : componentsFinish;
-		_cachedInfo.accId = _type == TASKWAIT_TYPE_BLOCK ? _accId : _cachedInfo.accId;
+		//FIXME: Do not asume that a valid entry has been found
+		_cachedInfo.valid = TASKWAIT_ENTRY_VALID;
+
+		_state = _type == TASKWAIT_TYPE_BLOCK ? STATE_CALC_COMPONENTS_BLOCK : STATE_CALC_COMPONENTS_FINISH;
+	} else if (_state == STATE_CALC_COMPONENTS_BLOCK) {
+		_cachedInfo.components = _cachedInfo.components + _components;
+		_cachedInfo.accId = _accId;
+
+		_state = _cachedInfo.components == 0 ? STATE_WAKEUP_ACC : STATE_UPDATE_ENTRY;
+	} else if (_state == STATE_CALC_COMPONENTS_FINISH) {
+		_cachedInfo.components = _cachedInfo.components - _components;
 
 		_state = _cachedInfo.components == 0 ? STATE_WAKEUP_ACC : STATE_UPDATE_ENTRY;
 	} else if (_state == STATE_WAKEUP_ACC) {
