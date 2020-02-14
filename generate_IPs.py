@@ -32,10 +32,10 @@ from distutils import spawn
 import xml.etree.cElementTree as cET
 
 MAJOR_VERSION = 1
-MINOR_VERSION = 5
+MINOR_VERSION = 6
 
 PREVIOUS_MAJOR_VERSION = 1
-PREVIOUS_MINOR_VERSION = 4
+PREVIOUS_MINOR_VERSION = 5
 
 class Logger(object):
     def __init__(self):
