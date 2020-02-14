@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2019 Barcelona Supercomputing Center
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
                           Centro Nacional de Supercomputacion
 
   This file is part of OmpSs@FPGA toolchain.
@@ -35,6 +35,11 @@
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
 #define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
 #define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
+#define ACK_REJECT_CODE       0x0
+#define ACK_OK_CODE           0x1
+#define EOUT_STREAM_ARG_WORDS          1    //< argValue
+#define EOUT_STREAM_DEP_WORDS          1    //< flags+address
+#define EOUT_STREAM_COPY_WORDS         3    //< address,size+idx+flags,lenght+offset
 
 #define CMD_IN_QUEUE_SIZE              1024
 #define CMD_IN_QUEUE_IDX_BITS          10   //< log2(CMD_IN_QUEUE_SIZE)
@@ -55,7 +60,9 @@
 #define DEFAULT_ARG_FLAGS              0x31 //< enable wrapper copies,private
 #define MAX_ACCS_TYPES                 MAX_ACCS
 
-typedef ap_axiu<64,1,1,5> axiData64_t;
+typedef ap_axis<8,1,1,5> axiData8_t;
+typedef ap_axiu<64,1,8,5> axiData64_t;
+typedef hls::stream<axiData8_t> axiStream8_t;
 typedef hls::stream<axiData64_t> axiStream64_t;
 
 typedef struct schedInfo_s {
@@ -76,11 +83,13 @@ typedef enum {
 	SCHED_TM_READ_CPY,
 	SCHED_TM_WRITE_HEAD,
 	SCHED_TM_WRITE_VALID,
-	SCHED_TM_CLEAN
+	SCHED_TM_CLEAN,
+	SCHED_TM_REJECT
 } sched_tm_state_t;
 
-void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream, uint32_t bitInfo[256]) {
+void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiStream64_t &inStream, axiStream8_t &outStream, uint32_t bitInfo[256]) {
 #pragma HLS INTERFACE axis port=inStream
+#pragma HLS INTERFACE axis port=outStream
 #pragma HLS INTERFACE bram port=intCmdInQueue bundle=intCmdInQueue
 #pragma HLS DATA_PACK variable=intCmdInQueue struct_level
 #pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
@@ -98,13 +107,14 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 	static ap_uint<8> _numDeps = 0; //< Number of dependences that current task has
 	static ap_uint<8> _numCopies = 0; //< Number of copies that current task has
 	static ap_uint<8> _accId; //< Accelerator ID where the current task will be executed
+	static ap_uint<8> _srcAccId; //< Accelerator ID that is sending the task
 
 	static schedInfo_t _scheduleData[MAX_ACCS_TYPES];
 	static uint8_t _numAccsTypes;
 	static uint8_t  _lastAccId[MAX_ACCS_TYPES];
 	static uint64_t _bufferHead[CMD_IN_EXECTASK_HEAD_WORDS];
 	static uint8_t  _bufferArgFlags[MAX_ARGS];
-	static uint64_t _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
+	static ap_uint<48> _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
 
 	if (_state == SCHED_TM_RESET) {
 		//Under reset
@@ -176,17 +186,17 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 		_state = SCHED_TM_READ_W1;
 	} else if (_state == SCHED_TM_READ_W1) {
 		//Waiting for the 1st word of new task header
-		_bufferHead[0] = inStream.read().data;
+		axiData64_t pkg = inStream.read();
+		_bufferHead[0] = pkg.data;
+		_srcAccId = pkg.id;
 
-		uint64_t tmpVal = (_bufferHead[0] >> CMD_IN_EXECTASK_NUMARGS_OFFSET)&BITS_MASK_8;
-		_numArgs = tmpVal;
+		uint64_t tmpArgs = (pkg.data >> CMD_IN_EXECTASK_NUMARGS_OFFSET)&BITS_MASK_8;
+		_numArgs = tmpArgs;
+		uint64_t tmpDeps = (pkg.data >> CMD_IN_EXECTASK_NUMDEPS_OFFSET)&BITS_MASK_8;
+		_numDeps = tmpDeps;
+		uint64_t tmpCopies = (pkg.data >> CMD_IN_EXECTASK_NUMCPYS_OFFSET)&BITS_MASK_8;
+		_numCopies = tmpCopies;
 		_wArgIdx = 0;
-
-		tmpVal = (_bufferHead[0] >> CMD_IN_EXECTASK_NUMDEPS_OFFSET)&BITS_MASK_8;
-		_numDeps = tmpVal;
-
-		tmpVal = (_bufferHead[0] >> CMD_IN_EXECTASK_NUMCPYS_OFFSET)&BITS_MASK_8;
-		_numCopies = tmpVal;
 
 		//TODO: Ensure that the task is an FPGA task. Otherwise, it has to be fwd to TM_NEW
 
@@ -231,27 +241,48 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 				ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> tmpNumSlots = CMD_IN_EXECTASK_HEAD_WORDS + CMD_IN_EXECTASK_ARG_WORDS*tmpNumArgs;
 				_availSlots[_accId] += tmpNumSlots;
 				_rIdx[_accId] += tmpNumSlots;
+			} else {
+				//Read remainig words and reject the task as there is not enough space to handle it
+				ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> remWords =
+					EOUT_STREAM_COPY_WORDS*_numCopies +
+					EOUT_STREAM_DEP_WORDS*_numDeps +
+					EOUT_STREAM_ARG_WORDS*_numArgs;
+				for (ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> idx = 0; idx < remWords; ++idx) {
+					inStream.read();
+				}
+
+				_state = SCHED_TM_REJECT;
 			}
 		}
+	} else if (_state == SCHED_TM_REJECT) {
+		//Send the reject ack
+		axiData8_t data;
+		data.keep = 0xFF;
+		data.dest = _srcAccId;
+		data.last = 1;
+		data.data = ACK_REJECT_CODE;
+		outStream.write(data);
+
+		_state = SCHED_TM_READ_W1;
 	} else if (_state == SCHED_TM_READ_ARG) {
 		//Waiting for the arguments of new task
 		if (_wArgIdx >= _numArgs) {
 			_state = SCHED_TM_WRITE_HEAD;
 		} else {
-                        ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> subqueueIdx = _wIdx[_accId] + CMD_IN_EXECTASK_HEAD_WORDS + _wArgIdx*CMD_IN_EXECTASK_ARG_WORDS;
-                        ap_uint<CMD_IN_QUEUE_IDX_BITS> idx = _queueOffset + subqueueIdx;
+			ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> subqueueIdx = _wIdx[_accId] + CMD_IN_EXECTASK_HEAD_WORDS + _wArgIdx*CMD_IN_EXECTASK_ARG_WORDS;
+			ap_uint<CMD_IN_QUEUE_IDX_BITS> idx = _queueOffset + subqueueIdx;
 
-                        //Argument idx and flags
-                        uint8_t flags = _bufferArgFlags[_wArgIdx];
-                        uint64_t argInfo = _wArgIdx;
-                        argInfo = (argInfo << CMD_IN_EXECTASK_ARG_ID_OFFSET);
-                        argInfo |= flags ? flags : DEFAULT_ARG_FLAGS;
-                        intCmdInQueue[idx] = argInfo;
+			//Argument idx and flags
+			uint8_t flags = _bufferArgFlags[_wArgIdx];
+			uint64_t argInfo = _wArgIdx;
+			argInfo = (argInfo << CMD_IN_EXECTASK_ARG_ID_OFFSET);
+			argInfo |= flags ? flags : DEFAULT_ARG_FLAGS;
+			intCmdInQueue[idx] = argInfo;
 
-                        //Argument value
-                        subqueueIdx++;
-                        idx = _queueOffset + subqueueIdx;
-                        intCmdInQueue[idx] = inStream.read().data;
+			//Argument value
+			subqueueIdx++;
+			idx = _queueOffset + subqueueIdx;
+			intCmdInQueue[idx] = inStream.read().data;
 
 			//Cleanup for next task
 			_bufferArgFlags[_wArgIdx] = 0;
@@ -276,7 +307,7 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 			//NOTE: Copies of new task use bits [1:0] and ready task uses bits [5:4]
 			_bufferArgFlags[arg_idx] |= (flags << 4);
 		}
-		_state = SCHED_TM_READ_ARG;
+		_state = SCHED_TM_READ_DEP;
 	} else if (_state == SCHED_TM_WRITE_HEAD) {
 		//Write 2nd and 3th words of header
 		ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> subqueueIdx = _wIdx[_accId];
@@ -285,7 +316,7 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 		++subqueueIdx;
 		idx = _queueOffset + subqueueIdx;
 		//NOTE: Using odd ids, so they will fail if used outside the FPGA
-		intCmdInQueue[idx] = ((++_lastTaskId) << 1) | 1; //< taskId
+		intCmdInQueue[idx] = ((uint64_t)(++_lastTaskId) << 4) | 0xF00000000000000F; //< taskId
 
 		++subqueueIdx;
 		idx = _queueOffset + subqueueIdx;
@@ -307,6 +338,14 @@ void Scheduler_wrapper(uint64_t volatile intCmdInQueue[CMD_IN_QUEUE_SIZE], axiSt
 		tmp = (tmp << 24) | _numArgs;
 		tmp = (tmp << 8) | CMD_EXEC_TASK_CODE;
 		intCmdInQueue[idx] = tmp;
+
+		//Send ack to accelerator
+		axiData8_t data;
+		data.keep = 0xFF;
+		data.dest = _srcAccId;
+		data.last = 1;
+		data.data = ACK_OK_CODE;
+		outStream.write(data);
 
 		_state = SCHED_TM_CLEAN;
 	} else if (_state == SCHED_TM_CLEAN) {

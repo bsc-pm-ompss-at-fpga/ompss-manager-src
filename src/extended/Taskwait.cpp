@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2019 Barcelona Supercomputing Center
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
                           Centro Nacional de Supercomputacion
 
   This file is part of OmpSs@FPGA toolchain.
@@ -41,7 +41,7 @@
 #define CACHE_IDX_BITS 5
 
 typedef ap_axis<8,1,1,5> axiData8_t;
-typedef ap_axis<64,1,1,5> axiData64_t;
+typedef ap_axis<64,1,8,5> axiData64_t;
 typedef hls::stream<axiData8_t> axiStream8_t;
 typedef hls::stream<axiData64_t> axiStream64_t;
 
