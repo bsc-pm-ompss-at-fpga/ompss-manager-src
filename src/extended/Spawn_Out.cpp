@@ -32,13 +32,17 @@
 #define NUM_DEPS_OFFSET   16
 #define NUM_COPIES_OFFSET 24
 #define VALID_OFFSET      56
+#define ACK_REJECT_CODE   0x0
+#define ACK_OK_CODE       0x1
 #define NEW_QUEUE_TASK_HEAD_WORDS 4 //< cmdHeader,taskId,parentId,taskType
 #define NEW_QUEUE_TASK_ARG_WORDS  1 //< argValue
 #define NEW_QUEUE_TASK_DEP_WORDS  1 //< flags+address
 #define NEW_QUEUE_TASK_COPY_WORDS 3 //< address,size+idx+flags,lenght+offset
 
-typedef ap_axis<64,1,1,5> axiData_t;
-typedef hls::stream<axiData_t> axiStream_t;
+typedef ap_axis<8,1,1,5> axiData8_t;
+typedef ap_axiu<64,1,8,5> axiData64_t;
+typedef hls::stream<axiData8_t> axiStream8_t;
+typedef hls::stream<axiData64_t> axiStream64_t;
 
 typedef enum {
 	NEW_TM_RESET = 0,
@@ -50,11 +54,13 @@ typedef enum {
 	NEW_TM_READ_CPY,
 	NEW_TM_WRITE_HEAD,
 	NEW_TM_WRITE_VALID,
-	NEW_TM_CLEAN
+	NEW_TM_CLEAN,
+	NEW_TM_REJECT
 } new_tm_state_t;
 
-void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStream_t &inStream) {
+void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStream64_t &inStream, axiStream8_t &outStream) {
 #pragma HLS INTERFACE axis port=inStream
+#pragma HLS INTERFACE axis port=outStream
 #pragma HLS INTERFACE bram port=SpawnOutQueue bundle=SpawnOutQueue
 #pragma HLS RESOURCE variable=SpawnOutQueue core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -70,24 +76,30 @@ void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStre
 	static ap_uint<8> _wDepIdx = 0; //< Slot where the current dependency must be written
 	static ap_uint<8> _numCopies = 0; //< Number of copies that current task has
 	static ap_uint<8> _wCopyIdx = 0; //< Slot where the current copy must be written
+	static ap_uint<8> _srcAccId; //< Accelerator ID that is sending the task
 
 	static uint64_t _buffer[NEW_QUEUE_TASK_HEAD_WORDS];
+	static ap_uint<48> _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
 
 	if (_state == NEW_TM_RESET) {
 		//Under reset
 		_wIdx = 0;
 		_rIdx = 0;
 		_availSlots = NEW_QUEUE_SLOTS;
+		_lastTaskId = 0;
 
 		_state = NEW_TM_READ_W1;
 	} else if (_state == NEW_TM_READ_W1) {
 		//Waiting for the 1st word of new task header
-		_buffer[0] = inStream.read().data;
-		uint64_t tmpArgs = (_buffer[0] >> NUM_ARGS_OFFSET)&BITS_MASK_8;
+		axiData64_t pkg = inStream.read();
+		_buffer[0] = pkg.data;
+		_srcAccId = pkg.id;
+
+		uint64_t tmpArgs = (pkg.data >> NUM_ARGS_OFFSET)&BITS_MASK_8;
 		_numArgs = tmpArgs;
-		uint64_t tmpDeps = (_buffer[0] >> NUM_DEPS_OFFSET)&BITS_MASK_8;
+		uint64_t tmpDeps = (pkg.data >> NUM_DEPS_OFFSET)&BITS_MASK_8;
 		_numDeps = tmpDeps;
-		uint64_t tmpCopies = (_buffer[0] >> NUM_COPIES_OFFSET)&BITS_MASK_8;
+		uint64_t tmpCopies = (pkg.data >> NUM_COPIES_OFFSET)&BITS_MASK_8;
 		_numCopies = tmpCopies;
 		_wArgIdx = 0;
 		_wDepIdx = 0;
@@ -97,8 +109,9 @@ void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStre
 	} else if (_state == NEW_TM_READ_HEAD) {
 		//Waiting for the remaining task header words
 		//NOTE: The accelerator does not send the taskId as it does not known
-		_buffer[1 /*taskId idx*/] = 0xFFFF44446666AAAA;
-		for (size_t i = 2; i < NEW_QUEUE_TASK_HEAD_WORDS; i++) {
+		//NOTE: Using odd ids, so they will fail if used outside the FPGA
+		_buffer[1 /*taskId idx*/] = ((uint64_t)(++_lastTaskId) << 4) | 0xD00000000000000D; //< taskId
+		for (ap_uint<8> i = 2; i < NEW_QUEUE_TASK_HEAD_WORDS; i++) {
 		#pragma HLS UNROLL
 			_buffer[i] = inStream.read().data;
 		};
@@ -129,8 +142,26 @@ void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStre
 					tmpNumCopies*NEW_QUEUE_TASK_COPY_WORDS;
 				_availSlots += tmpNumSlots;
 				_rIdx += tmpNumSlots;
+			} else {
+				//Read remaining words and reject the task as there is not enough space to handle it
+				const ap_uint<10> remWords = neededSlots - 2/*head_w0, taskId*/;
+				for (ap_uint<10> idx = 0; idx < remWords; ++idx) {
+					inStream.read();
+				}
+
+				_state = NEW_TM_REJECT;
 			}
 		}
+	} else if (_state == NEW_TM_REJECT) {
+		//Send the reject ack
+		axiData8_t data;
+		data.keep = 0xFF;
+		data.dest = _srcAccId;
+		data.last = 1;
+		data.data = ACK_REJECT_CODE;
+		outStream.write(data);
+
+		_state = NEW_TM_READ_W1;
 	} else if (_state == NEW_TM_READ_ARG) {
 		//Waiting for the arguments of new task
 		if (_wArgIdx >= _numArgs) {
@@ -182,6 +213,14 @@ void Spawn_Out_wrapper(uint64_t volatile SpawnOutQueue[NEW_QUEUE_SLOTS], axiStre
 		uint64_t tmp = NEW_QUEUE_VALID;
 		tmp = (tmp << VALID_OFFSET) | _buffer[0]; //< Ensure task entry is marked as ready
 		SpawnOutQueue[_wIdx] = tmp;
+
+		//Send ack to accelerator
+		axiData8_t data;
+		data.keep = 0xFF;
+		data.dest = _srcAccId;
+		data.last = 1;
+		data.data = ACK_OK_CODE;
+		outStream.write(data);
 
 		_state = NEW_TM_CLEAN;
 	} else if (_state == NEW_TM_CLEAN) {
