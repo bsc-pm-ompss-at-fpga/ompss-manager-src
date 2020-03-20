@@ -22,9 +22,8 @@
 #include <hls_stream.h>
 #include <stdint.h>
 #include <string.h>
+#include "som.hpp"
 
-#define TASKWAIT_ENTRY_VALID   0x80
-#define TASKWAIT_ENTRY_INVALID 0x00
 #define TASKWAIT_TYPE_BLOCK    0x01
 #define TASKWAIT_TYPE_FINISH   0x10
 #define BITS_MASK_8            0xFF
@@ -33,17 +32,10 @@
 #define TYPE_OFFSET            32
 #define COMPONENTS_OFFSET      0
 
-#define TASKWAIT_TASK_MANAGER_ID   0x13
-
 //NOTE: We should not have more than 1 task per accelerator
 #define CACHE_SIZE 16
 //NOTE: The number of bits must be >= log2(CACHE_SIZE+1)
 #define CACHE_IDX_BITS 5
-
-typedef ap_axis<8,1,1,5> axiData8_t;
-typedef ap_axis<64,1,8,5> axiData64_t;
-typedef hls::stream<axiData8_t> axiStream8_t;
-typedef hls::stream<axiData64_t> axiStream64_t;
 
 // An element of the taskwaitMemory and remoteCmdOutQueue
 typedef struct taskwaitEntry_t {
@@ -86,7 +78,7 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		#pragma HLS PIPELINE
 			taskwaitEntry_t tmpInfo;
 			tmpInfo.components = 0;
-			tmpInfo.valid = TASKWAIT_ENTRY_INVALID;
+			tmpInfo.valid = QUEUE_INVALID;
 			twInfo[i] = tmpInfo;
 		}
 
@@ -111,18 +103,18 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		for (ap_uint<CACHE_IDX_BITS> i = 0; i < CACHE_SIZE; i++) {
 			#pragma HLS PIPELINE
 			taskwaitEntry_t entry = twInfo[i];
-			if (entry.valid == TASKWAIT_ENTRY_VALID && entry.taskId == _cachedInfo.taskId) {
+			if (entry.valid == QUEUE_VALID && entry.taskId == _cachedInfo.taskId) {
 				_cachedInfo.accId = entry.accId;
 				_cachedInfo.components = entry.components;
 				_entryIdx = i;
 				break;
-			} else if (entry.valid == TASKWAIT_ENTRY_INVALID && _entryIdx == CACHE_SIZE) {
+			} else if (entry.valid == QUEUE_INVALID && _entryIdx == CACHE_SIZE) {
 				_cachedInfo.components = 0;
 				_entryIdx = i;
 			}
 		}
 		//FIXME: Do not asume that a valid entry has been found
-		_cachedInfo.valid = TASKWAIT_ENTRY_VALID;
+		_cachedInfo.valid = QUEUE_VALID;
 
 		_state = _type == TASKWAIT_TYPE_BLOCK ? STATE_CALC_COMPONENTS_BLOCK : STATE_CALC_COMPONENTS_FINISH;
 	} else if (_state == STATE_CALC_COMPONENTS_BLOCK) {
@@ -142,7 +134,7 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		data.last = 1;
 		data.data = 1;
 		outStream.write(data);
-		_cachedInfo.valid = TASKWAIT_ENTRY_INVALID;
+		_cachedInfo.valid = QUEUE_INVALID;
 
 		_state = STATE_UPDATE_ENTRY;
 	} else if (STATE_UPDATE_ENTRY) {

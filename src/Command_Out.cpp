@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2019 Barcelona Supercomputing Center
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
                           Centro Nacional de Supercomputacion
 
   This file is part of OmpSs@FPGA toolchain.
@@ -22,16 +22,9 @@
 #include <hls_stream.h>
 #include <stdint.h>
 #include <string.h>
+#include "som.hpp"
 
-#define QUEUE_VALID           0x80
-#define QUEUE_INVALID         0x00
-#define MAX_ACCS              16
-#define ACC_IDX_BITS          4    //< log2(MAX_ACCS)
 #define BITS_MASK_8           0xFF
-#define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
-#define CMD_SETUP_INS_CODE    0x02 ///< Command code for setup instrumentation info
-#define CMD_FINI_EXEC_CODE    0x03 ///< Command code for finished execute task commands
-#define CMD_PERI_TASK_CODE    0x05 ///< Command code for execute periodic task commands
 
 #define CMD_OUT_QUEUE_SIZE             1024
 #define CMD_OUT_QUEUE_IDX_BITS         10   //< log2(CMD_OUT_QUEUE_SIZE)
@@ -41,13 +34,6 @@
 #define ACC_AVAIL_FROM_NONE   0x0
 #define ACC_AVAIL_FROM_CMDIN  0x1
 #define ACC_AVAIL_FROM_INT    0x2
-
-#define TASKWAIT_TASK_MANAGER_ID       0x13
-
-typedef ap_axis<8,1,1,5> axiData8_t;
-typedef ap_axis<64,1,8,5> axiData64_t;
-typedef hls::stream<axiData8_t> axiStream8_t;
-typedef hls::stream<axiData64_t> axiStream64_t;
 
 typedef uint64_t accAvailability_t;
 
@@ -66,7 +52,7 @@ void notifyTaskCompletion(axiStream64_t &tw_stream, ap_uint<64> parent_id) {
 	data.data = 0x8000001000000001; //< See TW Task Manager source. Set bits are: VALID, FINISH TYPE, 1 TASK COUNT
 	data.keep = 0xFF;
 	data.last = 0;
-	data.dest = TASKWAIT_TASK_MANAGER_ID;
+	data.dest = HWR_TASKWAIT_ID;
 	tw_stream.write(data);
 	data.data = parent_id;
 	data.last = 1;

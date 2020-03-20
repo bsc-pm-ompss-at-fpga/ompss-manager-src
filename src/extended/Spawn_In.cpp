@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2019 Barcelona Supercomputing Center
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
                           Centro Nacional de Supercomputacion
 
   This file is part of OmpSs@FPGA toolchain.
@@ -22,24 +22,17 @@
 #include <hls_stream.h>
 #include <stdint.h>
 #include <string.h>
+#include "som.hpp"
 
-#define QUEUE_VALID           0x80
-#define QUEUE_INVALID         0x00
 #define BITS_MASK_8           0xFF
 
 #define TASKWAIT_TYPE_BLOCK        0x01
 #define TASKWAIT_TYPE_FINISH       0x10
-#define TASKWAIT_TASK_MANAGER_ID   0x13
 
 #define REM_FINI_QUEUE_SIZE        1024
 #define REM_FINI_QUEUE_IDX_BITS    10   //< log2(REM_FINI_QUEUE_SIZE)
 #define REM_FINI_VALID_OFFSET      56   //< Offset in bits of valid field
 #define REM_FINI_ENTRY_WORDS       3    //< header, taskId, parentId
-
-typedef ap_axis<8,1,1,5> axiData8_t;
-typedef ap_axis<64,1,1,5> axiData64_t;
-typedef hls::stream<axiData8_t> axiStream8_t;
-typedef hls::stream<axiData64_t> axiStream64_t;
 
 typedef enum {
   STATE_RESET = 0,
@@ -106,7 +99,7 @@ void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t 
 
 		axiData64_t data;
 		data.keep = 0xFF;
-		data.dest = TASKWAIT_TASK_MANAGER_ID;
+		data.dest = HWR_TASKWAIT_ID;
 		data.last = 0;
 		data.data = tmp;
 		outStream.write(data);

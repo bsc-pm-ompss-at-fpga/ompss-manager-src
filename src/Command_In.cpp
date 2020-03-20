@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2019 Barcelona Supercomputing Center
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
                           Centro Nacional de Supercomputacion
 
   This file is part of OmpSs@FPGA toolchain.
@@ -22,11 +22,8 @@
 #include <hls_stream.h>
 #include <stdint.h>
 #include <string.h>
+#include "som.hpp"
 
-#define QUEUE_VALID           0x80
-#define QUEUE_INVALID         0x00
-#define MAX_ACCS              16
-#define ACC_IDX_BITS          4    //< log2(MAX_ACCS)
 #define BITS_MASK_16          0xFFFF
 #define BITS_MASK_8           0xFF
 #define CMD_EXEC_TASK_CODE    0x01 ///< Command code for execute task commands
@@ -45,8 +42,6 @@
 #define ACC_AVAIL_FROM_CMDIN  0x1
 #define ACC_AVAIL_FROM_INT    0x2
 
-typedef ap_axiu<64,1,8,5> axiData64_t;
-typedef hls::stream<axiData64_t> axiStream64_t;
 typedef uint64_t accAvailability_t;
 
 void sendCommand(uint64_t volatile *subqueue, ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> offset,
