@@ -99,7 +99,6 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		_state = STATE_GET_ENTRY;
 	} else if (_state == STATE_GET_ENTRY) {
 		//Get an entry in the info memory for the taskId
-		_entryIdx = CACHE_SIZE; //< Not found value
 		for (ap_uint<CACHE_IDX_BITS> i = 0; i < CACHE_SIZE; i++) {
 			#pragma HLS PIPELINE
 			taskwaitEntry_t entry = twInfo[i];
@@ -108,9 +107,6 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 				_cachedInfo.components = entry.components;
 				_entryIdx = i;
 				break;
-			} else if (entry.valid == QUEUE_INVALID && _entryIdx == CACHE_SIZE) {
-				_cachedInfo.components = 0;
-				_entryIdx = i;
 			}
 		}
 		//FIXME: Do not asume that a valid entry has been found
@@ -118,12 +114,12 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 
 		_state = _type == TASKWAIT_TYPE_BLOCK ? STATE_CALC_COMPONENTS_BLOCK : STATE_CALC_COMPONENTS_FINISH;
 	} else if (_state == STATE_CALC_COMPONENTS_BLOCK) {
-		_cachedInfo.components = _cachedInfo.components + _components;
+		_cachedInfo.components = _cachedInfo.components - _components;
 		_cachedInfo.accId = _accId;
 
 		_state = _cachedInfo.components == 0 ? STATE_WAKEUP_ACC : STATE_UPDATE_ENTRY;
 	} else if (_state == STATE_CALC_COMPONENTS_FINISH) {
-		_cachedInfo.components = _cachedInfo.components - _components;
+		_cachedInfo.components = _cachedInfo.components + _components;
 
 		_state = _cachedInfo.components == 0 ? STATE_WAKEUP_ACC : STATE_UPDATE_ENTRY;
 	} else if (_state == STATE_WAKEUP_ACC) {
