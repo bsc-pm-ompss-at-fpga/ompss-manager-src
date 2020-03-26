@@ -38,9 +38,9 @@ PREVIOUS_MAJOR_VERSION = 1
 PREVIOUS_MINOR_VERSION = 6
 
 class Logger(object):
-    def __init__(self, name):
+    def __init__(self):
         self.terminal = sys.stdout
-        self.log = open(name + '.log', 'w+')
+        self.log = open('./pom_IP.log', 'w+')
         self.subprocess = subprocess.PIPE if args.verbose else self.log
         self.re_color = re.compile(r'\033\[[0,1][0-9,;]*m')
 
@@ -106,7 +106,7 @@ def compute_resource_utilization(acc_path, extended=False):
         used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
 
 
-def generate_POM_IP():
+def generate_IP():
     msg.info('Generating PicosOmpSsManager IP')
 
     prj_path = './pom_IP/Vivado/PicosOmpSsManager'
@@ -132,39 +132,15 @@ def generate_POM_IP():
     else:
         msg.success('Finished generation of PicosOmpSsManager IP')
 
-def generate_SOM_IP():
-    msg.info('Generating SmartOmpSsManager IP')
-
-    prj_path = './som_IP/Vivado/SmartOmpSsManager'
-
-    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/som_ip_packager.tcl -tclargs '
-                         + 'SmartOmpSsManager '
-                         + str(MAJOR_VERSION) + '.' + str(MINOR_VERSION) + ' '
-                         + str(PREVIOUS_MAJOR_VERSION) + '.' + str(PREVIOUS_MINOR_VERSION) + ' '
-                         + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/som_IP'), cwd=prj_path,
-                         stdout=sys.stdout.subprocess,
-                         stderr=sys.stdout.subprocess, shell=True)
-
-    if args.verbose:
-        for line in iter(p.stdout.readline, b''):
-            sys.stdout.write(line.decode('utf-8'))
-
-    retval = p.wait()
-    if retval:
-        msg.error('Generation of SmartOmpSsManager IP failed')
-    else:
-        msg.success('Finished generation of SmartOmpSsManager IP')
 
 def synthesize_hls(file_, includes, extended=False):
     acc_file = os.path.basename(file_)
     acc_name = os.path.splitext(acc_file)[0].replace('\.*', '')
 
     if extended:
-        dst_path = './Vivado_HLS/extended/'
+        dst_path = './pom_IP/Vivado_HLS/extended/'
     else:
-        dst_path = './Vivado_HLS/'
+        dst_path = './pom_IP/Vivado_HLS/'
 
     os.makedirs(dst_path + acc_name)
     shutil.copy2(file_, dst_path + acc_name + '/' + acc_file)
@@ -225,10 +201,6 @@ else:
     msg.error('vivado_hls or vivado not found. Please set PATH correctly')
 
 if not args.skip_hls:
-
-    if os.path.exists('./som_IP'):
-        shutil.rmtree('./som_IP_old', ignore_errors=True)
-        os.rename('./som_IP', './som_IP_old')
 
     if os.path.exists('./pom_IP'):
         shutil.rmtree('./pom_IP_old', ignore_errors=True)

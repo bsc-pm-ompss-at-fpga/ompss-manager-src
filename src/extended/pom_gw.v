@@ -48,6 +48,7 @@ module pom_gw #(
     input ack_tready,
     output reg[7:0] ack_tdata,
     output [4:0] ack_tdest,
+    output ack_tlast,
     
     output [31:0] tw_info_addr,
     output reg tw_info_en,
@@ -110,6 +111,7 @@ module pom_gw #(
     
     assign ack_tvalid = state == ACK;
     assign ack_tdest = acc_id;
+    assign ack_tlast = 1;
     
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
     

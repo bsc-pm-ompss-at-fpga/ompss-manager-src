@@ -38,9 +38,9 @@ PREVIOUS_MAJOR_VERSION = 1
 PREVIOUS_MINOR_VERSION = 6
 
 class Logger(object):
-    def __init__(self, name):
+    def __init__(self):
         self.terminal = sys.stdout
-        self.log = open(name + '.log', 'w+')
+        self.log = open('./som_IP.log', 'w+')
         self.subprocess = subprocess.PIPE if args.verbose else self.log
         self.re_color = re.compile(r'\033\[[0,1][0-9,;]*m')
 
@@ -62,7 +62,7 @@ class Color:
 
 class Messages:
     def error(self, msg):
-        print(Color.RED + msg + '. Check pom_IP.log for more information' + Color.END)
+        print(Color.RED + msg + '. Check som_IP.log for more information' + Color.END)
         sys.exit(1)
 
     def info(self, msg):
@@ -85,9 +85,7 @@ class ArgParser:
         self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower, required=True)
         self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
-        self.parser.add_argument('-p', '--picos_path', help='Path to the Picos IP', required=True)
         self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
-        self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
@@ -106,33 +104,7 @@ def compute_resource_utilization(acc_path, extended=False):
         used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
 
 
-def generate_POM_IP():
-    msg.info('Generating PicosOmpSsManager IP')
-
-    prj_path = './pom_IP/Vivado/PicosOmpSsManager'
-
-    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/pom_ip_packager.tcl -tclargs '
-                         + 'PicosOmpSsManager '
-                         + str(MAJOR_VERSION) + '.' + str(MINOR_VERSION) + ' '
-                         + str(PREVIOUS_MAJOR_VERSION) + '.' + str(PREVIOUS_MINOR_VERSION) + ' '
-                         + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
-                         + args.picos_path, cwd=prj_path,
-                         stdout=sys.stdout.subprocess,
-                         stderr=sys.stdout.subprocess, shell=True)
-
-    if args.verbose:
-        for line in iter(p.stdout.readline, b''):
-            sys.stdout.write(line.decode('utf-8'))
-
-    retval = p.wait()
-    if retval:
-        msg.error('Generation of PicosOmpSsManager IP failed')
-    else:
-        msg.success('Finished generation of PicosOmpSsManager IP')
-
-def generate_SOM_IP():
+def generate_IP():
     msg.info('Generating SmartOmpSsManager IP')
 
     prj_path = './som_IP/Vivado/SmartOmpSsManager'
@@ -157,14 +129,15 @@ def generate_SOM_IP():
     else:
         msg.success('Finished generation of SmartOmpSsManager IP')
 
+
 def synthesize_hls(file_, includes, extended=False):
     acc_file = os.path.basename(file_)
     acc_name = os.path.splitext(acc_file)[0].replace('\.*', '')
 
     if extended:
-        dst_path = './Vivado_HLS/extended/'
+        dst_path = './som_IP/Vivado_HLS/extended/'
     else:
-        dst_path = './Vivado_HLS/'
+        dst_path = './som_IP/Vivado_HLS/'
 
     os.makedirs(dst_path + acc_name)
     shutil.copy2(file_, dst_path + acc_name + '/' + acc_file)
@@ -210,40 +183,29 @@ args = parser.parse_args()
 sys.stdout = Logger()
 
 if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
-    if not args.skip_board_check:
-        msg.info('Checking if your current version of Vivado supports the selected board part')
-        os.system('echo "if {[llength [get_parts ' + args.board_part + ']] == 0} {exit 1}" > ./board_part_check.tcl')
-        p = subprocess.Popen('vivado -nojournal -nolog -mode batch -source ./board_part_check.tcl', shell=True, stdout=open(os.devnull, 'w'))
-        retval = p.wait()
-        os.system('rm ./board_part_check.tcl')
-        if (int(retval) == 1):
-            msg.error('Your current version of Vivado does not support part ' + args.board_part)
+    msg.info('Checking if your current version of Vivado supports the selected board part')
+    os.system('echo "if {[llength [get_parts ' + args.board_part + ']] == 0} {exit 1}" > ./board_part_check.tcl')
+    p = subprocess.Popen('vivado -nojournal -nolog -mode batch -source ./board_part_check.tcl', shell=True, stdout=open(os.devnull, 'w'))
+    retval = p.wait()
+    os.system('rm ./board_part_check.tcl')
+    if (int(retval) == 1):
+        msg.error('Your current version of Vivado does not support part ' + args.board_part)
 
-        msg.success('Success')
+    msg.success('Success')
 
 else:
     msg.error('vivado_hls or vivado not found. Please set PATH correctly')
 
+if os.path.exists('./som_IP'):
+    shutil.rmtree('./som_IP_old', ignore_errors=True)
+    os.rename('./som_IP', './som_IP_old')
+
 if not args.skip_hls:
-
-    if os.path.exists('./som_IP'):
-        shutil.rmtree('./som_IP_old', ignore_errors=True)
-        os.rename('./som_IP', './som_IP_old')
-
-    if os.path.exists('./pom_IP'):
-        shutil.rmtree('./pom_IP_old', ignore_errors=True)
-        os.rename('./pom_IP', './pom_IP_old')
-
-    os.makedirs('./pom_IP/rtl_src')
-
-    for file_ in glob.glob('./src/extended/*.v'):
-        shutil.copy(file_, './pom_IP/rtl_src')
-
     # Synthesize HLS source codes
-    os.makedirs('./pom_IP/Vivado_HLS')
+    os.makedirs('./som_IP/Vivado_HLS')
     used_resources = {True:{},False:{}}
 
-    msg.info('Synthesizing PicosOmpSsManager HLS sources')
+    msg.info('Synthesizing SmartOmpSsManager HLS sources')
     for file_ in glob.glob('./src/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'])
 
@@ -251,15 +213,15 @@ if not args.skip_hls:
         synthesize_hls(file_, ['./src/som.hpp'], True)
 
     # Generate Vivado project and package IP
-    os.makedirs('./pom_IP/Vivado/PicosOmpSsManager')
-    os.makedirs('./pom_IP/IP_packager')
+    os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
+    os.makedirs('./som_IP/IP_packager')
 
     # SmartOmpSsManager utilization
-    f = open('./pom_IP/IP_packager/som_resource_utilization.json', 'w')
+    f = open('./som_IP/IP_packager/som_resource_utilization.json', 'w')
     f.write(json.dumps(used_resources[False]) + '\n')
 
     # Extended SmartOmpSsManager utilization
-    f = open('./pom_IP/IP_packager/ext_som_resource_utilization.json', 'w')
+    f = open('./som_IP/IP_packager/ext_som_resource_utilization.json', 'w')
     f.write(json.dumps(used_resources[True]) + '\n')
 
 generate_IP()
