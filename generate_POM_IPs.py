@@ -88,6 +88,7 @@ class ArgParser:
         self.parser.add_argument('-p', '--picos_path', help='Path to the Picos IP', required=True)
         self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
+        self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
@@ -105,6 +106,28 @@ def compute_resource_utilization(acc_path, extended=False):
 
         used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
 
+def generate_cutoff_IP():
+    msg.info('Generating CutoffManager IP')
+
+    prj_path = './cutoff_IP/Vivado/CutoffManager'
+
+    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
+                         + os.getcwd() + '/scripts/cutoff_ip_packager.tcl -tclargs '
+                         + 'CutoffManager '
+                         + args.board_part + ' ' + os.getcwd() + ' '
+                         + os.path.abspath(os.getcwd() + '/cutoff_IP'), cwd=prj_path,
+                         stdout=sys.stdout.subprocess,
+                         stderr=sys.stdout.subprocess, shell=True)
+
+    if args.verbose:
+        for line in iter(p.stdout.readline, b''):
+            sys.stdout.write(line.decode('utf-8'))
+
+    retval = p.wait()
+    if retval:
+        msg.error('Generation of CutoffManager IP failed')
+    else:
+        msg.success('Finished generation of CutoffManager IP')
 
 def generate_IP():
     msg.info('Generating PicosOmpSsManager IP')
@@ -233,6 +256,16 @@ if not args.skip_hls:
     # Extended SmartOmpSsManager utilization
     f = open('./pom_IP/IP_packager/ext_som_resource_utilization.json', 'w')
     f.write(json.dumps(used_resources[True]) + '\n')
+
+if not args.skip_cutoff_gen:
+    if os.path.exists('./cutoff_IP'):
+        shutil.rmtree('./cutoff_IP_old', ignore_errors=True)
+        os.rename('./cutoff_IP', './cutoff_IP')
+
+    os.makedirs('./cutoff_IP/Vivado/CutoffManager')
+    os.makedirs('./cutoff_IP/IP_packager')
+
+    generate_cutoff_IP()
 
 generate_IP()
 

@@ -128,12 +128,11 @@ bsc:ompss:Scheduler_wrapper:*\
 bsc:ompss:Spawn_In_wrapper:*\
 bsc:ompss:Taskwait_wrapper:*\
 bsc:ompss:picos:*\
+bsc:ompss:cutoffmanager:*\
 xilinx.com:ip:util_vector_logic:*\
 "
 
-   set list_check_rtl "\
-pom_gw.v\
-"
+   set list_check_rtl ""
 
    set list_ips_missing ""
    common::send_msg_id "BD_TCL-006" "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
@@ -718,7 +717,7 @@ proc create_root_design { parentCell } {
   ] $Sched_inStream_Inter
 
   # Create instance: Cutoff, and set properties
-  set Cutoff [ create_bd_cell -type module -reference pom_gw Cutoff ]
+  set Cutoff [ create_bd_cell -type ip -vlnv bsc:ompss:cutoffmanager Cutoff ]
   
   # Create instance: ext_inStream_Inter, and set properties
   set ext_inStream_Inter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_interconnect ext_inStream_Inter ]
