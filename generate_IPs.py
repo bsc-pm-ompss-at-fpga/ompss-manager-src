@@ -31,16 +31,22 @@ import argparse
 from distutils import spawn
 import xml.etree.cElementTree as cET
 
-MAJOR_VERSION = 2
-MINOR_VERSION = 0
+SOM_MAJOR_VERSION = 2
+SOM_MINOR_VERSION = 0
 
-PREVIOUS_MAJOR_VERSION = 1
-PREVIOUS_MINOR_VERSION = 6
+SOM_PREVIOUS_MAJOR_VERSION = 1
+SOM_PREVIOUS_MINOR_VERSION = 6
+
+POM_MAJOR_VERSION = 0
+POM_MINOR_VERSION = 0
+
+POM_PREVIOUS_MAJOR_VERSION = 0
+POM_PREVIOUS_MINOR_VERSION = 0
 
 class Logger(object):
-    def __init__(self, name):
+    def __init__(self):
         self.terminal = sys.stdout
-        self.log = open(name + '.log', 'w+')
+        self.log = open('generate_IPs.log', 'w+')
         self.subprocess = subprocess.PIPE if args.verbose else self.log
         self.re_color = re.compile(r'\033\[[0,1][0-9,;]*m')
 
@@ -62,7 +68,7 @@ class Color:
 
 class Messages:
     def error(self, msg):
-        print(Color.RED + msg + '. Check pom_IP.log for more information' + Color.END)
+        print(Color.RED + msg + '. Check generate_IPs.log for more information' + Color.END)
         sys.exit(1)
 
     def info(self, msg):
@@ -88,6 +94,9 @@ class ArgParser:
         self.parser.add_argument('-p', '--picos_path', help='Path to the Picos IP', required=True)
         self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
+        self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
+        self.parser.add_argument('--skip_pom_gen', help='skips generation of the PicosOmpSsManager IP', action='store_true', default=False)
+        self.parser.add_argument('--skip_som_gen', help='skips generation of the SmartOmpSsManager IP', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
@@ -105,6 +114,28 @@ def compute_resource_utilization(acc_path, extended=False):
 
         used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
 
+def generate_cutoff_IP():
+    msg.info('Generating CutoffManager IP')
+
+    prj_path = './cutoff_IP/Vivado/CutoffManager'
+
+    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
+                         + os.getcwd() + '/scripts/cutoff_ip_packager.tcl -tclargs '
+                         + 'CutoffManager '
+                         + args.board_part + ' ' + os.getcwd() + ' '
+                         + os.path.abspath(os.getcwd() + '/cutoff_IP'), cwd=prj_path,
+                         stdout=sys.stdout.subprocess,
+                         stderr=sys.stdout.subprocess, shell=True)
+
+    if args.verbose:
+        for line in iter(p.stdout.readline, b''):
+            sys.stdout.write(line.decode('utf-8'))
+
+    retval = p.wait()
+    if retval:
+        msg.error('Generation of CutoffManager IP failed')
+    else:
+        msg.success('Finished generation of CutoffManager IP')
 
 def generate_POM_IP():
     msg.info('Generating PicosOmpSsManager IP')
@@ -114,8 +145,8 @@ def generate_POM_IP():
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/pom_ip_packager.tcl -tclargs '
                          + 'PicosOmpSsManager '
-                         + str(MAJOR_VERSION) + '.' + str(MINOR_VERSION) + ' '
-                         + str(PREVIOUS_MAJOR_VERSION) + '.' + str(PREVIOUS_MINOR_VERSION) + ' '
+                         + str(POM_MAJOR_VERSION) + '.' + str(POM_MINOR_VERSION) + ' '
+                         + str(POM_PREVIOUS_MAJOR_VERSION) + '.' + str(POM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
                          + args.picos_path, cwd=prj_path,
@@ -140,8 +171,8 @@ def generate_SOM_IP():
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/som_ip_packager.tcl -tclargs '
                          + 'SmartOmpSsManager '
-                         + str(MAJOR_VERSION) + '.' + str(MINOR_VERSION) + ' '
-                         + str(PREVIOUS_MAJOR_VERSION) + '.' + str(PREVIOUS_MINOR_VERSION) + ' '
+                         + str(SOM_MAJOR_VERSION) + '.' + str(SOM_MINOR_VERSION) + ' '
+                         + str(SOM_PREVIOUS_MAJOR_VERSION) + '.' + str(SOM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/som_IP'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
@@ -209,6 +240,9 @@ parser = ArgParser()
 args = parser.parse_args()
 sys.stdout = Logger()
 
+if not args.skip_pom_gen and args.picos_path is None:
+    msg.error('Please specify the Picos IP path with the -p option')
+
 if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
     if not args.skip_board_check:
         msg.info('Checking if your current version of Vivado supports the selected board part')
@@ -226,21 +260,9 @@ else:
 
 if not args.skip_hls:
 
-    if os.path.exists('./som_IP'):
-        shutil.rmtree('./som_IP_old', ignore_errors=True)
-        os.rename('./som_IP', './som_IP_old')
-
-    if os.path.exists('./pom_IP'):
-        shutil.rmtree('./pom_IP_old', ignore_errors=True)
-        os.rename('./pom_IP', './pom_IP_old')
-
-    os.makedirs('./pom_IP/rtl_src')
-
-    for file_ in glob.glob('./src/extended/*.v'):
-        shutil.copy(file_, './pom_IP/rtl_src')
-
     # Synthesize HLS source codes
-    os.makedirs('./pom_IP/Vivado_HLS')
+    shutil.rmtree('./Vivado_HLS', ignore_errors=True)
+    os.makedirs('./Vivado_HLS')
     used_resources = {True:{},False:{}}
 
     msg.info('Synthesizing PicosOmpSsManager HLS sources')
@@ -250,17 +272,46 @@ if not args.skip_hls:
     for file_ in glob.glob('./src/extended/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'], True)
 
+if not args.skip_cutoff_gen:
+    if os.path.exists('./cutoff_IP'):
+        shutil.rmtree('./cutoff_IP_old', ignore_errors=True)
+        os.rename('./cutoff_IP', './cutoff_IP_old')
+
+    os.makedirs('./cutoff_IP/Vivado/CutoffManager')
+    os.makedirs('./cutoff_IP/IP_packager')
+
+    generate_cutoff_IP()
+
+if not args.skip_pom_gen:
+    if os.path.exists('./pom_IP'):
+        shutil.rmtree('./pom_IP_old', ignore_errors=True)
+        os.rename('./pom_IP', './pom_IP_old')
+
     # Generate Vivado project and package IP
     os.makedirs('./pom_IP/Vivado/PicosOmpSsManager')
     os.makedirs('./pom_IP/IP_packager')
 
-    # SmartOmpSsManager utilization
-    f = open('./pom_IP/IP_packager/som_resource_utilization.json', 'w')
-    f.write(json.dumps(used_resources[False]) + '\n')
+    generate_POM_IP()
 
-    # Extended SmartOmpSsManager utilization
-    f = open('./pom_IP/IP_packager/ext_som_resource_utilization.json', 'w')
-    f.write(json.dumps(used_resources[True]) + '\n')
+if not args.skip_som_gen:
+    if os.path.exists('./som_IP'):
+        shutil.rmtree('./som_IP_old', ignore_errors=True)
+        os.rename('./som_IP', './som_IP_old')
 
-generate_IP()
+    # Generate Vivado project and package IP
+    os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
+    os.makedirs('./som_IP/IP_packager')
+
+    if not args.skip_hls:
+        # SmartOmpSsManager utilization
+        f = open('./som_IP/IP_packager/som_resource_utilization.json', 'w')
+        f.write(json.dumps(used_resources[False]) + '\n')
+        f.close()
+
+        # Extended SmartOmpSsManager utilization
+        f = open('./som_IP/IP_packager/ext_som_resource_utilization.json', 'w')
+        f.write(json.dumps(used_resources[True]) + '\n')
+        f.close()
+
+    generate_SOM_IP()
 

@@ -12,8 +12,8 @@ variable vivado_version [regsub -all {\.} [version -short] {_}]
 create_project -force [string tolower $name_IP] -part $board_part
 
 # If exists, add board IP repository
-set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS" [current_project]
-set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $prj_dir/Vivado_HLS/extended" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS/extended" [current_project]
 
 # Update IP catalog
 update_ip_catalog
