@@ -99,7 +99,7 @@ void Taskwait_wrapper(axiStream64_t &inStream, axiStream8_t &outStream, taskwait
 		_state = STATE_GET_ENTRY;
 	} else if (_state == STATE_GET_ENTRY) {
 		//Get an entry in the info memory for the taskId
-        _entryIdx = CACHE_SIZE; //< Not found value
+		_entryIdx = CACHE_SIZE; //< Not found value
 		for (ap_uint<CACHE_IDX_BITS> i = 0; i < CACHE_SIZE; i++) {
 			#pragma HLS PIPELINE
 			taskwaitEntry_t entry = twInfo[i];
