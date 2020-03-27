@@ -33,6 +33,6 @@ ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
 ipx::save_core [ipx::current_core]
 ipx::check_integrity -quiet [ipx::current_core]
-ipx::archive_core $prj_dir/IP_packager/bsc_ompss_[string tolower $name_IP].zip [ipx::current_core]
 
 file delete -force {*}[glob $prj_dir/IP_packager/${name_IP}_${vivado_version}_IP/tmp_edit_project*]
+
