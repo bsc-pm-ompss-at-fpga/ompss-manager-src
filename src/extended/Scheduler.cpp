@@ -78,7 +78,7 @@ void Scheduler_wrapper(
 		uint32_t bitInfo[256],
 		axiStream64_t &inStream,
 		axiStream8_t &outStream,
-        uint32_t& picosRejectTask)
+		uint32_t& picosRejectTask)
 {
 	#pragma HLS INTERFACE bram port=intCmdInQueue bundle=intCmdInQueue
 	#pragma HLS RESOURCE variable=intCmdInQueue core=RAM_1P_BRAM
@@ -87,7 +87,7 @@ void Scheduler_wrapper(
 	#pragma HLS INTERFACE bram port=bitInfo
 	#pragma HLS INTERFACE axis port=inStream
 	#pragma HLS INTERFACE axis port=outStream
-    #pragma HLS INTERFACE ap_ovld port=picosRejectTask
+	#pragma HLS INTERFACE ap_ovld port=picosRejectTask
 	#pragma HLS INTERFACE ap_ctrl_none port=return
 
 	static sched_tm_state_t _state = SCHED_RESET; //< Current state
@@ -116,7 +116,7 @@ void Scheduler_wrapper(
 	static uint8_t  _lastAccId[MAX_ACCS_TYPES];
 	static uint8_t  _bufferArgFlags[MAX_ARGS];
 	static ap_uint<48> _lastTaskId; //< Last assigned task identifier to tasks created inside the FPGA
-    static bool comesFromDepMod; //< The incoming task is sent by the dependencies module
+	static bool comesFromDepMod; //< The incoming task is sent by the dependencies module
 
 	if (_state == SCHED_RESET) {
 		//Under reset
@@ -201,7 +201,7 @@ void Scheduler_wrapper(
 		uint64_t tmpCopies = (pkg.data >> CMD_IN_EXECTASK_NUMCPYS_OFFSET)&BITS_MASK_8;
 		_numCopies = tmpCopies;
 
-        comesFromDepMod = pkg.id >= MAX_ACCS;
+		comesFromDepMod = pkg.id >= MAX_ACCS;
 		//NOTE: If the source ID is >MAX_ACCS, the pkg comes from the dependencies module and task already has an ID
 		_state = pkg.id >= MAX_ACCS ? SCHED_READ_TASK_ID : SCHED_GEN_TASK_ID;
 	} else if (_state == SCHED_READ_TASK_ID) {
@@ -271,12 +271,12 @@ void Scheduler_wrapper(
 		data.dest = _srcAccId;
 		data.last = 1;
 		data.data = ACK_REJECT_CODE;
-        if (comesFromDepMod) {
-            picosRejectTask = (uint32_t)_taskId;
-        }
-        else {
-		    outStream.write(data);
-        }
+		if (comesFromDepMod) {
+			picosRejectTask = (uint32_t)_taskId;
+		}
+		else {
+			outStream.write(data);
+		}
 
 		_state = SCHED_READ_HEADER_1;
 	} else if (_state == SCHED_CMDIN_WRITE) {
@@ -345,9 +345,9 @@ void Scheduler_wrapper(
 		data.dest = _srcAccId;
 		data.last = 1;
 		data.data = ACK_OK_CODE;
-        if (!comesFromDepMod) {
-		    outStream.write(data);
-        }
+		if (!comesFromDepMod) {
+			outStream.write(data);
+		}
 
 		//Clean-up
 		ap_uint<CMD_IN_SUBQUEUE_IDX_BITS> filledSlots =

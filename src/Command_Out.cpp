@@ -84,7 +84,7 @@ void Command_Out_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailabili
 {
 	#pragma HLS INTERFACE axis port=outStream
 	#pragma HLS INTERFACE axis port=inStream
-    #pragma HLS INTERFACE axis port=picosFinishTask
+	#pragma HLS INTERFACE axis port=picosFinishTask
 	#pragma HLS INTERFACE bram port=cmdOutQueue
 	#pragma HLS INTERFACE bram port=accAvailability
 	#pragma HLS RESOURCE variable=accAvailability core=RAM_1P_BRAM
@@ -164,12 +164,12 @@ void Command_Out_wrapper(uint64_t cmdOutQueue[CMD_OUT_QUEUE_SIZE], accAvailabili
 		_state = CMD_OUT_TM_WRITE_HEAD;
 	} else if (_state == CMD_OUT_TM_READ_FINI_EXEC_INT) {
 		//Read the out command payload: task id
-        ap_uint<64> taskId = inStream.read().data;
+		ap_uint<64> taskId = inStream.read().data;
 
 		//The task has been created inside the FPGA and it is handled by the dependencies module (maybe Picos)
 		if (taskId[62] == 0) {
-            picosFinishTask = taskId(31, 0);
-        }
+			picosFinishTask = taskId(31, 0);
+		}
 
 		//Read the out command payload: parent task id
 		uint64_t parentId = inStream.read().data;
