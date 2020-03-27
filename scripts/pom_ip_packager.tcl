@@ -44,9 +44,9 @@ set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
 set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
 
 ipx::add_file_group -type utility {} [ipx::current_core]
-file copy -force $root_dir/som_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
-ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/som_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
-set_property type LOGO [ipx::get_files src/som_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
+file copy -force $root_dir/pom_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
+ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/pom_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
+set_property type LOGO [ipx::get_files src/pom_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
