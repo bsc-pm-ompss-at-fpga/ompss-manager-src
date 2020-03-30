@@ -91,7 +91,6 @@ class ArgParser:
         self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower, required=True)
         self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
-        self.parser.add_argument('-p', '--picos_path', help='Path to the Picos IP', required=True)
         self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
         self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
@@ -148,8 +147,7 @@ def generate_POM_IP():
                          + str(POM_MAJOR_VERSION) + '.' + str(POM_MINOR_VERSION) + ' '
                          + str(POM_PREVIOUS_MAJOR_VERSION) + '.' + str(POM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
-                         + args.picos_path, cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/pom_IP'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -239,9 +237,6 @@ msg = Messages()
 parser = ArgParser()
 args = parser.parse_args()
 sys.stdout = Logger()
-
-if not args.skip_pom_gen and args.picos_path is None:
-    msg.error('Please specify the Picos IP path with the -p option')
 
 if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
     if not args.skip_board_check:

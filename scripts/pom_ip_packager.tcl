@@ -4,7 +4,6 @@ variable previous_version [lindex $argv 2]
 variable board_part [lindex $argv 3]
 variable root_dir [lindex $argv 4]
 variable prj_dir [lindex $argv 5]
-variable ext_IP_repo [lindex $argv 6]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -15,10 +14,14 @@ create_project -force [string tolower $name_IP] -part $board_part
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS" [current_project]
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS/extended" [current_project]
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/cutoff_IP/IP_packager" [current_project]
-set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $ext_IP_repo" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/IPs" [current_project]
 
 # Update IP catalog
 update_ip_catalog
+
+foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
+	update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
+}
 
 if {[catch {source $root_dir/scripts/${name_IP}_bd.tcl}]} {
 	error "ERROR: Failed sourcing board base design"
