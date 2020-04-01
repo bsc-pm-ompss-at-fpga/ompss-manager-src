@@ -4,4 +4,4 @@ cutoff_IP*
 Vivado_HLS
 *.log
 IPs/*
-!*.zip
+!IPs/*.zip
