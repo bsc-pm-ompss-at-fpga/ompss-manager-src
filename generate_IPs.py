@@ -260,7 +260,7 @@ if not args.skip_hls:
     os.makedirs('./Vivado_HLS')
     used_resources = {True:{},False:{}}
 
-    msg.info('Synthesizing PicosOmpSsManager HLS sources')
+    msg.info('Synthesizing HLS sources')
     for file_ in glob.glob('./src/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'])
 
