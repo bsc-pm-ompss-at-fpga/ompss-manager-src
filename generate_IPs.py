@@ -96,22 +96,123 @@ class ArgParser:
         self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_gen', help='skips generation of the PicosOmpSsManager IP', action='store_true', default=False)
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SmartOmpSsManager IP', action='store_true', default=False)
+        self.parser.add_argument('--skip_pom_synth', help='skips pom IP synthesis to generate resouce utilization report', action='store_true', default=False)
+        self.parser.add_argument('--skip_som_synth', help='skips som IP synthesis to generate resouce utilization report', action='store_true', default=False)
 
     def parse_args(self):
         return self.parser.parse_args()
 
+def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
+    if not os.path.exists(rpt_path):
+        msg.warning('Cannot find rpt file ' + rpt_path + '. Skipping resource utilization report')
+        return
 
-def compute_resource_utilization(acc_path, extended=False):
-    report_file = acc_path + '/solution1/syn/report/' + os.path.basename(acc_path) + '_wrapper_csynth.xml'
+    used_resources = {}
+    with open(rpt_path, 'r') as rpt_file:
+        rpt_data = rpt_file.readlines()
 
-    tree = cET.parse(report_file)
-    root = tree.getroot()
+        # Search LUT/FF section
+        # NOTE: Possible section names: Slice Logic, CLB Logic
+        ids = [idx for idx in range(len(rpt_data) - 1) if ((re.match('^[0-9]\. Slice Logic\n', rpt_data[idx])
+                                                            and rpt_data[idx + 1] == '--------------\n') or
+                                                           (re.match('^[0-9]\. CLB Logic\n', rpt_data[idx])
+                                                            and rpt_data[idx + 1] == '------------\n'))]
+        if len(ids) != 1:
+            msg.warning('Cannot find LUT/FF info in rpt file ' + rpt_path + '. Skipping bitstream utilization report')
+            return
 
-    for resource in root.find('AreaEstimates').find('Resources'):
-        if not extended:
-            used_resources[False][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
+        # Get LUT
+        elems = rpt_data[ids[0] + 6].split('|')
+        used_resources['LUT'] = int(elems[2].strip())
 
-        used_resources[True][resource.tag] = int(resource.text) + (int(used_resources[extended][resource.tag]) if resource.tag in used_resources[extended] else 0)
+        # Get FF
+        elems = rpt_data[ids[0] + 11].split('|')
+        used_resources['FF'] = int(elems[2].strip())
+
+        # Get DSP
+        # NOTE: Possible section names: DSP, ARITHMETIC
+        ids = [idx for idx in range(len(rpt_data) - 1) if ((re.match('^[0-9]\. DSP\n', rpt_data[idx])
+                                                            and rpt_data[idx + 1] == '------\n') or
+                                                           (re.match('^[0-9]\. ARITHMETIC\n', rpt_data[idx])
+                                                            and rpt_data[idx + 1] == '-------------\n'))]
+        if len(ids) != 1:
+            msg.warning('Cannot find DSP info in rpt file ' + rpt_path + '. Skipping bitstream utilization report')
+            return
+        elems = rpt_data[ids[0] + 6].split('|')
+        used_resources['DSP48E'] = int(elems[2].strip())
+
+        # Get BRAM
+        # NOTE: Possible section names: Memory, BLOCKRAM
+        ids = [idx for idx in range(len(rpt_data) - 1) if ((re.match('^[0-9]\. Memory\n', rpt_data[idx])
+                                                           and rpt_data[idx + 1] == '---------\n') or
+                                                          (re.match('^[0-9]\. BLOCKRAM\n', rpt_data[idx])
+                                                           and rpt_data[idx + 1] == '-----------\n'))]
+        if len(ids) != 1:
+            msg.warning('Cannot find BRAM info in rpt file ' + rpt_path + '. Skipping bitstream utilization report')
+            return
+        elems = rpt_data[ids[0] + 6].split('|')
+        used_resources['BRAM_18K'] = int(float(elems[2].strip())*2)
+
+    msg.log(name_IP + ' resources utilization summary')
+    for name in ['BRAM_18K', 'DSP48E', 'FF', 'LUT']:
+        report_string = '{0:<9} {1:>6} used'
+        report_string_formatted = report_string.format(name, used_resources[name])
+        msg.log(report_string_formatted)
+
+    with open(report_file, 'w') as json_file:
+        json_file.write(json.dumps(used_resources))
+
+
+def compute_POM_resource_utilization():
+    msg.info('Synthesizing PicosOmpSsManager IP')
+    prj_path = './pom_IP/Vivado/PicosOmpSsManager'
+    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
+                         + os.getcwd() + '/scripts/synthesize_pom.tcl -tclargs '
+                         + os.path.abspath(os.getcwd() + '/pom_IP/Vivado/PicosOmpSsManager') + ' '
+                         + 'PicosOmpSsManager', cwd=prj_path,
+                         stdout=sys.stdout.subprocess,
+                         stderr=sys.stdout.subprocess, shell=True)
+
+    if args.verbose:
+        for line in iter(p.stdout.readline, b''):
+            sys.stdout.write(line.decode('utf-8'))
+
+    retval = p.wait()
+    if retval:
+        msg.error('Synthesis of PicosOmpSsManager IP failed')
+    else:
+        msg.success('Finished synthesis of PicosOmpSsManager IP')
+
+    parse_syntehsis_utilization_report(prj_path + '/picosompssmanager.runs/synth_1/PicosOmpSsManager_wrapper_utilization_synth.rpt',
+                                       './pom_IP/IP_packager/pom_resource_utilization.json', 'PicosOmpSsManager')
+
+
+def compute_SOM_resource_utilization(extended):
+    msg.info('Synthesizing' + (' extended ' if extended else ' ') + 'SmartOmpSsManager IP')
+    prj_path = './som_IP/Synthesis'
+    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
+                         + os.getcwd() + '/scripts/synthesize_som.tcl -tclargs '
+                         + os.path.abspath(os.getcwd() + '/som_IP/Synthesis') + ' '
+                         + 'SmartOmpSsManager '
+                         + ('1 ' if extended else '0 ')
+                         + args.board_part + ' '
+                         + os.path.abspath(os.getcwd() + '/som_IP/IP_packager'), cwd=prj_path,
+                         stdout=sys.stdout.subprocess,
+                         stderr=sys.stdout.subprocess, shell=True)
+
+    if args.verbose:
+        for line in iter(p.stdout.readline, b''):
+            sys.stdout.write(line.decode('utf-8'))
+
+    retval = p.wait()
+    if retval:
+        msg.error('Synthesis of' + (' extended ' if extended else ' ') + 'SmartOmpSsManager IP failed')
+    else:
+        msg.success('Finished synthesis of' + (' extended ' if extended else ' ') + 'SmartOmpSsManager IP')
+
+    parse_syntehsis_utilization_report(prj_path + '/synth_project.runs/synth_1/smartompssmanager_0_utilization_synth.rpt',
+                                      './som_IP/IP_packager/' + ('ext_' if extended else '') + 'som_resource_utilization.json',
+                                      ('Extended ' if extended else ' ') + 'SmartOmpSsManager')
 
 def generate_cutoff_IP():
     msg.info('Generating CutoffManager IP')
@@ -229,7 +330,6 @@ def synthesize_hls(file_, includes, extended=False):
     if retval:
         msg.error('Synthesis of \'' + acc_name + '\' failed')
     else:
-        compute_resource_utilization(dst_path + acc_name, extended)
         msg.success('Finished synthesis of \'' + acc_name + '\'')
 
 
@@ -288,25 +388,22 @@ if not args.skip_pom_gen:
 
     generate_POM_IP()
 
+if not args.skip_pom_synth:
+    compute_POM_resource_utilization()
+
 if not args.skip_som_gen:
     if os.path.exists('./som_IP'):
         shutil.rmtree('./som_IP_old', ignore_errors=True)
         os.rename('./som_IP', './som_IP_old')
 
-    # Generate Vivado project and package IP
+    # Generate Vivado project, synthesis and package IP
     os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
+    os.makedirs('./som_IP/Synthesis')
     os.makedirs('./som_IP/IP_packager')
 
-    if not args.skip_hls:
-        # SmartOmpSsManager utilization
-        f = open('./som_IP/IP_packager/som_resource_utilization.json', 'w')
-        f.write(json.dumps(used_resources[False]) + '\n')
-        f.close()
-
-        # Extended SmartOmpSsManager utilization
-        f = open('./som_IP/IP_packager/ext_som_resource_utilization.json', 'w')
-        f.write(json.dumps(used_resources[True]) + '\n')
-        f.close()
-
     generate_SOM_IP()
+
+if not args.skip_som_synth:
+    compute_SOM_resource_utilization(False)
+    compute_SOM_resource_utilization(True)
 
