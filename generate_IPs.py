@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #------------------------------------------------------------------------#
 #    (C) Copyright 2017-2019 Barcelona Supercomputing Center             #
