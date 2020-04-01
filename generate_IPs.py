@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #------------------------------------------------------------------------#
 #    (C) Copyright 2017-2019 Barcelona Supercomputing Center             #
@@ -92,15 +92,24 @@ class ArgParser:
         self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
+        self.parser.add_argument('--skip_pom', help='skips the POM related parts', action='store_true', default=False)
+        self.parser.add_argument('--skip_som', help='skips the SOM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
         self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
-        self.parser.add_argument('--skip_pom_gen', help='skips generation of the PicosOmpSsManager IP', action='store_true', default=False)
-        self.parser.add_argument('--skip_som_gen', help='skips generation of the SmartOmpSsManager IP', action='store_true', default=False)
-        self.parser.add_argument('--skip_pom_synth', help='skips pom IP synthesis to generate resouce utilization report', action='store_true', default=False)
-        self.parser.add_argument('--skip_som_synth', help='skips som IP synthesis to generate resouce utilization report', action='store_true', default=False)
+        self.parser.add_argument('--skip_pom_gen', help='skips generation of the POM IP', action='store_true', default=False)
+        self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
+        self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
+        self.parser.add_argument('--skip_som_synth', help='skips SOM IP synthesis to generate resouce utilization report', action='store_true', default=False)
 
     def parse_args(self):
-        return self.parser.parse_args()
+        args = self.parser.parse_args()
+        if args.skip_pom:
+            args.skip_pom_gen = True
+            args.skip_pom_synth = True
+        if args.skip_som:
+            args.skip_som_gen = True
+            args.skip_som_synth = True
+        return args
 
 def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
     if not os.path.exists(rpt_path):
