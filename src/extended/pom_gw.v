@@ -88,11 +88,15 @@ module pom_gw #(
     
     localparam HWR_DEPS_ID = 5'h12;
     localparam HWR_SCHED_ID = 5'h13;
+
+    //NOTE: This should be $clog2(TM_SIZE*16) but vivado 2017.3 does not
+    //support it
+    localparam TW_INFO_BITS = 8;
     
     reg [3:0] state;
     
-    reg[$clog2(TW_INFO_SIZE*16)-1:0] tw_info_true_addr;
-    reg[$clog2(TW_INFO_SIZE*16)-1:0] tw_info_addr_delay;
+    reg[TW_INFO_BITS-1:0] tw_info_true_addr;
+    reg[TW_INFO_BITS-1:0] tw_info_addr_delay;
     reg[4:0] acc_id;
     reg[63:0] buf_tdata;
     reg buf_tlast;
@@ -104,10 +108,10 @@ module pom_gw #(
     wire selected_slave_tready;
     reg selected_slave_tvalid;
     reg empty_entry_found;
-    reg [$clog2(TW_INFO_SIZE*16)-1:0] empty_entry;
+    reg [TW_INFO_BITS-1:0] empty_entry;
     
     assign tw_info_clk = clk;
-    assign tw_info_addr = {{32-$clog2(TW_INFO_SIZE*16){1'b0}}, tw_info_true_addr};
+    assign tw_info_addr = {{32-TW_INFO_BITS{1'b0}}, tw_info_true_addr};
     
     assign ack_tvalid = state == ACK;
     assign ack_tdest = acc_id;
