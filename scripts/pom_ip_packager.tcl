@@ -4,7 +4,6 @@ variable previous_version [lindex $argv 2]
 variable board_part [lindex $argv 3]
 variable root_dir [lindex $argv 4]
 variable prj_dir [lindex $argv 5]
-variable ext_IP_repo [lindex $argv 6]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -14,9 +13,15 @@ create_project -force [string tolower $name_IP] -part $board_part
 # If exists, add board IP repository
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS" [current_project]
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS/extended" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/cutoff_IP/IP_packager" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/IPs" [current_project]
 
 # Update IP catalog
 update_ip_catalog
+
+foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
+	update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
+}
 
 if {[catch {source $root_dir/scripts/${name_IP}_bd.tcl}]} {
 	error "ERROR: Failed sourcing board base design"
@@ -42,19 +47,9 @@ set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
 set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
 
 ipx::add_file_group -type utility {} [ipx::current_core]
-file copy $root_dir/som_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
-ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/som_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
-set_property type LOGO [ipx::get_files src/som_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
-
-# Add extended_mode parameter to HDL files
-exec sed -i s/module\ ${name_IP}\$/\\0\ #(extended_mode=0)/g $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v
-exec sed -i s/${name_IP}\ ${name_IP}_i/parameter\ extended_mode=0\;\\n\\n${name_IP}\ #(.extended_mode(extended_mode))\ ${name_IP}_i/g $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}_wrapper.v
-
-# Encapsulate modules' instantiations with conditional generate construct
-foreach internal_IP_name $internal_IP_list {
-	set internal_IP_name ${name_IP}_[string trimleft $internal_IP_name "/"]_0
-	exec cat $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v | tr \$'\n' \$'\x01' | sed s/${internal_IP_name}\[^\;\]*\;/generate\\x01if(extended_mode)\\x01\\0\\x01endgenerate/g | tr \$'\x01' \$'\n' | tee $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v > /dev/null
-}
+file copy -force $root_dir/pom_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
+ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/pom_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
+set_property type LOGO [ipx::get_files src/pom_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
@@ -86,7 +81,6 @@ set_property value_format long [ipx::get_user_parameters $name_param -of_objects
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
 # Add num_tw_accs parameter
 variable name_param "num_tw_accs"
@@ -101,15 +95,6 @@ set_property value_format long [ipx::get_user_parameters $name_param -of_objects
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-
-# Add extended_mode parameter
-variable name_param "extended_mode"
-set_property value_validation_type list [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_list {0 1} [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-ipgui::add_param -name $name_param -component [ipx::current_core] -display_name "Enable extended mode" -show_label {true} -show_range {true}
-set_property tooltip "Enable Smart OmpSs Manager extended mode features" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property widget "checkBox" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 
 foreach bram_intf $bram_list {
 	ipx::remove_bus_interface ${bram_intf}_clk [ipx::current_core]
@@ -133,23 +118,15 @@ foreach bram_intf $bram_list {
 		set_property value 128 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "bitInfo"} {
 		set_property value 32 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
 	} elseif {[string match "intCmdInQueue_*" $bram_intf]} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
 	} elseif {$bram_intf == "spawnOutQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
-	} elseif {$bram_intf == "twInfo"} {
-		set_property value 128 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 256 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
 	} elseif {$bram_intf == "spawnInQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property enablement_dependency "\$extended_mode==1" [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
 	}
 }
 
@@ -161,13 +138,10 @@ for {set i 0} {$i < 16} {incr i} {
 }
 
 ipgui::remove_page -component [ipx::current_core] [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
-ipgui::add_group -name "Extended Mode" -component [ipx::current_core] -display_name "Extended Mode" -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "extended_mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 2 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]

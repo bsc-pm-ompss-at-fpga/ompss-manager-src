@@ -42,9 +42,10 @@ typedef enum {
   STATE_NOTIFY_TW
 } state_t;
 
-void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t &outStream) {
+void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t &outStream, ap_uint<32>& picosFinishTask) {
 #pragma HLS INTERFACE axis port=outStream
 #pragma HLS INTERFACE bram port=SpawnInQueue
+#pragma HLS INTERFACE axis port=picosFinishTask
 #pragma HLS RESOURCE variable=SpawnInQueue core=RAM_1P_BRAM
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
@@ -52,7 +53,7 @@ void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t 
 	#pragma HLS RESET variable=_state
 	static ap_uint<REM_FINI_QUEUE_IDX_BITS> _rIdx = 0; //< Slot to read in SpawnInQueue
 	static uint64_t _header; //< Temporary storage for head word
-	static uint64_t _taskId; //< Temporary storage for taskId word
+	static ap_uint<64> _taskId; //< Temporary storage for taskId word
 	static uint64_t _parentId; //< Temporary storage for parentId word
 
 	if (_state == STATE_RESET) {
@@ -72,6 +73,9 @@ void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t 
 		//Read the taskId
 		idx = _rIdx + 1;
 		_taskId = SpawnInQueue[idx];
+		if (_taskId[62] == 0) {
+			picosFinishTask = _taskId(31, 0);
+		}
 		SpawnInQueue[idx] = 0;
 
 		//Read the parentId
@@ -111,3 +115,4 @@ void Spawn_In_wrapper(uint64_t SpawnInQueue[REM_FINI_QUEUE_SIZE], axiStream64_t 
 		_state = STATE_READ_HEADER;
 	}
 }
+

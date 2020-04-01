@@ -1,2 +1,7 @@
 som_IP*
+pom_IP*
+cutoff_IP*
+Vivado_HLS
 *.log
+IPs/
+!*.zip
