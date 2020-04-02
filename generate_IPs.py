@@ -106,6 +106,7 @@ class ArgParser:
         if args.skip_pom:
             args.skip_pom_gen = True
             args.skip_pom_synth = True
+            args.skip_cutoff_gen = True
         if args.skip_som:
             args.skip_som_gen = True
             args.skip_som_synth = True
@@ -193,7 +194,7 @@ def compute_POM_resource_utilization():
         msg.success('Finished synthesis of PicosOmpSsManager IP')
 
     parse_syntehsis_utilization_report(prj_path + '/picosompssmanager.runs/synth_1/PicosOmpSsManager_wrapper_utilization_synth.rpt',
-                                       './pom_IP/IP_packager/pom_resource_utilization.json', 'PicosOmpSsManager')
+                                       './pom_IP/IP_packager/ext_pom_resource_utilization.json', 'PicosOmpSsManager')
 
 
 def compute_SOM_resource_utilization(extended):
