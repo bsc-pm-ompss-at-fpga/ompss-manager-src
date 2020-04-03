@@ -44,7 +44,7 @@ set_property display_name $name_IP [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
-set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
+set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta kintexu{xcku060-ffva1156-2-i} Beta} [ipx::current_core]
 
 ipx::add_file_group -type utility {} [ipx::current_core]
 file copy -force $root_dir/pom_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
