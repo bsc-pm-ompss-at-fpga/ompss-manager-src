@@ -129,9 +129,9 @@ bsc:ompss:Spawn_In_wrapper:*\
 bsc:ompss:Taskwait_wrapper:*\
 bsc:ompss:picos:*\
 bsc:ompss:cutoffmanager:*\
+bsc:ompss:dual_port_32_bit_sync_memory:*\
 xilinx.com:ip:util_vector_logic:*\
 "
-
    set list_check_rtl ""
 
    set list_ips_missing ""
@@ -677,8 +677,8 @@ proc create_root_design { parentCell } {
  ] $ps_rst
 
   #  Create instance: TW info bram and set properties
-  set tw_info [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen tw_info ]
-  set_property -dict [list CONFIG.Memory_Type {True_Dual_Port_RAM} CONFIG.Enable_32bit_Address {true} CONFIG.Use_Byte_Write_Enable {true} CONFIG.Byte_Size {8} CONFIG.Assume_Synchronous_Clk {true} CONFIG.Write_Width_A {128} CONFIG.Write_Depth_A {16} CONFIG.Read_Width_A {128} CONFIG.Operating_Mode_A {READ_FIRST} CONFIG.Write_Width_B {128} CONFIG.Read_Width_B {128} CONFIG.Operating_Mode_B {READ_FIRST} CONFIG.Enable_B {Use_ENB_Pin} CONFIG.Register_PortA_Output_of_Memory_Primitives {false} CONFIG.Register_PortB_Output_of_Memory_Primitives {false} CONFIG.Use_RSTA_Pin {true} CONFIG.Use_RSTB_Pin {false} CONFIG.Port_B_Clock {100} CONFIG.Port_B_Write_Rate {50} CONFIG.Port_B_Enable_Rate {100} CONFIG.use_bram_block {Stand_Alone} CONFIG.EN_SAFETY_CKT {false}] $tw_info
+  set tw_info [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_sync_memory tw_info ]
+  set_property -dict [list CONFIG.SIZE {16} CONFIG.WIDTH {128} ] $tw_info
 
   # Create instance: Command_In, and set properties
   set Command_In [ create_bd_cell -type ip -vlnv bsc:ompss:Command_In_wrapper Command_In ]
@@ -785,6 +785,7 @@ proc create_root_design { parentCell } {
  ] $rst_NOT
 
   # Create interface connections
+  connect_bd_intf_net -intf_net Cutoff_tw_info [get_bd_intf_pins Cutoff/tw_info] [get_bd_intf_pins tw_info/portB]
   connect_bd_intf_net -intf_net Command_out_Picos_finish_task [get_bd_intf_pins Command_Out/picosFinishTask] -boundary_type upper [get_bd_intf_pins Picos_finish_task_Inter/S01_AXIS]
   connect_bd_intf_net -intf_net Spawn_in_Picos_finish_task [get_bd_intf_pins Picos_finish_task_Inter/S00_AXIS] [get_bd_intf_pins Spawn_In/picosFinishTask_V]
   connect_bd_intf_net -intf_net Picos_finish_task [get_bd_intf_pins Picos_finish_task_Inter/M00_AXIS] [get_bd_intf_pins Picos/finish_task]
@@ -793,11 +794,6 @@ proc create_root_design { parentCell } {
   connect_bd_net [get_bd_pins Picos/retry_valid] [get_bd_pins Scheduler/picosRejectTask_ap_vld]
   connect_bd_intf_net [ get_bd_intf_pins Picos/ready_task ] [ get_bd_intf_pins Sched_inStream_Inter/S01_AXIS ]
   connect_bd_net [get_bd_pins Picos/picos_full] [get_bd_pins Cutoff/picos_full]
-  connect_bd_net [get_bd_pins tw_info/web] [get_bd_pins Cutoff/tw_info_we]
-  connect_bd_net [get_bd_pins tw_info/enb] [get_bd_pins Cutoff/tw_info_en]
-  connect_bd_net [get_bd_pins tw_info/doutb] [get_bd_pins Cutoff/tw_info_dout]
-  connect_bd_net [get_bd_pins tw_info/clkb] [get_bd_pins Cutoff/tw_info_clk]
-  connect_bd_net [get_bd_pins tw_info/dinb] [get_bd_pins Cutoff/tw_info_din]
   connect_bd_intf_net -intf_net Cutoff_Sched_inStream [ get_bd_intf_pins Cutoff/sched_inStream ] [ get_bd_intf_pins Sched_inStream_Inter/S00_AXIS ]
   connect_bd_intf_net -intf_net new_task [ get_bd_intf_pins Cutoff/deps_new_task ] [ get_bd_intf_pins Picos/new_task ]
   connect_bd_intf_net -intf_net cutoff_ack [ get_bd_intf_pins Cutoff/ack ] [ get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/S02_AXIS ]
