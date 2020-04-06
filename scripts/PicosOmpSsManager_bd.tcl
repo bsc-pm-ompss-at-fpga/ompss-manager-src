@@ -208,7 +208,6 @@ proc create_root_design { parentCell } {
   # Set parent object as current
   current_bd_instance $parentObj
 
-
   # Create interface ports
   set accAvailability_CI [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 accAvailability_CI ]
   set_property -dict [ list \
