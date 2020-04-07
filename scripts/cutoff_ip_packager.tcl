@@ -20,10 +20,27 @@ set_property display_name $name_IP [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
-set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
+set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta kintexu{xcku060-ffva1156-2-i} Beta} [ipx::current_core]
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
+
+ipx::add_bus_interface tw_info [ipx::current_core]
+set_property abstraction_type_vlnv xilinx.com:interface:bram_rtl:1.0 [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property bus_type_vlnv xilinx.com:interface:bram:1.0 [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property interface_mode master [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+ipx::add_port_map DIN [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_din [ipx::get_port_maps DIN -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
+ipx::add_port_map EN [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_en [ipx::get_port_maps EN -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
+ipx::add_port_map DOUT [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_dout [ipx::get_port_maps DOUT -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
+ipx::add_port_map CLK [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_clk [ipx::get_port_maps CLK -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
+ipx::add_port_map WE [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_we [ipx::get_port_maps WE -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
+ipx::add_port_map ADDR [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]
+set_property physical_name tw_info_addr [ipx::get_port_maps ADDR -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
 
 set_property core_revision 1 [ipx::current_core]
 
