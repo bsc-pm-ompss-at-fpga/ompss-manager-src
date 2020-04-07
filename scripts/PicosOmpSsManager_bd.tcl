@@ -129,7 +129,7 @@ bsc:ompss:Spawn_In_wrapper:*\
 bsc:ompss:Taskwait_wrapper:*\
 bsc:ompss:picos:*\
 bsc:ompss:cutoffmanager:*\
-bsc:ompss:dual_port_32_bit_sync_memory:*\
+bsc:ompss:dual_port_32_bit_memory:*\
 xilinx.com:ip:util_vector_logic:*\
 "
    set list_check_rtl ""
@@ -209,14 +209,6 @@ proc create_root_design { parentCell } {
   current_bd_instance $parentObj
 
   # Create interface ports
-  set accAvailability_CI [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 accAvailability_CI ]
-  set_property -dict [ list \
-   CONFIG.MASTER_TYPE {BRAM_CTRL} \
-   ] $accAvailability_CI
-  set accAvailability_CO [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 accAvailability_CO ]
-  set_property -dict [ list \
-   CONFIG.MASTER_TYPE {BRAM_CTRL} \
-   ] $accAvailability_CO
   set bitInfo [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 bitInfo ]
   set_property -dict [ list \
    CONFIG.MASTER_TYPE {BRAM_CTRL} \
@@ -613,14 +605,6 @@ proc create_root_design { parentCell } {
    CONFIG.TID_WIDTH {8} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_15
-  set intCmdInQueue_CI [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 intCmdInQueue_CI ]
-  set_property -dict [ list \
-   CONFIG.MASTER_TYPE {BRAM_CTRL} \
-   ] $intCmdInQueue_CI
-  set intCmdInQueue_STM [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:bram_rtl:1.0 intCmdInQueue_STM ]
-  set_property -dict [ list \
-   CONFIG.MASTER_TYPE {BRAM_CTRL} \
-   ] $intCmdInQueue_STM
   set outStream_0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 outStream_0 ]
   set outStream_1 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 outStream_1 ]
   set outStream_2 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 outStream_2 ]
@@ -676,8 +660,16 @@ proc create_root_design { parentCell } {
  ] $ps_rst
 
   #  Create instance: TW info bram and set properties
-  set tw_info [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_sync_memory tw_info ]
-  set_property -dict [list CONFIG.SIZE {16} CONFIG.WIDTH {128} ] $tw_info
+  set tw_info [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory tw_info ]
+  set_property -dict [ list CONFIG.SIZE {16} CONFIG.WIDTH {128} CONFIG.EN_RST_B {false} ] $tw_info
+
+  #  Create instance: AccAvailability bram and set properties
+  set accAvailability [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory accAvailability ]
+  set_property -dict [ list CONFIG.SIZE {16} CONFIG.WIDTH {64}] $accAvailability
+
+  #  Create instance: intCmdInQueue bram and set properties
+  set intCmdInQueue [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory intCmdInQueue ]
+  set_property -dict [ list CONFIG.SIZE {1024} CONFIG.WIDTH {64}] $intCmdInQueue
 
   # Create instance: Command_In, and set properties
   set Command_In [ create_bd_cell -type ip -vlnv bsc:ompss:Command_In_wrapper Command_In ]
@@ -798,11 +790,11 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net Cutoff_inStream [ get_bd_intf_pins Cutoff/ext_inStream ] [ get_bd_intf_pins ext_inStream_Inter/M00_AXIS ]
   connect_bd_intf_net -intf_net Scheduler_inStream [get_bd_intf_pins Scheduler/inStream] [ get_bd_intf_pins Sched_inStream_Inter/M00_AXIS ]
   connect_bd_intf_net -intf_net Cmd_Out_Task_Manager_outStream [get_bd_intf_pins Command_Out/outStream] [get_bd_intf_pins ext_inStream_Taskwait_Inter/S01_AXIS]
-  connect_bd_intf_net -intf_net Command_In_accAvailability_PORTA [get_bd_intf_ports accAvailability_CI] [get_bd_intf_pins Command_In/accAvailability_PORTA]
+  connect_bd_intf_net -intf_net Command_In_accAvailability_PORTA [get_bd_intf_pins accAvailability/portA] [get_bd_intf_pins Command_In/accAvailability_PORTA]
   connect_bd_intf_net -intf_net Command_In_cmdInQueue_PORTA [get_bd_intf_ports cmdInQueue] [get_bd_intf_pins Command_In/cmdInQueue_PORTA]
-  connect_bd_intf_net -intf_net Command_In_intCmdInQueue_PORTA [get_bd_intf_ports intCmdInQueue_CI] [get_bd_intf_pins Command_In/intCmdInQueue_PORTA]
+  connect_bd_intf_net -intf_net Command_In_intCmdInQueue_PORTA [get_bd_intf_pins intCmdInQueue/portA] [get_bd_intf_pins Command_In/intCmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Command_In_outStream [get_bd_intf_pins Command_In/outStream] [get_bd_intf_pins outStream_Inter/S00_AXIS]
-  connect_bd_intf_net -intf_net Command_Out_accAvailability_PORTA [get_bd_intf_ports accAvailability_CO] [get_bd_intf_pins Command_Out/accAvailability_PORTA]
+  connect_bd_intf_net -intf_net Command_Out_accAvailability_PORTA [get_bd_intf_pins accAvailability/portB] [get_bd_intf_pins Command_Out/accAvailability_PORTA]
   connect_bd_intf_net -intf_net Command_Out_cmdOutQueue_PORTA [get_bd_intf_ports cmdOutQueue] [get_bd_intf_pins Command_Out/cmdOutQueue_PORTA]
   connect_bd_intf_net -intf_net Scheduler_spawnOutQueue_PORTA [get_bd_intf_ports spawnOutQueue] [get_bd_intf_pins Scheduler/spawnOutQueue_PORTA]
   connect_bd_intf_net -intf_net Remote_Finished_Task_Manager_inQueue_PORTA [get_bd_intf_ports spawnInQueue] [get_bd_intf_pins Spawn_In/SpawnInQueue_PORTA]
@@ -840,7 +832,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net S15_AXIS_1 [get_bd_intf_ports inStream_15] [get_bd_intf_pins inStream_Inter/S15_AXIS]
   connect_bd_intf_net -intf_net S15_AXIS_2 [get_bd_intf_ports ext_inStream_15] [get_bd_intf_pins ext_inStream_Inter/S15_AXIS]
   connect_bd_intf_net -intf_net Scheduler_bitInfo_PORTA [get_bd_intf_ports bitInfo] [get_bd_intf_pins Scheduler/bitInfo_PORTA]
-  connect_bd_intf_net -intf_net Scheduler_intCmdInQueue_PORTA [get_bd_intf_ports intCmdInQueue_STM] [get_bd_intf_pins Scheduler/intCmdInQueue_PORTA]
+  connect_bd_intf_net -intf_net Scheduler_intCmdInQueue_PORTA [get_bd_intf_pins intCmdInQueue/portB] [get_bd_intf_pins Scheduler/intCmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Taskwait_outStream [get_bd_intf_pins Taskwait/outStream] [get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS]
   connect_bd_intf_net -intf_net Scheduler_outStream [get_bd_intf_pins Scheduler/outStream] [get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS]
   connect_bd_intf_net -intf_net Taskwait_twInfo_PORTA [get_bd_intf_pins tw_info/portA] [get_bd_intf_pins Taskwait/twInfo_PORTA]
@@ -898,9 +890,9 @@ proc create_root_design { parentCell } {
 }
 # End of create_root_design()
 
-
 ##################################################################
 # MAIN FLOW
 ##################################################################
 
 create_root_design ""
+
