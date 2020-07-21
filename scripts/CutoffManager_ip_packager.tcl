@@ -2,13 +2,14 @@ variable name_IP [lindex $argv 0]
 variable board_part [lindex $argv 1]
 variable root_dir [lindex $argv 2]
 variable prj_dir [lindex $argv 3]
+variable encrypt [lindex $argv 4]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
 # Create project
 create_project -force [string tolower $name_IP] -part $board_part
 
-add_files -norecurse $root_dir/src/extended/pom_gw.v
+add_files -norecurse $root_dir/src/extended/Cutoff_Manager.sv
 
 ipx::package_project -root_dir $prj_dir/IP_packager/${name_IP}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
 ipx::unload_core $prj_dir/IP_packager/${name_IP}_${vivado_version}_IP/component.xml
@@ -43,6 +44,12 @@ ipx::add_port_map ADDR [ipx::get_bus_interfaces tw_info -of_objects [ipx::curren
 set_property physical_name tw_info_addr [ipx::get_port_maps ADDR -of_objects [ipx::get_bus_interfaces tw_info -of_objects [ipx::current_core]]]
 
 set_property core_revision 1 [ipx::current_core]
+
+if {$encrypt == 1} {
+    foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${vivado_version}_IP/src/{{*/*,*}.sv}] {
+	    encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
+    }
+}
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes files [ipx::current_core]

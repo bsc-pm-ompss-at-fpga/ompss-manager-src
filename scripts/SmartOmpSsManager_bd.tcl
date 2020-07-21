@@ -1,6 +1,6 @@
 
 ################################################################
-# This is a generated script based on design: test_design
+# This is a generated script based on design: SmartOmpSsManager
 #
 # Though there are limitations about the generated script,
 # the main purpose of this utility is to make learning
@@ -34,7 +34,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 ################################################################
 
 # To test this script, run the following commands from Vivado Tcl console:
-# source test_design_script.tcl
+# source SmartOmpSsManager_script.tcl
 
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
@@ -204,198 +204,6 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.MASTER_TYPE {BRAM_CTRL} \
    ] $cmdOutQueue
-  set ext_inStream_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_0 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_0
-  set ext_inStream_1 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_1 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_1
-  set ext_inStream_2 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_2 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_2
-  set ext_inStream_3 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_3 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_3
-  set ext_inStream_4 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_4 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_4
-  set ext_inStream_5 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_5 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_5
-  set ext_inStream_6 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_6 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_6
-  set ext_inStream_7 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_7 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_7
-  set ext_inStream_8 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_8 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_8
-  set ext_inStream_9 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_9 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_9
-  set ext_inStream_10 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_10 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_10
-  set ext_inStream_11 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_11 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_11
-  set ext_inStream_12 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_12 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_12
-  set ext_inStream_13 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_13 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_13
-  set ext_inStream_14 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_14 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_14
-  set ext_inStream_15 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 ext_inStream_15 ]
-  set_property -dict [ list \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {1} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
-   CONFIG.TUSER_WIDTH {0} \
-   ] $ext_inStream_15
   set inStream_0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_0 ]
   set_property -dict [ list \
    CONFIG.HAS_TKEEP {1} \
@@ -643,52 +451,51 @@ proc create_root_design { parentCell } {
  ] $ps_rst
 
   #  Create instance: TW info bram and set properties
-  set tw_info [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory tw_info ]
-  set_property -dict [ list CONFIG.SIZE {16} CONFIG.WIDTH {128} CONFIG.SINGLE_PORT {true} ] $tw_info
-
-  #  Create instance: AccAvailability bram and set properties
-  set accAvailability [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory accAvailability ]
-  set_property -dict [ list CONFIG.SIZE {16} CONFIG.WIDTH {64}] $accAvailability
+  set tw_info [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_memory tw_info ]
+  set_property -dict [ list \
+   CONFIG.SIZE {16} \
+   CONFIG.WIDTH {112} \
+   CONFIG.EN_RST_A {false} \
+   CONFIG.EN_RST_B {false} \
+   CONFIG.SINGLE_PORT {true} \
+ ] $tw_info
 
   #  Create instance: intCmdInQueue bram and set properties
-  set intCmdInQueue [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_32_bit_memory intCmdInQueue ]
-  set_property -dict [ list CONFIG.SIZE {1024} CONFIG.WIDTH {64}] $intCmdInQueue
+  set intCmdInQueue [ create_bd_cell -type ip -vlnv bsc:ompss:dual_port_memory intCmdInQueue ]
+  set_property -dict [ list \
+   CONFIG.SIZE {1024} \
+   CONFIG.WIDTH {64} \
+   CONFIG.EN_RST_A {false} \
+   CONFIG.EN_RST_B {false} \
+   CONFIG.SINGLE_PORT {false}\
+  ] $intCmdInQueue
 
   # Create instance: Command_In, and set properties
   set Command_In [ create_bd_cell -type ip -vlnv bsc:ompss:Command_In_wrapper Command_In ]
+  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Command_In
 
   # Create instance: Command_Out, and set properties
   set Command_Out [ create_bd_cell -type ip -vlnv bsc:ompss:Command_Out_wrapper Command_Out ]
+  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Command_Out
 
   # Create instance: Scheduler, and set properties
   set Scheduler [ create_bd_cell -type ip -vlnv bsc:ompss:Scheduler_wrapper Scheduler ]
+  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Scheduler
 
   # Create instance: Spawn_In, and set properties
   set Spawn_In [ create_bd_cell -type ip -vlnv bsc:ompss:Spawn_In_wrapper Spawn_In ]
 
   # Create instance: Taskwait, and set properties
   set Taskwait [ create_bd_cell -type ip -vlnv bsc:ompss:Taskwait_wrapper Taskwait ]
-
-  # Create instance: ext_inStream_Inter, and set properties
-  set ext_inStream_Inter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_interconnect ext_inStream_Inter ]
-  set_property -dict [ list \
-   CONFIG.ARB_ON_MAX_XFERS {0} \
-   CONFIG.ARB_ON_TLAST {1} \
-   CONFIG.M00_AXIS_BASETDEST {0x00000012} \
-   CONFIG.M00_AXIS_HIGHTDEST {0x00000013} \
-   CONFIG.M01_AXIS_BASETDEST {0x00000014} \
-   CONFIG.M01_AXIS_HIGHTDEST {0x00000014} \
-   CONFIG.NUM_MI {2} \
-   CONFIG.NUM_SI {16} \
- ] $ext_inStream_Inter
+  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Taskwait
 
   # Create instance: ext_inStream_Taskwait_Inter, and set properties
   set ext_inStream_Taskwait_Inter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_interconnect ext_inStream_Taskwait_Inter ]
   set_property -dict [ list \
    CONFIG.ARB_ON_MAX_XFERS {0} \
    CONFIG.ARB_ON_TLAST {1} \
-   CONFIG.M00_AXIS_BASETDEST {0x00000014} \
-   CONFIG.M00_AXIS_HIGHTDEST {0x00000014} \
+   CONFIG.M00_AXIS_BASETDEST {0x00000000} \
+   CONFIG.M00_AXIS_HIGHTDEST {0x000000FF} \
    CONFIG.NUM_MI {1} \
    CONFIG.NUM_SI {3} \
  ] $ext_inStream_Taskwait_Inter
@@ -700,7 +507,11 @@ proc create_root_design { parentCell } {
    CONFIG.ARB_ON_TLAST {1} \
    CONFIG.M00_AXIS_BASETDEST {0x00000011} \
    CONFIG.M00_AXIS_HIGHTDEST {0x00000011} \
-   CONFIG.NUM_MI {1} \
+   CONFIG.M01_AXIS_BASETDEST {0x00000012} \
+   CONFIG.M01_AXIS_HIGHTDEST {0x00000013} \
+   CONFIG.M02_AXIS_BASETDEST {0x00000014} \
+   CONFIG.M02_AXIS_HIGHTDEST {0x00000014} \
+   CONFIG.NUM_MI {3} \
    CONFIG.NUM_SI {16} \
  ] $inStream_Inter
 
@@ -737,57 +548,43 @@ proc create_root_design { parentCell } {
  ] $rst_NOT
 
   # Create interface connections
+  connect_bd_net [get_bd_pins Command_In/acc_avail_wr] [get_bd_pins Command_Out/acc_avail_wr]
+  connect_bd_net [get_bd_pins Command_In/sched_queue_nempty_addr] [get_bd_pins Scheduler/sched_queue_nempty_addr]
+  connect_bd_net [get_bd_pins Scheduler/sched_queue_nempty_write] [get_bd_pins Command_In/sched_queue_nempty_write]
+  connect_bd_net [get_bd_pins Command_In/acc_avail_wr_addr] [get_bd_pins Command_Out/acc_avail_wr_addr]
   connect_bd_intf_net -intf_net Cmd_Out_Task_Manager_outStream [get_bd_intf_pins Command_Out/outStream] [get_bd_intf_pins ext_inStream_Taskwait_Inter/S01_AXIS]
-  connect_bd_intf_net -intf_net Command_In_accAvailability_PORTA [get_bd_intf_pins accAvailability/portA] [get_bd_intf_pins Command_In/accAvailability_PORTA]
   connect_bd_intf_net -intf_net Command_In_cmdInQueue_PORTA [get_bd_intf_ports cmdInQueue] [get_bd_intf_pins Command_In/cmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Command_In_intCmdInQueue_PORTA [get_bd_intf_pins intCmdInQueue/portA] [get_bd_intf_pins Command_In/intCmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Command_In_outStream [get_bd_intf_pins Command_In/outStream] [get_bd_intf_pins outStream_Inter/S00_AXIS]
-  connect_bd_intf_net -intf_net Command_Out_accAvailability_PORTA [get_bd_intf_pins accAvailability/portB] [get_bd_intf_pins Command_Out/accAvailability_PORTA]
   connect_bd_intf_net -intf_net Command_Out_cmdOutQueue_PORTA [get_bd_intf_ports cmdOutQueue] [get_bd_intf_pins Command_Out/cmdOutQueue_PORTA]
   connect_bd_intf_net -intf_net Scheduler_spawnOutQueue_PORTA [get_bd_intf_ports spawnOutQueue] [get_bd_intf_pins Scheduler/spawnOutQueue_PORTA]
   connect_bd_intf_net -intf_net Remote_Finished_Task_Manager_inQueue_PORTA [get_bd_intf_ports spawnInQueue] [get_bd_intf_pins Spawn_In/SpawnInQueue_PORTA]
   connect_bd_intf_net -intf_net Remote_Finished_Task_Manager_outStream [get_bd_intf_pins Spawn_In/outStream] [get_bd_intf_pins ext_inStream_Taskwait_Inter/S02_AXIS]
   connect_bd_intf_net -intf_net S00_AXIS_1 [get_bd_intf_ports inStream_0] [get_bd_intf_pins inStream_Inter/S00_AXIS]
-  connect_bd_intf_net -intf_net S00_AXIS_2 [get_bd_intf_ports ext_inStream_0] [get_bd_intf_pins ext_inStream_Inter/S00_AXIS]
   connect_bd_intf_net -intf_net S01_AXIS_1 [get_bd_intf_ports inStream_1] [get_bd_intf_pins inStream_Inter/S01_AXIS]
-  connect_bd_intf_net -intf_net S01_AXIS_2 [get_bd_intf_ports ext_inStream_1] [get_bd_intf_pins ext_inStream_Inter/S01_AXIS]
   connect_bd_intf_net -intf_net S02_AXIS_1 [get_bd_intf_ports inStream_2] [get_bd_intf_pins inStream_Inter/S02_AXIS]
-  connect_bd_intf_net -intf_net S02_AXIS_2 [get_bd_intf_ports ext_inStream_2] [get_bd_intf_pins ext_inStream_Inter/S02_AXIS]
   connect_bd_intf_net -intf_net S03_AXIS_1 [get_bd_intf_ports inStream_3] [get_bd_intf_pins inStream_Inter/S03_AXIS]
-  connect_bd_intf_net -intf_net S03_AXIS_2 [get_bd_intf_ports ext_inStream_3] [get_bd_intf_pins ext_inStream_Inter/S03_AXIS]
   connect_bd_intf_net -intf_net S04_AXIS_1 [get_bd_intf_ports inStream_4] [get_bd_intf_pins inStream_Inter/S04_AXIS]
-  connect_bd_intf_net -intf_net S04_AXIS_2 [get_bd_intf_ports ext_inStream_4] [get_bd_intf_pins ext_inStream_Inter/S04_AXIS]
   connect_bd_intf_net -intf_net S05_AXIS_1 [get_bd_intf_ports inStream_5] [get_bd_intf_pins inStream_Inter/S05_AXIS]
-  connect_bd_intf_net -intf_net S05_AXIS_2 [get_bd_intf_ports ext_inStream_5] [get_bd_intf_pins ext_inStream_Inter/S05_AXIS]
   connect_bd_intf_net -intf_net S06_AXIS_1 [get_bd_intf_ports inStream_6] [get_bd_intf_pins inStream_Inter/S06_AXIS]
-  connect_bd_intf_net -intf_net S06_AXIS_2 [get_bd_intf_ports ext_inStream_6] [get_bd_intf_pins ext_inStream_Inter/S06_AXIS]
   connect_bd_intf_net -intf_net S07_AXIS_1 [get_bd_intf_ports inStream_7] [get_bd_intf_pins inStream_Inter/S07_AXIS]
-  connect_bd_intf_net -intf_net S07_AXIS_2 [get_bd_intf_ports ext_inStream_7] [get_bd_intf_pins ext_inStream_Inter/S07_AXIS]
   connect_bd_intf_net -intf_net S08_AXIS_1 [get_bd_intf_ports inStream_8] [get_bd_intf_pins inStream_Inter/S08_AXIS]
-  connect_bd_intf_net -intf_net S08_AXIS_2 [get_bd_intf_ports ext_inStream_8] [get_bd_intf_pins ext_inStream_Inter/S08_AXIS]
   connect_bd_intf_net -intf_net S09_AXIS_1 [get_bd_intf_ports inStream_9] [get_bd_intf_pins inStream_Inter/S09_AXIS]
-  connect_bd_intf_net -intf_net S09_AXIS_2 [get_bd_intf_ports ext_inStream_9] [get_bd_intf_pins ext_inStream_Inter/S09_AXIS]
   connect_bd_intf_net -intf_net S10_AXIS_1 [get_bd_intf_ports inStream_10] [get_bd_intf_pins inStream_Inter/S10_AXIS]
-  connect_bd_intf_net -intf_net S10_AXIS_2 [get_bd_intf_ports ext_inStream_10] [get_bd_intf_pins ext_inStream_Inter/S10_AXIS]
   connect_bd_intf_net -intf_net S11_AXIS_1 [get_bd_intf_ports inStream_11] [get_bd_intf_pins inStream_Inter/S11_AXIS]
-  connect_bd_intf_net -intf_net S11_AXIS_2 [get_bd_intf_ports ext_inStream_11] [get_bd_intf_pins ext_inStream_Inter/S11_AXIS]
   connect_bd_intf_net -intf_net S12_AXIS_1 [get_bd_intf_ports inStream_12] [get_bd_intf_pins inStream_Inter/S12_AXIS]
-  connect_bd_intf_net -intf_net S12_AXIS_2 [get_bd_intf_ports ext_inStream_12] [get_bd_intf_pins ext_inStream_Inter/S12_AXIS]
   connect_bd_intf_net -intf_net S13_AXIS_1 [get_bd_intf_ports inStream_13] [get_bd_intf_pins inStream_Inter/S13_AXIS]
-  connect_bd_intf_net -intf_net S13_AXIS_2 [get_bd_intf_ports ext_inStream_13] [get_bd_intf_pins ext_inStream_Inter/S13_AXIS]
   connect_bd_intf_net -intf_net S14_AXIS_1 [get_bd_intf_ports inStream_14] [get_bd_intf_pins inStream_Inter/S14_AXIS]
-  connect_bd_intf_net -intf_net S14_AXIS_2 [get_bd_intf_ports ext_inStream_14] [get_bd_intf_pins ext_inStream_Inter/S14_AXIS]
   connect_bd_intf_net -intf_net S15_AXIS_1 [get_bd_intf_ports inStream_15] [get_bd_intf_pins inStream_Inter/S15_AXIS]
-  connect_bd_intf_net -intf_net S15_AXIS_2 [get_bd_intf_ports ext_inStream_15] [get_bd_intf_pins ext_inStream_Inter/S15_AXIS]
   connect_bd_intf_net -intf_net Scheduler_bitInfo_PORTA [get_bd_intf_ports bitInfo] [get_bd_intf_pins Scheduler/bitInfo_PORTA]
   connect_bd_intf_net -intf_net Scheduler_intCmdInQueue_PORTA [get_bd_intf_pins intCmdInQueue/portB] [get_bd_intf_pins Scheduler/intCmdInQueue_PORTA]
   connect_bd_intf_net -intf_net Taskwait_outStream [get_bd_intf_pins Taskwait/outStream] [get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS]
   connect_bd_intf_net -intf_net Scheduler_outStream [get_bd_intf_pins Scheduler/outStream] [get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS]
   connect_bd_intf_net -intf_net Taskwait_twInfo_PORTA [get_bd_intf_pins tw_info/portA] [get_bd_intf_pins Taskwait/twInfo_PORTA]
-  connect_bd_intf_net -intf_net ext_inStream_Inter_M00_AXIS [get_bd_intf_pins Scheduler/inStream] [get_bd_intf_pins ext_inStream_Inter/M00_AXIS]
-  connect_bd_intf_net -intf_net ext_inStream_Inter_M01_AXIS [get_bd_intf_pins ext_inStream_Inter/M01_AXIS] [get_bd_intf_pins ext_inStream_Taskwait_Inter/S00_AXIS]
   connect_bd_intf_net -intf_net ext_inStream_Taskwait_Inter_M00_AXIS [get_bd_intf_pins Taskwait/inStream] [get_bd_intf_pins ext_inStream_Taskwait_Inter/M00_AXIS]
   connect_bd_intf_net -intf_net inStream_Inter_M00_AXIS [get_bd_intf_pins Command_Out/inStream] [get_bd_intf_pins inStream_Inter/M00_AXIS]
+  connect_bd_intf_net -intf_net inStream_Inter_M01_AXIS [get_bd_intf_pins Scheduler/inStream] [get_bd_intf_pins inStream_Inter/M01_AXIS]
+  connect_bd_intf_net -intf_net inStream_Inter_M02_AXIS [get_bd_intf_pins inStream_Inter/M02_AXIS] [get_bd_intf_pins ext_inStream_Taskwait_Inter/S00_AXIS]
   connect_bd_intf_net -intf_net outStream_Inter_M00_AXIS [get_bd_intf_ports outStream_0] [get_bd_intf_pins outStream_Inter/M00_AXIS]
   connect_bd_intf_net -intf_net outStream_Inter_M01_AXIS [get_bd_intf_ports outStream_1] [get_bd_intf_pins outStream_Inter/M01_AXIS]
   connect_bd_intf_net -intf_net outStream_Inter_M02_AXIS [get_bd_intf_ports outStream_2] [get_bd_intf_pins outStream_Inter/M02_AXIS]
@@ -822,9 +619,9 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net twOutStream_Inter_M15_AXIS [get_bd_intf_ports twOutStream_15] [get_bd_intf_pins outStream_Inter_Taskwait_Task_Manager/M15_AXIS]
 
   # Create port connections
-  connect_bd_net -net aclk_1 [get_bd_ports aclk] [get_bd_pins Command_In/ap_clk] [get_bd_pins Command_Out/ap_clk] [get_bd_pins Scheduler/ap_clk] [get_bd_pins Spawn_In/ap_clk] [get_bd_pins Taskwait/ap_clk] [get_bd_pins ext_inStream_Inter/ACLK] [get_bd_pins ext_inStream_Inter/M00_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/M01_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S00_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S01_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S02_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S03_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S04_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S05_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S06_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S07_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S08_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S09_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S10_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S11_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S12_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S13_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S14_AXIS_ACLK] [get_bd_pins ext_inStream_Inter/S15_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/M00_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S00_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S01_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S02_AXIS_ACLK] [get_bd_pins inStream_Inter/ACLK] [get_bd_pins inStream_Inter/M00_AXIS_ACLK] [get_bd_pins inStream_Inter/S00_AXIS_ACLK] [get_bd_pins inStream_Inter/S01_AXIS_ACLK] [get_bd_pins inStream_Inter/S02_AXIS_ACLK] [get_bd_pins inStream_Inter/S03_AXIS_ACLK] [get_bd_pins inStream_Inter/S04_AXIS_ACLK] [get_bd_pins inStream_Inter/S05_AXIS_ACLK] [get_bd_pins inStream_Inter/S06_AXIS_ACLK] [get_bd_pins inStream_Inter/S07_AXIS_ACLK] [get_bd_pins inStream_Inter/S08_AXIS_ACLK] [get_bd_pins inStream_Inter/S09_AXIS_ACLK] [get_bd_pins inStream_Inter/S10_AXIS_ACLK] [get_bd_pins inStream_Inter/S11_AXIS_ACLK] [get_bd_pins inStream_Inter/S12_AXIS_ACLK] [get_bd_pins inStream_Inter/S13_AXIS_ACLK] [get_bd_pins inStream_Inter/S14_AXIS_ACLK] [get_bd_pins inStream_Inter/S15_AXIS_ACLK] [get_bd_pins outStream_Inter/ACLK] [get_bd_pins outStream_Inter/M00_AXIS_ACLK] [get_bd_pins outStream_Inter/M01_AXIS_ACLK] [get_bd_pins outStream_Inter/M02_AXIS_ACLK] [get_bd_pins outStream_Inter/M03_AXIS_ACLK] [get_bd_pins outStream_Inter/M04_AXIS_ACLK] [get_bd_pins outStream_Inter/M05_AXIS_ACLK] [get_bd_pins outStream_Inter/M06_AXIS_ACLK] [get_bd_pins outStream_Inter/M07_AXIS_ACLK] [get_bd_pins outStream_Inter/M08_AXIS_ACLK] [get_bd_pins outStream_Inter/M09_AXIS_ACLK] [get_bd_pins outStream_Inter/M10_AXIS_ACLK] [get_bd_pins outStream_Inter/M11_AXIS_ACLK] [get_bd_pins outStream_Inter/M12_AXIS_ACLK] [get_bd_pins outStream_Inter/M13_AXIS_ACLK] [get_bd_pins outStream_Inter/M14_AXIS_ACLK] [get_bd_pins outStream_Inter/M15_AXIS_ACLK] [get_bd_pins outStream_Inter/S00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M01_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M02_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M03_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M04_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M05_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M06_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M07_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M08_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M09_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M10_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M11_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M12_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M13_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M14_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M15_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS_ACLK]
-  connect_bd_net -net interconnect_aresetn_1 [get_bd_ports interconnect_aresetn] [get_bd_pins ext_inStream_Inter/ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/ARESETN] [get_bd_pins inStream_Inter/ARESETN] [get_bd_pins outStream_Inter/ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/ARESETN]
-  connect_bd_net -net peripheral_aresetn_1 [get_bd_ports peripheral_aresetn] [get_bd_pins ext_inStream_Inter/M00_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/M01_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S00_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S01_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S02_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S03_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S04_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S05_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S06_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S07_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S08_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S09_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S10_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S11_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S12_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S13_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S14_AXIS_ARESETN] [get_bd_pins ext_inStream_Inter/S15_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/M00_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S00_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S01_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S02_AXIS_ARESETN] [get_bd_pins inStream_Inter/M00_AXIS_ARESETN] [get_bd_pins inStream_Inter/S00_AXIS_ARESETN] [get_bd_pins inStream_Inter/S01_AXIS_ARESETN] [get_bd_pins inStream_Inter/S02_AXIS_ARESETN] [get_bd_pins inStream_Inter/S03_AXIS_ARESETN] [get_bd_pins inStream_Inter/S04_AXIS_ARESETN] [get_bd_pins inStream_Inter/S05_AXIS_ARESETN] [get_bd_pins inStream_Inter/S06_AXIS_ARESETN] [get_bd_pins inStream_Inter/S07_AXIS_ARESETN] [get_bd_pins inStream_Inter/S08_AXIS_ARESETN] [get_bd_pins inStream_Inter/S09_AXIS_ARESETN] [get_bd_pins inStream_Inter/S10_AXIS_ARESETN] [get_bd_pins inStream_Inter/S11_AXIS_ARESETN] [get_bd_pins inStream_Inter/S12_AXIS_ARESETN] [get_bd_pins inStream_Inter/S13_AXIS_ARESETN] [get_bd_pins inStream_Inter/S14_AXIS_ARESETN] [get_bd_pins inStream_Inter/S15_AXIS_ARESETN] [get_bd_pins outStream_Inter/M00_AXIS_ARESETN] [get_bd_pins outStream_Inter/M01_AXIS_ARESETN] [get_bd_pins outStream_Inter/M02_AXIS_ARESETN] [get_bd_pins outStream_Inter/M03_AXIS_ARESETN] [get_bd_pins outStream_Inter/M04_AXIS_ARESETN] [get_bd_pins outStream_Inter/M05_AXIS_ARESETN] [get_bd_pins outStream_Inter/M06_AXIS_ARESETN] [get_bd_pins outStream_Inter/M07_AXIS_ARESETN] [get_bd_pins outStream_Inter/M08_AXIS_ARESETN] [get_bd_pins outStream_Inter/M09_AXIS_ARESETN] [get_bd_pins outStream_Inter/M10_AXIS_ARESETN] [get_bd_pins outStream_Inter/M11_AXIS_ARESETN] [get_bd_pins outStream_Inter/M12_AXIS_ARESETN] [get_bd_pins outStream_Inter/M13_AXIS_ARESETN] [get_bd_pins outStream_Inter/M14_AXIS_ARESETN] [get_bd_pins outStream_Inter/M15_AXIS_ARESETN] [get_bd_pins outStream_Inter/S00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M01_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M02_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M03_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M04_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M05_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M06_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M07_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M08_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M09_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M10_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M11_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M12_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M13_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M14_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M15_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS_ARESETN] [get_bd_pins rst_AND/Op1]
+  connect_bd_net -net aclk_1 [get_bd_ports aclk] [get_bd_pins Command_In/ap_clk] [get_bd_pins Command_Out/ap_clk] [get_bd_pins Scheduler/ap_clk] [get_bd_pins Spawn_In/ap_clk] [get_bd_pins Taskwait/ap_clk] [get_bd_pins ext_inStream_Taskwait_Inter/ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/M00_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S00_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S01_AXIS_ACLK] [get_bd_pins ext_inStream_Taskwait_Inter/S02_AXIS_ACLK] [get_bd_pins inStream_Inter/ACLK] [get_bd_pins inStream_Inter/M00_AXIS_ACLK] [get_bd_pins inStream_Inter/M01_AXIS_ACLK] [get_bd_pins inStream_Inter/M02_AXIS_ACLK] [get_bd_pins inStream_Inter/S00_AXIS_ACLK] [get_bd_pins inStream_Inter/S01_AXIS_ACLK] [get_bd_pins inStream_Inter/S02_AXIS_ACLK] [get_bd_pins inStream_Inter/S03_AXIS_ACLK] [get_bd_pins inStream_Inter/S04_AXIS_ACLK] [get_bd_pins inStream_Inter/S05_AXIS_ACLK] [get_bd_pins inStream_Inter/S06_AXIS_ACLK] [get_bd_pins inStream_Inter/S07_AXIS_ACLK] [get_bd_pins inStream_Inter/S08_AXIS_ACLK] [get_bd_pins inStream_Inter/S09_AXIS_ACLK] [get_bd_pins inStream_Inter/S10_AXIS_ACLK] [get_bd_pins inStream_Inter/S11_AXIS_ACLK] [get_bd_pins inStream_Inter/S12_AXIS_ACLK] [get_bd_pins inStream_Inter/S13_AXIS_ACLK] [get_bd_pins inStream_Inter/S14_AXIS_ACLK] [get_bd_pins inStream_Inter/S15_AXIS_ACLK] [get_bd_pins outStream_Inter/ACLK] [get_bd_pins outStream_Inter/M00_AXIS_ACLK] [get_bd_pins outStream_Inter/M01_AXIS_ACLK] [get_bd_pins outStream_Inter/M02_AXIS_ACLK] [get_bd_pins outStream_Inter/M03_AXIS_ACLK] [get_bd_pins outStream_Inter/M04_AXIS_ACLK] [get_bd_pins outStream_Inter/M05_AXIS_ACLK] [get_bd_pins outStream_Inter/M06_AXIS_ACLK] [get_bd_pins outStream_Inter/M07_AXIS_ACLK] [get_bd_pins outStream_Inter/M08_AXIS_ACLK] [get_bd_pins outStream_Inter/M09_AXIS_ACLK] [get_bd_pins outStream_Inter/M10_AXIS_ACLK] [get_bd_pins outStream_Inter/M11_AXIS_ACLK] [get_bd_pins outStream_Inter/M12_AXIS_ACLK] [get_bd_pins outStream_Inter/M13_AXIS_ACLK] [get_bd_pins outStream_Inter/M14_AXIS_ACLK] [get_bd_pins outStream_Inter/M15_AXIS_ACLK] [get_bd_pins outStream_Inter/S00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M01_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M02_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M03_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M04_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M05_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M06_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M07_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M08_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M09_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M10_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M11_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M12_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M13_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M14_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M15_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS_ACLK] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS_ACLK]
+  connect_bd_net -net interconnect_aresetn_1 [get_bd_ports interconnect_aresetn] [get_bd_pins ext_inStream_Taskwait_Inter/ARESETN] [get_bd_pins inStream_Inter/ARESETN] [get_bd_pins outStream_Inter/ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/ARESETN]
+  connect_bd_net -net peripheral_aresetn_1 [get_bd_ports peripheral_aresetn] [get_bd_pins ext_inStream_Taskwait_Inter/M00_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S00_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S01_AXIS_ARESETN] [get_bd_pins ext_inStream_Taskwait_Inter/S02_AXIS_ARESETN] [get_bd_pins inStream_Inter/M00_AXIS_ARESETN] [get_bd_pins inStream_Inter/M01_AXIS_ARESETN] [get_bd_pins inStream_Inter/M02_AXIS_ARESETN] [get_bd_pins inStream_Inter/S00_AXIS_ARESETN] [get_bd_pins inStream_Inter/S01_AXIS_ARESETN] [get_bd_pins inStream_Inter/S02_AXIS_ARESETN] [get_bd_pins inStream_Inter/S03_AXIS_ARESETN] [get_bd_pins inStream_Inter/S04_AXIS_ARESETN] [get_bd_pins inStream_Inter/S05_AXIS_ARESETN] [get_bd_pins inStream_Inter/S06_AXIS_ARESETN] [get_bd_pins inStream_Inter/S07_AXIS_ARESETN] [get_bd_pins inStream_Inter/S08_AXIS_ARESETN] [get_bd_pins inStream_Inter/S09_AXIS_ARESETN] [get_bd_pins inStream_Inter/S10_AXIS_ARESETN] [get_bd_pins inStream_Inter/S11_AXIS_ARESETN] [get_bd_pins inStream_Inter/S12_AXIS_ARESETN] [get_bd_pins inStream_Inter/S13_AXIS_ARESETN] [get_bd_pins inStream_Inter/S14_AXIS_ARESETN] [get_bd_pins inStream_Inter/S15_AXIS_ARESETN] [get_bd_pins outStream_Inter/M00_AXIS_ARESETN] [get_bd_pins outStream_Inter/M01_AXIS_ARESETN] [get_bd_pins outStream_Inter/M02_AXIS_ARESETN] [get_bd_pins outStream_Inter/M03_AXIS_ARESETN] [get_bd_pins outStream_Inter/M04_AXIS_ARESETN] [get_bd_pins outStream_Inter/M05_AXIS_ARESETN] [get_bd_pins outStream_Inter/M06_AXIS_ARESETN] [get_bd_pins outStream_Inter/M07_AXIS_ARESETN] [get_bd_pins outStream_Inter/M08_AXIS_ARESETN] [get_bd_pins outStream_Inter/M09_AXIS_ARESETN] [get_bd_pins outStream_Inter/M10_AXIS_ARESETN] [get_bd_pins outStream_Inter/M11_AXIS_ARESETN] [get_bd_pins outStream_Inter/M12_AXIS_ARESETN] [get_bd_pins outStream_Inter/M13_AXIS_ARESETN] [get_bd_pins outStream_Inter/M14_AXIS_ARESETN] [get_bd_pins outStream_Inter/M15_AXIS_ARESETN] [get_bd_pins outStream_Inter/S00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M01_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M02_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M03_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M04_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M05_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M06_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M07_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M08_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M09_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M10_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M11_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M12_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M13_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M14_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/M15_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S00_AXIS_ARESETN] [get_bd_pins outStream_Inter_Taskwait_Task_Manager/S01_AXIS_ARESETN] [get_bd_pins rst_AND/Op1]
   connect_bd_net -net ps_rst_1 [get_bd_ports ps_rst] [get_bd_pins rst_NOT/Op1]
   connect_bd_net -net rst_AND_Res [get_bd_ports managed_aresetn] [get_bd_pins Command_In/ap_rst_n] [get_bd_pins Command_Out/ap_rst_n] [get_bd_pins Scheduler/ap_rst_n] [get_bd_pins Spawn_In/ap_rst_n] [get_bd_pins Taskwait/ap_rst_n] [get_bd_pins rst_AND/Res]
   connect_bd_net -net rst_NOT_Res [get_bd_pins rst_AND/Op2] [get_bd_pins rst_NOT/Res]

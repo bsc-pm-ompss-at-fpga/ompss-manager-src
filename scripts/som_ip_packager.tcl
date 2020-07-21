@@ -4,7 +4,7 @@ variable previous_version [lindex $argv 2]
 variable board_part [lindex $argv 3]
 variable root_dir [lindex $argv 4]
 variable prj_dir [lindex $argv 5]
-variable ext_IP_repo [lindex $argv 6]
+variable encrypt [lindex $argv 6]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -12,8 +12,8 @@ variable vivado_version [regsub -all {\.} [version -short] {_}]
 create_project -force [string tolower $name_IP] -part $board_part
 
 # If exists, add board IP repository
-set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS" [current_project]
-set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS/extended" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/Vivado_HLS/" [current_project]
+set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/internal_IPs" [current_project]
 set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root_dir/IPs" [current_project]
 
 # Update IP catalog
@@ -44,7 +44,7 @@ set_property display_name $name_IP [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
-set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta} [ipx::current_core]
+set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg1157-2} Beta kintexu{xcku060-ffva1156-2-i} Beta virtexuplus{xcu200-fsgd2104-2-e} Beta} [ipx::current_core]
 
 ipx::add_file_group -type utility {} [ipx::current_core]
 file copy $root_dir/som_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
@@ -77,21 +77,6 @@ set_property value_format long [ipx::get_user_parameters $name_param -of_objects
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-
-# Add num_tc_accs parameter
-variable name_param "num_tc_accs"
-ipx::add_user_parameter $name_param [ipx::current_core]
-set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-ipgui::add_param -name $name_param -component [ipx::current_core]
-set_property display_name "Number of task-creator accelerators" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property tooltip "Number of accelerators with task creating capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
 # Add num_tw_accs parameter
 variable name_param "num_tw_accs"
@@ -161,7 +146,6 @@ foreach bram_intf $bram_list {
 for {set i 0} {$i < 16} {incr i} {
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces inStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces outStream_$i -of_objects [ipx::current_core]]
-	set_property enablement_dependency "\$num_tc_accs > $i" [ipx::get_bus_interfaces ext_inStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_tw_accs > $i" [ipx::get_bus_interfaces twOutStream_$i -of_objects [ipx::current_core]]
 }
 
@@ -171,18 +155,24 @@ ipgui::add_group -name "Extended Mode" -component [ipx::current_core] -display_n
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "extended_mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tc_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
 
-foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
-	encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
+if {$encrypt == 1} {
+    foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
+	    encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
+    }
 }
+
+add_files -norecurse $root_dir/src/OmpSsManagerConfig.sv -copy_to $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes files [ipx::current_core]
+ipx::merge_project_changes files [ipx::current_core]
+ipx::reorder_files -front src/OmpSsManagerConfig.sv [ipx::get_file_groups xilinx_anylanguagesynthesis -of_objects [ipx::current_core]]
+ipx::reorder_files -front src/OmpSsManagerConfig.sv [ipx::get_file_groups xilinx_anylanguagebehavioralsimulation -of_objects [ipx::current_core]]
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
 ipx::save_core [ipx::current_core]

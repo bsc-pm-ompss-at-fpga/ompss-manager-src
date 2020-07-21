@@ -1,6 +1,6 @@
 som_IP*
 pom_IP*
-cutoff_IP*
+internal_IPs*
 Vivado_HLS
 *.log
 IPs/*

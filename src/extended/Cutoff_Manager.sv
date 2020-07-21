@@ -1,79 +1,65 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 03/17/2020 10:27:50 AM
-// Design Name: 
-// Module Name: pom_gw
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+/*--------------------------------------------------------------------
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
+                          Centro Nacional de Supercomputacion
 
-module pom_gw #(
-    parameter TW_INFO_SIZE = 16
-)
+  This file is part of OmpSs@FPGA toolchain.
+
+  This code is free software; you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation; either version 3 of
+  the License, or (at your option) any later version.
+
+  OmpSs@FPGA toolchain is distributed in the hope that it will be
+  useful, but WITHOUT ANY WARRANTY; without even the implied
+  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this code. If not, see <www.gnu.org/licenses/>.
+--------------------------------------------------------------------*/
+
+`timescale 1ns / 1ps
+
+module Cutoff_Manager
 (
     input clk,
     input aresetn,
     input picos_full,
-    
+    //inStream
     input ext_inStream_tvalid,
     output reg ext_inStream_tready,
     input [63:0] ext_inStream_tdata,
     input ext_inStream_tlast,
-    input [4:0] ext_inStream_tid,
+    input [3:0] ext_inStream_tid,
     input [4:0] ext_inStream_tdest,
-    
+    //Scheduler interface
     output sched_inStream_tvalid,
     input sched_inStream_tready,
     output [63:0] sched_inStream_tdata,
     output sched_inStream_tlast,
-    output [4:0] sched_inStream_tid,
-    
+    output [3:0] sched_inStream_tid,
+    //Picos interface
     output deps_new_task_tvalid,
     input deps_new_task_tready,
     output [63:0] deps_new_task_tdata,
-    
+    //Ack interface
     output ack_tvalid,
     input ack_tready,
-    output reg[7:0] ack_tdata,
-    output [4:0] ack_tdest,
-    output ack_tlast,
-    
-    output [31:0] tw_info_addr,
-    output reg tw_info_en,
-    output reg [15:0] tw_info_we,
-    output reg [127:0] tw_info_din,
-    output tw_info_clk,
-    input [127:0] tw_info_dout
+    output logic [7:0] ack_tdata,
+    output [3:0] ack_tdest,
+    //Taskwait memory
+    output reg [3:0] tw_info_addr,
+    output logic tw_info_en,
+    output logic tw_info_we,
+    output logic [111:0] tw_info_din,
+    input [111:0] tw_info_dout,
+    output tw_info_clk
 );
 
-    localparam TASK_NUM_L = 32;
-    localparam VALID_ENTRY_B = 7;
-    localparam ACC_ID_L = 48;
-    localparam ACC_ID_H = 55;
-    
-    localparam VALID_ENTRY_L = 0;
-    localparam VALID_ENTRY_H = 7;
-    localparam TW_INFO_ACC_ID_L = 8;
-    localparam COMPONENTS_L = 32;
-    localparam COMPONENTS_H = 63;
-    localparam TASKID_L = 64;
-    localparam TASKID_H = 127;
-    
-    localparam ACK_OK_CODE = 8'h01;
-    localparam ACK_REJECT_CODE = 8'h00;
-    localparam ACK_FINAL_CODE = 8'h02;
+    import OmpSsManager::*;
+
+    localparam ACC_BITS = $clog2(MAX_ACCS);
+    localparam MAX_ADDR = TW_MEM_SIZE-1;
 
     localparam IDLE = 0;
     localparam SEARCH_ENTRY = 1;
@@ -86,18 +72,10 @@ module pom_gw #(
     localparam ACK = 8;
     localparam WAIT_PICOS = 9;
     
-    localparam HWR_DEPS_ID = 5'h12;
-    localparam HWR_SCHED_ID = 5'h13;
-
-    //NOTE: This should be $clog2(TM_SIZE*16) but vivado 2017.3 does not
-    //support it
-    localparam TW_INFO_BITS = 8;
-    
     reg [3:0] state;
     
-    reg[TW_INFO_BITS-1:0] tw_info_true_addr;
-    reg[TW_INFO_BITS-1:0] tw_info_addr_delay;
-    reg[4:0] acc_id;
+    reg[TW_MEM_BITS-1:0] tw_info_addr_delay;
+    reg[ACC_BITS-1:0] acc_id;
     reg[63:0] buf_tdata;
     reg buf_tlast;
     reg[63:0] tid;
@@ -108,14 +86,21 @@ module pom_gw #(
     wire selected_slave_tready;
     reg selected_slave_tvalid;
     reg empty_entry_found;
-    reg [TW_INFO_BITS-1:0] empty_entry;
+    reg [TW_MEM_BITS-1:0] empty_entry;
     
     assign tw_info_clk = clk;
-    assign tw_info_addr = {{32-TW_INFO_BITS{1'b0}}, tw_info_true_addr};
     
+    if (ACC_BITS != 4) begin
+        assign sched_inStream_tid[3:ACC_BITS] = 0;
+        assign ack_tdest[3:ACC_BITS] = 0;
+    end
+    
+    if (TW_MEM_BITS != 4) begin
+        assign tw_info_addr[3:TW_MEM_BITS] = 0;
+    end
+        
     assign ack_tvalid = state == ACK;
-    assign ack_tdest = acc_id;
-    assign ack_tlast = 1;
+    assign ack_tdest[ACC_BITS-1:0] = acc_id;
     
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
     
@@ -132,10 +117,10 @@ module pom_gw #(
         tw_info_we = 0;
         
         tw_info_din = 0;
-        tw_info_din[VALID_ENTRY_H:VALID_ENTRY_L] = 8'h80;
-        tw_info_din[TW_INFO_ACC_ID_L+4:TW_INFO_ACC_ID_L] = acc_id;
-        tw_info_din[COMPONENTS_H:COMPONENTS_L] = 0;
-        tw_info_din[TASKID_H:TASKID_L] = tid;
+        tw_info_din[TW_INFO_VALID_ENTRY_B] = 1;
+        tw_info_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
+        tw_info_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = 0;
+        tw_info_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = tid;
         
         ack_tdata = ACK_REJECT_CODE;
         if (accept) begin
@@ -166,7 +151,7 @@ module pom_gw #(
             
             CREATE_ENTRY: begin
                 tw_info_en = 1;
-                tw_info_we = 16'hFFFF;
+                tw_info_we = 1;
             end
             
             READ_REST: begin
@@ -191,24 +176,24 @@ module pom_gw #(
     
     always @(posedge clk) begin
     
-        tw_info_addr_delay <= tw_info_true_addr;
+        tw_info_addr_delay <= tw_info_addr[TW_MEM_BITS-1:0];
 
         case (state)
         
             IDLE: begin
-                tw_info_true_addr <= 0;
+                tw_info_addr[TW_MEM_BITS-1:0] <= 0;
                 empty_entry_found <= 0;
-                acc_id <= ext_inStream_tid;
+                acc_id <= ext_inStream_tid[ACC_BITS-1:0];
                 deps_selected <= ext_inStream_tdest == HWR_DEPS_ID;
                 buf_tdata <= ext_inStream_tdata;
                 buf_tlast <= 0;
-                if (ext_inStream_tdata[TASK_NUM_L+31:TASK_NUM_L] == 0) begin
+                if (ext_inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
                     first_task <= 1;
                 end else begin
                     first_task <= 0;
                 end
                 if (ext_inStream_tvalid) begin
-                    if (ext_inStream_tdata[TASK_NUM_L+31:TASK_NUM_L] == 0) begin
+                    if (ext_inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
                         state <= READ_PTID;
                     end else if (ext_inStream_tdest == HWR_DEPS_ID && !picos_full && deps_new_task_tready) begin
                         state <= BUF_FULL;
@@ -225,7 +210,7 @@ module pom_gw #(
             READ_PTID: begin
                 tid <= ext_inStream_tdata;
                 if (ext_inStream_tvalid) begin
-                    tw_info_true_addr <= 16;
+                    tw_info_addr[TW_MEM_BITS-1:0] <= 1;
                     if (first_task) begin
                         state <= SEARCH_FREE_ENTRY;
                     end else begin
@@ -236,24 +221,24 @@ module pom_gw #(
             
             SEARCH_FREE_ENTRY: begin
                 final_mode <= 0;
-                if (!tw_info_dout[VALID_ENTRY_B] && !empty_entry_found) begin
+                if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
                     empty_entry <= tw_info_addr_delay;
                     empty_entry_found <= 1;
                 end
-                if (tw_info_addr_delay == TW_INFO_SIZE*16 - 16) begin
-                    if (!tw_info_dout[VALID_ENTRY_B] && !empty_entry_found) begin
-                        tw_info_true_addr <= TW_INFO_SIZE*16 - 16;
+                if (tw_info_addr_delay == MAX_ADDR[TW_MEM_BITS-1:0]) begin
+                    if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
+                        tw_info_addr[TW_MEM_BITS-1:0] <= MAX_ADDR[TW_MEM_BITS-1:0];
                         state <= CREATE_ENTRY;
                     end else if (empty_entry_found) begin
-                        tw_info_true_addr <= empty_entry;
+                        tw_info_addr[TW_MEM_BITS-1:0] <= empty_entry;
                         state <= CREATE_ENTRY;
                     end else begin
                         state <= READ_REST;
                     end
                 end else begin
-                    tw_info_true_addr <= tw_info_true_addr + 16;
+                    tw_info_addr[TW_MEM_BITS-1:0] <= tw_info_addr[TW_MEM_BITS-1:0] + 1;
                 end
-                if (tw_info_dout[VALID_ENTRY_B] && tw_info_dout[TASKID_H:TASKID_L] == tid) begin
+                if (tw_info_dout[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
                     if (deps_selected) begin
                         state <= WAIT_PICOS;
                     end else begin
@@ -286,11 +271,11 @@ module pom_gw #(
             end
             
             SEARCH_ENTRY: begin
-                final_mode <= tw_info_dout[COMPONENTS_H:COMPONENTS_L] == buf_tdata[TASK_NUM_L+31:TASK_NUM_L];
-                if (tw_info_din[VALID_ENTRY_B] && tw_info_dout[TASKID_H:TASKID_L] == tid) begin
+                final_mode <= tw_info_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] == buf_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L];
+                if (tw_info_din[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
                     state <= READ_REST;
                 end
-                tw_info_true_addr <= tw_info_true_addr + 16;
+                tw_info_addr[TW_MEM_BITS-1:0] <= tw_info_addr[TW_MEM_BITS-1:0] + 1;
             end
             
             READ_REST: begin

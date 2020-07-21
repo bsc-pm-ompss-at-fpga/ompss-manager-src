@@ -100,13 +100,14 @@ class ArgParser:
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
         self.parser.add_argument('--skip_som_synth', help='skips SOM IP synthesis to generate resouce utilization report', action='store_true', default=False)
+        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs', nargs='+')
+        self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
 
     def parse_args(self):
         args = self.parser.parse_args()
         if args.skip_pom:
             args.skip_pom_gen = True
             args.skip_pom_synth = True
-            args.skip_cutoff_gen = True
         if args.skip_som:
             args.skip_som_gen = True
             args.skip_som_synth = True
@@ -134,9 +135,13 @@ def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
         # Get LUT
         elems = rpt_data[ids[0] + 6].split('|')
         used_resources['LUT'] = int(elems[2].strip())
+        
+        #skip 2 lines if there is LUT as memory
+        elems = rpt_data[ids[0] + 8].split('|')
+        memory_LUT = int(elems[2].strip())
 
         # Get FF
-        elems = rpt_data[ids[0] + 11].split('|')
+        elems = rpt_data[ids[0] + (11 if memory_LUT > 0 else 9)].split('|')
         used_resources['FF'] = int(elems[2].strip())
 
         # Get DSP
@@ -175,11 +180,13 @@ def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
 
 def compute_POM_resource_utilization():
     msg.info('Synthesizing PicosOmpSsManager IP')
-    prj_path = './pom_IP/Vivado/PicosOmpSsManager'
+    prj_path = './pom_IP/Synthesis'
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/synthesize_pom.tcl -tclargs '
-                         + os.path.abspath(os.getcwd() + '/pom_IP/Vivado/PicosOmpSsManager') + ' '
-                         + 'PicosOmpSsManager', cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/pom_IP/Synthesis') + ' '
+                         + 'PicosOmpSsManager '
+                         + args.board_part + ' '
+                         + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -193,7 +200,7 @@ def compute_POM_resource_utilization():
     else:
         msg.success('Finished synthesis of PicosOmpSsManager IP')
 
-    parse_syntehsis_utilization_report(prj_path + '/picosompssmanager.runs/synth_1/PicosOmpSsManager_wrapper_utilization_synth.rpt',
+    parse_syntehsis_utilization_report(prj_path + '/synth_project.runs/synth_1/picosompssmanager_0_utilization_synth.rpt',
                                        './pom_IP/IP_packager/ext_pom_resource_utilization.json', 'PicosOmpSsManager')
 
 
@@ -224,16 +231,23 @@ def compute_SOM_resource_utilization(extended):
                                       './som_IP/IP_packager/' + ('ext_' if extended else '') + 'som_resource_utilization.json',
                                       ('Extended ' if extended else ' ') + 'SmartOmpSsManager')
 
-def generate_cutoff_IP():
-    msg.info('Generating CutoffManager IP')
+def generate_internal_IP(ip_name):
+    msg.info('Generating ' + ip_name + ' IP')
+    
+    if os.path.exists('./internal_IPs/' + ip_name + '_IP'):
+        shutil.rmtree('./internal_IPs/' + ip_name + '_IP')
 
-    prj_path = './cutoff_IP/Vivado/CutoffManager'
+    os.makedirs('./internal_IPs/' + ip_name + '_IP/Vivado/' + ip_name)
+    os.makedirs('./internal_IPs/' + ip_name + '_IP/IP_packager')
+
+    prj_path = './internal_IPs/' + ip_name  + '_IP/Vivado/' + ip_name
 
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/cutoff_ip_packager.tcl -tclargs '
-                         + 'CutoffManager '
+                         + os.getcwd() + '/scripts/' + ip_name + '_ip_packager.tcl -tclargs '
+                         + ip_name + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/cutoff_IP'), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/internal_IPs/' + ip_name + '_IP') + ' '
+                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -243,9 +257,9 @@ def generate_cutoff_IP():
 
     retval = p.wait()
     if retval:
-        msg.error('Generation of CutoffManager IP failed')
+        msg.error('Generation of ' + ip_name +  ' IP failed')
     else:
-        msg.success('Finished generation of CutoffManager IP')
+        msg.success('Finished generation of ' + ip_name + ' IP')
 
 def generate_POM_IP():
     msg.info('Generating PicosOmpSsManager IP')
@@ -258,7 +272,8 @@ def generate_POM_IP():
                          + str(POM_MAJOR_VERSION) + '.' + str(POM_MINOR_VERSION) + ' '
                          + str(POM_PREVIOUS_MAJOR_VERSION) + '.' + str(POM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/pom_IP'), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
+                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -283,7 +298,8 @@ def generate_SOM_IP():
                          + str(SOM_MAJOR_VERSION) + '.' + str(SOM_MINOR_VERSION) + ' '
                          + str(SOM_PREVIOUS_MAJOR_VERSION) + '.' + str(SOM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/som_IP'), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/som_IP') + ' '
+                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -364,7 +380,6 @@ else:
     msg.error('vivado_hls or vivado not found. Please set PATH correctly')
 
 if not args.skip_hls:
-
     # Synthesize HLS source codes
     shutil.rmtree('./Vivado_HLS', ignore_errors=True)
     os.makedirs('./Vivado_HLS')
@@ -377,15 +392,12 @@ if not args.skip_hls:
     for file_ in glob.glob('./src/extended/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'], True)
 
-if not args.skip_cutoff_gen:
-    if os.path.exists('./cutoff_IP'):
-        shutil.rmtree('./cutoff_IP_old', ignore_errors=True)
-        os.rename('./cutoff_IP', './cutoff_IP_old')
+internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper'] 
 
-    os.makedirs('./cutoff_IP/Vivado/CutoffManager')
-    os.makedirs('./cutoff_IP/IP_packager')
-
-    generate_cutoff_IP()
+if args.skip_int_IPs is None  or args.skip_int_IPs[0] != 'all':
+    for ip_name in internal_IPs:
+        if args.skip_int_IPs is None or ip_name not in args.skip_int_IPs:
+            generate_internal_IP(ip_name)
 
 if not args.skip_pom_gen:
     if os.path.exists('./pom_IP'):
@@ -399,6 +411,10 @@ if not args.skip_pom_gen:
     generate_POM_IP()
 
 if not args.skip_pom_synth:
+    if os.path.exists('./pom_IP/Synthesis'):
+        shutil.rmtree('./pom_IP/Synthesis')
+    os.makedirs('./pom_IP/Synthesis')
+    
     compute_POM_resource_utilization()
 
 if not args.skip_som_gen:
@@ -406,14 +422,17 @@ if not args.skip_som_gen:
         shutil.rmtree('./som_IP_old', ignore_errors=True)
         os.rename('./som_IP', './som_IP_old')
 
-    # Generate Vivado project, synthesis and package IP
+    # Generate Vivado project and package IP
     os.makedirs('./som_IP/Vivado/SmartOmpSsManager')
-    os.makedirs('./som_IP/Synthesis')
     os.makedirs('./som_IP/IP_packager')
 
     generate_SOM_IP()
 
 if not args.skip_som_synth:
+    if os.path.exists('./som_IP/Synthesis'):
+        shutil.rmtree('./som_IP/Synthesis')
+    os.makedirs('./som_IP/Synthesis')
+    
     compute_SOM_resource_utilization(False)
     compute_SOM_resource_utilization(True)
-
+    
