@@ -41,7 +41,7 @@
 #define ACK_OK_CODE           0x1
 
 //IDs of the HWR IPs
-#define HWR_ID_BITS           5    //< Width of IDs for the stream messages
+#define HWR_ID_BITS           8    //< Width of IDs for the stream messages
 #define HWR_CMDOUT_ID         0x11
 #define HWR_DEPS_ID           0x12
 #define HWR_SCHED_ID          0x13
