@@ -31,7 +31,7 @@ generate_target all [get_files  ./[string tolower $name_IP].srcs/sources_1/bd/$n
 make_wrapper -files [get_files ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/$name_IP.bd] -top
 add_files -norecurse ./[string tolower $name_IP].srcs/sources_1/bd/$name_IP/hdl/${name_IP}_wrapper.v
 
-set internal_IP_list [get_bd_cells * -filter {VLNV =~ bsc:ompss:* && VLNV !~ bsc:ompss:Command*}]
+set extended_IP_list [get_bd_cells * -filter {VLNV =~ bsc:ompss:* && VLNV !~ bsc:ompss:Command* && VLNV !~ bsc:ompss:Lock*}]
 set bram_list [regsub -all {/} [get_bd_intf_ports -filter {VLNV =~ xilinx.com:interface:bram_rtl*}] ""]
 
 ipx::package_project -root_dir $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
@@ -51,15 +51,20 @@ file copy $root_dir/som_logo.png $prj_dir/IP_packager/${name_IP}_${current_versi
 ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/som_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
 set_property type LOGO [ipx::get_files src/som_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
-# Add extended_mode parameter to HDL files
-exec sed -i s/module\ ${name_IP}\$/\\0\ #(extended_mode=0)/g $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v
-exec sed -i s/${name_IP}\ ${name_IP}_i/parameter\ extended_mode=0\;\\n\\n${name_IP}\ #(.extended_mode(extended_mode))\ ${name_IP}_i/g $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}_wrapper.v
+# Add parameters to HDL files
+variable hdl_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v
+exec sed -i s/module\ ${name_IP}\$/\\0\\n\ \ #(extended_mode=0,\\n\ \ \ \ lock_support=0)/g $hdl_file
+variable hdl_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}_wrapper.v
+exec sed -i s/${name_IP}\ ${name_IP}_i/parameter\ extended_mode=0\;\\n\ \ parameter\ lock_support=0\;\\n\\n\ \ ${name_IP}\\n\ \ \ \ \ \ #(.extended_mode(extended_mode),\\n\ \ \ \ \ \ \ \ .lock_support(lock_support))\\n\ \ ${name_IP}_i/g $hdl_file
 
 # Encapsulate modules' instantiations with conditional generate construct
-foreach internal_IP_name $internal_IP_list {
-	set internal_IP_name ${name_IP}_[string trimleft $internal_IP_name "/"]_0
-	exec cat $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v | tr \$'\n' \$'\x01' | sed s/${internal_IP_name}\[^\;\]*\;/generate\\x01if(extended_mode)\\x01\\0\\x01endgenerate/g | tr \$'\x01' \$'\n' | tee $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v > /dev/null
+set hdl_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${name_IP}.v
+foreach IP_name $extended_IP_list {
+	set IP_name ${name_IP}_[string trimleft $IP_name "/"]_0
+	exec cat $hdl_file | tr \$'\n' \$'\x01' | sed s/${IP_name}\[^\;\]*\;/generate\\x01if(extended_mode)\\x01\\0\\x01endgenerate/g | tr \$'\x01' \$'\n' | tee $hdl_file > /dev/null
 }
+set IP_name ${name_IP}_Lock_0
+exec cat $hdl_file | tr \$'\n' \$'\x01' | sed s/${IP_name}\[^\;\]*\;/generate\\x01if(lock_support)\\x01\\0\\x01endgenerate/g | tr \$'\x01' \$'\n' | tee $hdl_file > /dev/null
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
@@ -100,6 +105,16 @@ set_property value_validation_list {0 1} [ipx::get_user_parameters $name_param -
 ipgui::add_param -name $name_param -component [ipx::current_core] -display_name "Enable extended mode" -show_label {true} -show_range {true}
 set_property tooltip "Enable Smart OmpSs Manager extended mode features" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
 set_property widget "checkBox" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+
+# Add lock_support parameter
+variable name_param "lock_support"
+ipx::add_user_parameter $name_param [ipx::current_core]
+set_property value_validation_type list [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_list {0 1} [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+ipgui::add_param -name $name_param -component [ipx::current_core] -display_name "Enable lock support" -show_label {true} -show_range {true}
+set_property tooltip "Enable Smart OmpSs Manager lock support feature" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property widget "checkBox" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
+set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
 foreach bram_intf $bram_list {
 	ipx::remove_bus_interface ${bram_intf}_clk [ipx::current_core]
@@ -156,6 +171,7 @@ ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamsp
 ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "extended_mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "lock_support" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]

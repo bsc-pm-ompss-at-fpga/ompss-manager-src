@@ -100,7 +100,7 @@ class ArgParser:
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
         self.parser.add_argument('--skip_som_synth', help='skips SOM IP synthesis to generate resouce utilization report', action='store_true', default=False)
-        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs', nargs='+')
+        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs (all disables all IPs)', nargs='+')
         self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
 
     def parse_args(self):
@@ -392,9 +392,9 @@ if not args.skip_hls:
     for file_ in glob.glob('./src/extended/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'], True)
 
-internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper'] 
+internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper', 'Lock_wrapper']
 
-if args.skip_int_IPs is None  or args.skip_int_IPs[0] != 'all':
+if args.skip_int_IPs is None or args.skip_int_IPs[0] != 'all':
     for ip_name in internal_IPs:
         if args.skip_int_IPs is None or ip_name not in args.skip_int_IPs:
             generate_internal_IP(ip_name)
