@@ -2,6 +2,8 @@ som_IP*
 pom_IP*
 internal_IPs*
 Vivado_HLS
+test_projects
 *.log
+*.jou
 IPs/*
 !IPs/*.zip
