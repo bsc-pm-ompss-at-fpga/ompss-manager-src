@@ -95,7 +95,6 @@ class ArgParser:
         self.parser.add_argument('--skip_pom', help='skips the POM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_som', help='skips the SOM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
-        self.parser.add_argument('--skip_cutoff_gen', help='skips generation of the CutoffManager IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_gen', help='skips generation of the POM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
@@ -392,7 +391,7 @@ if not args.skip_hls:
     for file_ in glob.glob('./src/extended/*.cpp'):
         synthesize_hls(file_, ['./src/som.hpp'], True)
 
-internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper'] 
+internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper', 'Spawn_In_wrapper'] 
 
 if args.skip_int_IPs is None  or args.skip_int_IPs[0] != 'all':
     for ip_name in internal_IPs:

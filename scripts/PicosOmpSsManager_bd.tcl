@@ -470,15 +470,12 @@ proc create_root_design { parentCell } {
 
   # Create instance: Command_In, and set properties
   set Command_In [ create_bd_cell -type ip -vlnv bsc:ompss:Command_In_wrapper Command_In ]
-  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Command_In
 
   # Create instance: Command_Out, and set properties
   set Command_Out [ create_bd_cell -type ip -vlnv bsc:ompss:Command_Out_wrapper Command_Out ]
-  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Command_Out
 
   # Create instance: Cutoff, and set properties
   set Cutoff [ create_bd_cell -type ip -vlnv bsc:ompss:cutoffmanager Cutoff ]
-  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Cutoff
 
   # Create instance: Picos, and set properties
   set Picos [ create_bd_cell -type ip -vlnv bsc:ompss:picos Picos ]
@@ -503,14 +500,12 @@ proc create_root_design { parentCell } {
 
   # Create instance: Scheduler, and set properties
   set Scheduler [ create_bd_cell -type ip -vlnv bsc:ompss:Scheduler_wrapper Scheduler ]
-  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Scheduler
 
   # Create instance: Spawn_In, and set properties
   set Spawn_In [ create_bd_cell -type ip -vlnv bsc:ompss:Spawn_In_wrapper Spawn_In ]
 
   # Create instance: Taskwait, and set properties
   set Taskwait [ create_bd_cell -type ip -vlnv bsc:ompss:Taskwait_wrapper Taskwait ]
-  set_property -dict [ list CONFIG.MAX_ACCS {16} ] $Taskwait
 
   # Create instance: ext_inStream_Taskwait_Inter, and set properties
   set ext_inStream_Taskwait_Inter [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_interconnect ext_inStream_Taskwait_Inter ]

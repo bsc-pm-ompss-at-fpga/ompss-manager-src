@@ -44,8 +44,6 @@ module Taskwait
 );
 
     import OmpSsManager::*;
-
-    localparam ACC_BITS = $clog2(MAX_ACCS);
     
     enum {
         READ_HEADER,
