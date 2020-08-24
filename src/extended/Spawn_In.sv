@@ -1,8 +1,29 @@
+/*--------------------------------------------------------------------
+  (C) Copyright 2017-2020 Barcelona Supercomputing Center
+                          Centro Nacional de Supercomputacion
+
+  This file is part of OmpSs@FPGA toolchain.
+
+  This code is free software; you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation; either version 3 of
+  the License, or (at your option) any later version.
+
+  OmpSs@FPGA toolchain is distributed in the hope that it will be
+  useful, but WITHOUT ANY WARRANTY; without even the implied
+  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this code. If not, see <www.gnu.org/licenses/>.
+--------------------------------------------------------------------*/
+
 `timescale 1ns / 1ps
 
 module Spawn_In(
     input  ap_clk,
     input  ap_rst_n,
+    //SpawnInQueue memory
     output logic [31:0] SpawnInQueue_Addr_A,
     output SpawnInQueue_EN_A,
     output logic [7:0] SpawnInQueue_WEN_A,
@@ -10,10 +31,12 @@ module Spawn_In(
     input [63:0] SpawnInQueue_Dout_A,
     output SpawnInQueue_Clk_A,
     output SpawnInQueue_Rst_A,
+    //outStream
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input outStream_TREADY,
     output logic outStream_TLAST,
+    //picosFinishTask
     output reg [31:0] picosFinishTask_V_TDATA,
     output logic picosFinishTask_V_TVALID,
     input picosFinishTask_V_TREADY
