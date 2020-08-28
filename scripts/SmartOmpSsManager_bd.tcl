@@ -213,7 +213,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_0
   set inStream_1 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_1 ]
@@ -225,7 +225,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_1
   set inStream_2 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_2 ]
@@ -237,7 +237,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_2
   set inStream_3 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_3 ]
@@ -249,7 +249,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_3
   set inStream_4 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_4 ]
@@ -261,7 +261,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_4
   set inStream_5 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_5 ]
@@ -273,7 +273,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_5
   set inStream_6 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_6 ]
@@ -285,7 +285,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_6
   set inStream_7 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_7 ]
@@ -297,7 +297,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_7
   set inStream_8 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_8 ]
@@ -309,7 +309,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_8
   set inStream_9 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_9 ]
@@ -321,7 +321,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_9
   set inStream_10 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_10 ]
@@ -333,7 +333,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_10
   set inStream_11 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_11 ]
@@ -345,7 +345,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_11
   set inStream_12 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_12 ]
@@ -357,7 +357,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_12
   set inStream_13 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_13 ]
@@ -369,7 +369,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_13
   set inStream_14 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_14 ]
@@ -381,7 +381,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_14
   set inStream_15 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 inStream_15 ]
@@ -393,7 +393,7 @@ proc create_root_design { parentCell } {
    CONFIG.LAYERED_METADATA {undef} \
    CONFIG.TDATA_NUM_BYTES {8} \
    CONFIG.TDEST_WIDTH {5} \
-   CONFIG.TID_WIDTH {8} \
+   CONFIG.TID_WIDTH {5} \
    CONFIG.TUSER_WIDTH {0} \
    ] $inStream_15
   set outStream_0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 outStream_0 ]
