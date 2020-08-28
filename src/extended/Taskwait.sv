@@ -22,8 +22,8 @@
 
 module Taskwait
 (
-    input  ap_clk,
-    input  ap_rst_n,
+    input clk,
+    input rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
@@ -35,11 +35,11 @@ module Taskwait
     input  outStream_TREADY,
     output [3:0] outStream_TDEST,
     //Taskwait memory
-    output [3:0] twInfo_address0,
-    output logic twInfo_ce0,
-    output twInfo_we0,
-    output logic [111:0] twInfo_d0,
-    input  [111:0] twInfo_q0,
+    output [3:0] twInfo_addr,
+    output logic twInfo_en,
+    output twInfo_we,
+    output logic [111:0] twInfo_din,
+    input  [111:0] twInfo_dout,
     output twInfo_clk
 );
 
@@ -71,7 +71,7 @@ module Taskwait
     reg _type;
     reg update_entry;
     
-    assign twInfo_clk = ap_clk;
+    assign twInfo_clk = clk;
     
     assign next_count = count+1;
     assign prev_count = count-1;
@@ -81,26 +81,26 @@ module Taskwait
     end
     
     if (TW_MEM_BITS != 4) begin
-        assign twInfo_address0[3:TW_MEM_BITS] = 0;
+        assign twInfo_addr[3:TW_MEM_BITS] = 0;
     end
     
     assign outStream_TDATA = 8'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST[ACC_BITS-1:0] = acc_id;
     
-    assign twInfo_address0[TW_MEM_BITS-1:0] = count;
-    assign twInfo_we0 = update_entry;
+    assign twInfo_addr[TW_MEM_BITS-1:0] = count;
+    assign twInfo_we = update_entry;
     
     always_comb begin
     
         inStream_TREADY = 0;
         
-        twInfo_ce0 = update_entry;
-        twInfo_d0 = 112'dX;
-        twInfo_d0[TW_INFO_VALID_ENTRY_B] = tw_info_valid;
-        twInfo_d0[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
-        twInfo_d0[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = result_components;
-        twInfo_d0[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = task_id;
+        twInfo_en = update_entry;
+        twInfo_din = 112'dX;
+        twInfo_din[TW_INFO_VALID_ENTRY_B] = tw_info_valid;
+        twInfo_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
+        twInfo_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = result_components;
+        twInfo_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = task_id;
         
         case (state)
         
@@ -110,25 +110,25 @@ module Taskwait
             
             READ_TID: begin
                 inStream_TREADY = 1;
-                twInfo_ce0 = 1;
+                twInfo_en = 1;
             end
             
             GET_ENTRY_2: begin
-                twInfo_ce0 = 1;
+                twInfo_en = 1;
             end
         
         endcase
     
     end
     
-    always_ff @(posedge ap_clk) begin
+    always_ff @(posedge clk) begin
     
-        tw_info_task_id <= twInfo_q0[TW_INFO_TASKID_H:TW_INFO_TASKID_L];
-        tw_info_valid <= twInfo_q0[TW_INFO_VALID_ENTRY_B];
-        if (!twInfo_q0[TW_INFO_VALID_ENTRY_B]) begin
+        tw_info_task_id <= twInfo_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L];
+        tw_info_valid <= twInfo_dout[TW_INFO_VALID_ENTRY_B];
+        if (!twInfo_dout[TW_INFO_VALID_ENTRY_B]) begin
             tw_info_components <= 0;
         end else begin
-            tw_info_components <= twInfo_q0[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L];
+            tw_info_components <= twInfo_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L];
         end
         if (_type) begin
             result_components <= tw_info_components - components;
@@ -162,7 +162,7 @@ module Taskwait
             
             GET_ENTRY_1: begin
                 count <= next_count;
-                acc_id <= twInfo_q0[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L];
+                acc_id <= twInfo_dout[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L];
                 state <= GET_ENTRY_2;
             end
             
@@ -208,7 +208,7 @@ module Taskwait
             
         endcase
         
-        if (!ap_rst_n) begin
+        if (!rstn) begin
             state <= READ_HEADER;
         end
     end

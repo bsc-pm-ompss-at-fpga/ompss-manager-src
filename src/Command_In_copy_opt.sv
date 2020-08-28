@@ -22,8 +22,8 @@
 
 module Command_In_copy_opt
 (
-    input  ap_clk,
-    input  ap_rst_n,
+    input  clk,
+    input  rstn,
     //Command in queue
     output logic [5:0] cmdInQueue_addr,
     output logic cmdInQueue_en,
@@ -138,7 +138,7 @@ module Command_In_copy_opt
         endcase
     end
     
-    always_ff @(posedge ap_clk) begin
+    always_ff @(posedge clk) begin
     
         finished <= 0;
         arg <= queue_select ? intCmdInQueue_dout : cmdInQueue_dout;
@@ -200,7 +200,7 @@ module Command_In_copy_opt
         
         endcase
     
-        if (!ap_rst_n) begin
+        if (!rstn) begin
             state <= IDLE;
         end
     end

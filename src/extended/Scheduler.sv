@@ -22,23 +22,23 @@
 
 module Scheduler
 (
-    input  ap_clk,
-    input  ap_rst_n,
+    input  clk,
+    input  rstn,
     //Internal command queue
-    output logic [9:0] intCmdInQueue_V_address0,
-    output logic intCmdInQueue_V_ce0,
-    output logic intCmdInQueue_V_we0,
-    output logic [63:0] intCmdInQueue_V_d0,
-    input  [63:0] intCmdInQueue_V_q0,
+    output logic [9:0] intCmdInQueue_addr,
+    output logic intCmdInQueue_en,
+    output logic intCmdInQueue_we,
+    output logic [63:0] intCmdInQueue_din,
+    input  [63:0] intCmdInQueue_dout,
     output intCmdInQueue_clk,
     //Spawn out queue
-    output logic [31:0] spawnOutQueue_Addr,
-    output logic spawnOutQueue_EN,
-    output logic [7:0] spawnOutQueue_WEN,
-    output logic [63:0] spawnOutQueue_Din,
-    input [63:0] spawnOutQueue_Dout,
-    output spawnOutQueue_Clk,
-    output spawnOutQueue_Rst,
+    output logic [31:0] spawnOutQueue_addr,
+    output logic spawnOutQueue_en,
+    output logic [7:0] spawnOutQueue_we,
+    output logic [63:0] spawnOutQueue_din,
+    input [63:0] spawnOutQueue_dout,
+    output spawnOutQueue_clk,
+    output spawnOutQueue_rst,
     //Bitinfo memory
     output [31:0] bitinfo_addr,
     output bitinfo_en,
@@ -57,10 +57,10 @@ module Scheduler
     input  outStream_TREADY,
     output [3:0] outStream_TDEST,
     //Picos reject interface
-    output [31:0] picosRejectTask,
-    output picosRejectTask_ap_vld,
+    output [31:0] picosRejectTask_id,
+    output picosRejectTask_valid,
     //Queue not empty interface
-    output logic [3:0] sched_queue_nempty_addr,
+    output logic [3:0] sched_queue_nempty_address,
     output logic sched_queue_nempty_write
 );
 
@@ -135,12 +135,12 @@ module Scheduler
     wire [5:0] tmp_num_slots;
     wire [SUBQUEUE_BITS-1:0] next_wIdx;
     
-    wire [ACC_BITS-1:0] scheduleData_address1;
-    wire scheduleData_ce1;
-    wire [49:0] scheduleData_q1;
-    wire [ACC_BITS-1:0] scheduleData_address0;
-    wire scheduleData_ce0;
-    wire [49:0] scheduleData_d0;
+    wire [ACC_BITS-1:0] scheduleData_portA_addr;
+    wire scheduleData_portA_en;
+    wire [49:0] scheduleData_portA_din;
+    wire [ACC_BITS-1:0] scheduleData_portB_addr;
+    wire scheduleData_portB_en;
+    wire [49:0] scheduleData_portB_dout;
     
     Scheduler_spawnout sched_spawnout (
         .*
@@ -154,38 +154,38 @@ module Scheduler
         .*
     );
     
-    assign bitinfo_clk = ap_clk;
+    assign bitinfo_clk = clk;
     assign bitinfo_rst = 0;
     
-    assign intCmdInQueue_clk = ap_clk;
+    assign intCmdInQueue_clk = clk;
     
     assign inStream_TREADY = inStream_main_TREADY | inStream_spawnout_TREADY;
     
-    assign spawnOutQueue_Rst = 0;
-    assign spawnOutQueue_Clk = ap_clk;
+    assign spawnOutQueue_rst = 0;
+    assign spawnOutQueue_clk = clk;
     
     if (ACC_BITS != 4) begin
-        assign intCmdInQueue_V_address0[9:SUBQUEUE_BITS+ACC_BITS] = 0;
+        assign intCmdInQueue_addr[9:SUBQUEUE_BITS+ACC_BITS] = 0;
         assign outStream_TDEST[3:ACC_BITS] = 0;
-        assign sched_queue_nempty_addr[3:ACC_BITS] = 0;
+        assign sched_queue_nempty_address[3:ACC_BITS] = 0;
     end
     
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
-    assign intCmdInQueue_V_address0[6+ACC_BITS-1:6] = accID;
-    assign tmp_num_slots = 6'd3 + {1'd0, intCmdInQueue_V_q0[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
+    assign intCmdInQueue_addr[6+ACC_BITS-1:6] = accID;
+    assign tmp_num_slots = 6'd3 + {1'd0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
     assign next_wIdx = wIdx + 1;
-    assign scheduleData_address1 = data_idx;
-    assign scheduleData_ce1 = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
+    assign scheduleData_portB_addr = data_idx;
+    assign scheduleData_portB_en = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
     assign outStream_TDEST[ACC_BITS-1:0] = srcAccID;
-    assign picosRejectTask = taskID[31:0];
-    assign picosRejectTask_ap_vld = state == SCHED_REJECT_TASK && comes_from_dep_mod;
+    assign picosRejectTask_id = taskID[31:0];
+    assign picosRejectTask_valid = state == SCHED_REJECT_TASK && comes_from_dep_mod;
     
     always_comb begin
     
-        intCmdInQueue_V_address0[5:0] = wIdx[5:0];
-        intCmdInQueue_V_ce0 = 0;
-        intCmdInQueue_V_we0 = 0;
-        intCmdInQueue_V_d0 = taskID;
+        intCmdInQueue_addr[5:0] = wIdx[5:0];
+        intCmdInQueue_en = 0;
+        intCmdInQueue_we = 0;
+        intCmdInQueue_din = taskID;
         
         inStream_main_TREADY = 0;
         
@@ -215,19 +215,19 @@ module Scheduler
             end
         
             SCHED_CMDIN_CHECK: begin
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_address0[5:0] = rIdx;
+                intCmdInQueue_en = 1;
+                intCmdInQueue_addr[5:0] = rIdx;
             end
             
             SCHED_CMDIN_WRITE_1: begin
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_we0 = 1;
+                intCmdInQueue_en = 1;
+                intCmdInQueue_we = 1;
             end
             
             SCHED_CMDIN_WRITE_2: begin
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_we0 = 1;
-                intCmdInQueue_V_d0 = pTaskID;
+                intCmdInQueue_en = 1;
+                intCmdInQueue_we = 1;
+                intCmdInQueue_din = pTaskID;
             end
             
             SCHED_READ_COPS_1: begin
@@ -244,27 +244,27 @@ module Scheduler
             
             SCHED_CMDIN_WRITE_FLAGS: begin
                 inStream_main_TREADY = 1;
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_we0 = 1;
-                intCmdInQueue_V_d0[63:ARG_IDX_H+1] = 0;
-                intCmdInQueue_V_d0[ARG_IDX_H:ARG_IDX_L] = arg_idx;
-                intCmdInQueue_V_d0[ARG_FLAG_H:ARG_FLAG_L] = {2'd0, cur_flag, 4'd0};
+                intCmdInQueue_en = 1;
+                intCmdInQueue_we = 1;
+                intCmdInQueue_din[63:ARG_IDX_H+1] = 0;
+                intCmdInQueue_din[ARG_IDX_H:ARG_IDX_L] = arg_idx;
+                intCmdInQueue_din[ARG_FLAG_H:ARG_FLAG_L] = {2'd0, cur_flag, 4'd0};
             end
             
             SCHED_CMDIN_WRITE_ARG: begin
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_we0 = 1;
-                intCmdInQueue_V_d0 = inStream_data_buf;
+                intCmdInQueue_en = 1;
+                intCmdInQueue_we = 1;
+                intCmdInQueue_din = inStream_data_buf;
             end
             
             SCHED_CMDIN_WRITE_4: begin
-                intCmdInQueue_V_ce0 = 1;
-                intCmdInQueue_V_we0 = 1;
-                intCmdInQueue_V_d0[ENTRY_VALID_OFFSET] = 1;
-                intCmdInQueue_V_d0[DESTID_H:DESTID_L] = 8'h11;
-                intCmdInQueue_V_d0[COMPF_H:COMPF_L] = 8'h01;
-                intCmdInQueue_V_d0[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET] = num_args;
-                intCmdInQueue_V_d0[CMD_TYPE_L+7:CMD_TYPE_L] = 8'h1;
+                intCmdInQueue_en = 1;
+                intCmdInQueue_we = 1;
+                intCmdInQueue_din[ENTRY_VALID_OFFSET] = 1;
+                intCmdInQueue_din[DESTID_H:DESTID_L] = 8'h11;
+                intCmdInQueue_din[COMPF_H:COMPF_L] = 8'h01;
+                intCmdInQueue_din[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET] = num_args;
+                intCmdInQueue_din[CMD_TYPE_L+7:CMD_TYPE_L] = 8'h1;
             end
             
             SCHED_REJECT_TASK: begin
@@ -283,7 +283,7 @@ module Scheduler
         endcase
     end
     
-    always_ff @(posedge ap_clk) begin
+    always_ff @(posedge clk) begin
     
         sched_queue_nempty_write <= 0;
         
@@ -358,9 +358,9 @@ module Scheduler
             
             SCHED_ASSIGN_SEARCH: begin
                 data_idx <= data_idx + 1;
-                count <= scheduleData_q1[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
-                accID <= scheduleData_q1[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] + last_acc_id[data_idx_d];
-                if (scheduleData_q1[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] == task_type) begin
+                count <= scheduleData_portB_dout[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
+                accID <= scheduleData_portB_dout[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] + last_acc_id[data_idx_d];
+                if (scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] == task_type) begin
                     state <= SCHED_ASSIGN;
                 end else begin
                     data_idx_d <= data_idx;
@@ -391,7 +391,7 @@ module Scheduler
             end
             
             SCHED_CMDIN_READ: begin
-                if (!intCmdInQueue_V_q0[ENTRY_VALID_OFFSET]) begin
+                if (!intCmdInQueue_dout[ENTRY_VALID_OFFSET]) begin
                     rIdx <= rIdx + tmp_num_slots;
                     avail_slots <= avail_slots + {1'b0, tmp_num_slots};
                     state <= SCHED_CMDIN_CHECK;
@@ -501,7 +501,7 @@ module Scheduler
             SCHED_CMDIN_WRITE_4: begin
                 subqueue_info[accID].wIdx <= wIdx_copy;
                 sched_queue_nempty_write <= 1;
-                sched_queue_nempty_addr[ACC_BITS-1:0] <= accID;
+                sched_queue_nempty_address[ACC_BITS-1:0] <= accID;
                 state <= SCHED_ACCEPT_TASK;
             end
             
@@ -513,7 +513,7 @@ module Scheduler
         
         endcase
         
-        if (!ap_rst_n) begin
+        if (!rstn) begin
             int i;
             for (i = 0; i < MAX_ACCS; i = i+1) begin
                 subqueue_info[i].rIdx <= 0;
