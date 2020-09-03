@@ -59,12 +59,12 @@ module Spawn_In(
     reg [9:0] rIdx;
     wire [9:0] next_rIdx;
     reg [9:0] first_rIdx;
-    logic [9:0] spawnInQueue_addr;
+    logic [9:0] spawnInQueue_useful_addr;
     reg [63:0] pTask_id;
     reg spawnIn_valid;
     reg spawnIn_picos;
     
-    assign spawnInQueue_addr = {19'd0, spawnInQueue_addr, 3'd0};
+    assign spawnInQueue_addr = {19'd0, spawnInQueue_useful_addr, 3'd0};
     assign spawnInQueue_clk = clk;
     assign spawnInQueue_rst = 0;
     assign spawnInQueue_din[63:56] = 0;
@@ -74,9 +74,8 @@ module Spawn_In(
     
     always_comb begin
     
-
         spawnInQueue_we = 0;
-        spawnInQueue_addr = rIdx;
+        spawnInQueue_useful_addr = rIdx;
         
         outStream_TDATA = pTask_id;
         outStream_TVALID = 0;
@@ -88,13 +87,18 @@ module Spawn_In(
         
             READ_HEADER: begin
                 if (spawnIn_valid) begin
-                    spawnInQueue_addr = next_rIdx;
+                    spawnInQueue_we[7] = 1;
+                    spawnInQueue_useful_addr = next_rIdx;
                 end
             end
             
+            READ_TID_1: begin
+                spawnInQueue_we[7] = 1;
+            end
+                        
             READ_TID_2: begin
                 spawnInQueue_we[7] = 1;
-                spawnInQueue_addr = first_rIdx;
+                spawnInQueue_useful_addr = first_rIdx;
             end
             
             NOTIFY_TW_1: begin
