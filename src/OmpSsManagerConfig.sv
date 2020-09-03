@@ -37,6 +37,13 @@ package OmpSsManager;
     localparam NUM_COPS_OFFSET = 24;
     localparam TASK_SEQ_ID_L = 32;
     localparam TASK_SEQ_ID_H = 63;
+
+    //Cmd codes
+    localparam EXEC_TASK_CODE = 4'h1;
+    localparam SETUP_HW_INST_CODE = 4'h2;
+    localparam EXEC_PERI_TASK_CODE = 4'h5;
+    localparam CMD_LOCK_CODE = 8'h04;
+    localparam CMD_UNLOCK_CODE = 8'h06;
     
     //Argument flags
     localparam ARG_FLAG_L = 0;
@@ -47,9 +54,6 @@ package OmpSsManager;
     localparam SUBQUEUE_SIZE = 64;
     localparam SUBQUEUE_BITS = $clog2(SUBQUEUE_SIZE);
         
-    localparam EXEC_TASK_CODE = 4'h1;
-    localparam SETUP_HW_INST_CODE = 4'h2;
-    localparam EXEC_PERI_TASK_CODE = 4'h5;
     
     localparam MAX_ACCS_TYPES = 16;
     localparam DEFAULT_ARG_FLAGS = 2'b11;
@@ -76,11 +80,18 @@ package OmpSsManager;
 
     localparam HWR_DEPS_ID = 5'h12;
     localparam HWR_SCHED_ID = 5'h13;
+    localparam HWR_TASKWAIT_ID = 5'h14;
+    localparam HWR_LOCK_ID = 5'h15;
     
     //Scheduler data mem struct
     localparam SCHED_DATA_ACCID_L = 0; 
     localparam SCHED_DATA_COUNT_L = 8;
     localparam SCHED_DATA_TASK_TYPE_L = 16;
     localparam SCHED_DATA_TASK_TYPE_H = 49;
+
+    //Lock module
+    localparam LOCK_ID_BITS = 8;
+    localparam LOCK_ID_L = 8;
+    localparam LOCK_ID_H = 15;
 
 endpackage
