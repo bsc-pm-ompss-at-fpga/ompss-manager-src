@@ -22,8 +22,8 @@
 
 module Lock
 (
-    input  ap_clk,
-    input  ap_rst_n,
+    input  clk,
+    input  rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
@@ -37,8 +37,6 @@ module Lock
 );
 
     import OmpSsManager::*;
-
-    localparam ACC_BITS = $clog2(MAX_ACCS);
     
     enum {
         READ_HEADER,
@@ -75,7 +73,7 @@ module Lock
     
     end
     
-    always_ff @(posedge ap_clk) begin
+    always_ff @(posedge clk) begin
     
         locked <= next_locked;
                 
@@ -117,7 +115,7 @@ module Lock
             
         endcase
         
-        if (!ap_rst_n) begin
+        if (!rstn) begin
             next_locked <= 0;
             state <= READ_HEADER;
         end

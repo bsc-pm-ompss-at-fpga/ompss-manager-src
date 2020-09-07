@@ -22,28 +22,28 @@
 
 module Scheduler_sched_info_mem
 (
-    input  ap_clk,
-    //Port 0
-    input [OmpSsManager::ACC_BITS-1:0] scheduleData_address0,
-    input scheduleData_ce0,
-    input [49:0] scheduleData_d0,
-    //Port 1
-    input [OmpSsManager::ACC_BITS-1:0] scheduleData_address1,
-    input scheduleData_ce1,
-    output logic [49:0] scheduleData_q1
+    input  clk,
+    //Port A
+    input [OmpSsManager::ACC_BITS-1:0] scheduleData_portA_addr,
+    input scheduleData_portA_en,
+    input [49:0] scheduleData_portA_din,
+    //Port B
+    input [OmpSsManager::ACC_BITS-1:0] scheduleData_portB_addr,
+    input scheduleData_portB_en,
+    output logic [49:0] scheduleData_portB_dout
 );
 
     reg [49:0] mem[OmpSsManager::MAX_ACCS];
     
-    always_ff @(posedge ap_clk) begin
-        if (scheduleData_ce0) begin
-            mem[scheduleData_address0] <= scheduleData_d0;
+    always_ff @(posedge clk) begin
+        if (scheduleData_portA_en) begin
+            mem[scheduleData_portA_addr] <= scheduleData_portA_din;
         end
     end
     
-    always_ff @(posedge ap_clk) begin
-        if (scheduleData_ce1) begin
-            scheduleData_q1 <= mem[scheduleData_address1];
+    always_ff @(posedge clk) begin
+        if (scheduleData_portB_en) begin
+            scheduleData_portB_dout <= mem[scheduleData_portB_addr];
         end
     end
 

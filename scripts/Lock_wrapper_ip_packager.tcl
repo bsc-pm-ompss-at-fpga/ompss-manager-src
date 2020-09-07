@@ -26,8 +26,8 @@ set_property supported_families {zynquplus Beta zynq Beta virtex7{xc7vx690tffg11
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
 
-ipx::associate_bus_interfaces -busif inStream -clock ap_clk [ipx::current_core]
-ipx::associate_bus_interfaces -busif outStream -clock ap_clk [ipx::current_core]
+ipx::associate_bus_interfaces -busif inStream -clock clk [ipx::current_core]
+ipx::associate_bus_interfaces -busif outStream -clock clk [ipx::current_core]
 
 set_property core_revision 1 [ipx::current_core]
 
