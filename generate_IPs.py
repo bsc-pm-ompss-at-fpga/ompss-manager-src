@@ -1,23 +1,16 @@
 #!/usr/bin/env python3
 #
 #------------------------------------------------------------------------#
-#    (C) Copyright 2017-2019 Barcelona Supercomputing Center             #
-#                            Centro Nacional de Supercomputacion         #
+# Copyright (C) Barcelona Supercomputing Center                          #
+#               Centro Nacional de Supercomputacion (BSC-CNS)            #
 #                                                                        #
-#    This file is part of OmpSs@FPGA toolchain.                          #
+# All Rights Reserved.                                                    #
+# This file is part of OmpSs@FPGA toolchain.                             #
 #                                                                        #
-#    This code is free software; you can redistribute it and/or modify   #
-#    it under the terms of the GNU General Public License as published   #
-#    by the Free Software Foundation; either version 3 of the License,   #
-#    or (at your option) any later version.                              #
-#                                                                        #
-#    OmpSs@FPGA toolchain is distributed in the hope that it will be     #
-#    useful, but WITHOUT ANY WARRANTY; without even the implied          #
-#    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.    #
-#    See the GNU General Public License for more details.                #
-#                                                                        #
-#    You should have received a copy of the GNU General Public License   #
-#    along with this code. If not, see <www.gnu.org/licenses/>.          #
+# Unauthorized copying and/or distribution of this file,                 #
+# via any medium is strictly prohibited.                                 #
+# The intellectual and technical concepts contained herein are           #
+# propietary to BSC-CNS and may be covered by Patents.                   #
 #------------------------------------------------------------------------#
 
 import os
@@ -134,7 +127,7 @@ def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
         # Get LUT
         elems = rpt_data[ids[0] + 6].split('|')
         used_resources['LUT'] = int(elems[2].strip())
-        
+
         #skip 2 lines if there is LUT as memory
         elems = rpt_data[ids[0] + 8].split('|')
         memory_LUT = int(elems[2].strip())
@@ -232,7 +225,7 @@ def compute_SOM_resource_utilization(extended):
 
 def generate_internal_IP(ip_name):
     msg.info('Generating ' + ip_name + ' IP')
-    
+
     if os.path.exists('./internal_IPs/' + ip_name + '_IP'):
         shutil.rmtree('./internal_IPs/' + ip_name + '_IP')
 
@@ -413,7 +406,7 @@ if not args.skip_pom_synth:
     if os.path.exists('./pom_IP/Synthesis'):
         shutil.rmtree('./pom_IP/Synthesis')
     os.makedirs('./pom_IP/Synthesis')
-    
+
     compute_POM_resource_utilization()
 
 if not args.skip_som_gen:
@@ -431,7 +424,6 @@ if not args.skip_som_synth:
     if os.path.exists('./som_IP/Synthesis'):
         shutil.rmtree('./som_IP/Synthesis')
     os.makedirs('./som_IP/Synthesis')
-    
+
     compute_SOM_resource_utilization(False)
     compute_SOM_resource_utilization(True)
-    

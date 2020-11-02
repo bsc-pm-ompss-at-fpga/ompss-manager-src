@@ -1,21 +1,14 @@
 /*--------------------------------------------------------------------
-  (C) Copyright 2017-2020 Barcelona Supercomputing Center
-                          Centro Nacional de Supercomputacion
+  Copyright (C) Barcelona Supercomputing Center
+                Centro Nacional de Supercomputacion (BSC-CNS)
 
+  All Rights Reserved. 
   This file is part of OmpSs@FPGA toolchain.
 
-  This code is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as
-  published by the Free Software Foundation; either version 3 of
-  the License, or (at your option) any later version.
-
-  OmpSs@FPGA toolchain is distributed in the hope that it will be
-  useful, but WITHOUT ANY WARRANTY; without even the implied
-  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this code. If not, see <www.gnu.org/licenses/>.
+  Unauthorized copying and/or distribution of this file,
+  via any medium is strictly prohibited.
+  The intellectual and technical concepts contained herein are
+  propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
 `timescale 1ns / 1ps
