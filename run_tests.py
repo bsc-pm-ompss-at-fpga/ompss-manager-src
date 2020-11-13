@@ -4,7 +4,7 @@
 # Copyright (C) Barcelona Supercomputing Center                          #
 #               Centro Nacional de Supercomputacion (BSC-CNS)            #
 #                                                                        #
-# All Rights Reserved.                                                    #
+# All Rights Reserved.                                                   #
 # This file is part of OmpSs@FPGA toolchain.                             #
 #                                                                        #
 # Unauthorized copying and/or distribution of this file,                 #

@@ -13,8 +13,9 @@
 
 `timescale 1ns / 1ps
 
-module Cutoff_Manager
-(
+module Cutoff_Manager #(
+    parameter MAX_ACCS = 16
+) (
     input clk,
     input rstn,
     input picos_full,
@@ -23,14 +24,14 @@ module Cutoff_Manager
     output reg inStream_tready,
     input [63:0] inStream_tdata,
     input inStream_tlast,
-    input [3:0] inStream_tid,
+    input [$clog2(MAX_ACCS)-1:0] inStream_tid,
     input [4:0] inStream_tdest,
     //Scheduler interface
     output sched_inStream_tvalid,
     input sched_inStream_tready,
     output [63:0] sched_inStream_tdata,
     output sched_inStream_tlast,
-    output [3:0] sched_inStream_tid,
+    output [$clog2(MAX_ACCS)-1:0] sched_inStream_tid,
     //Picos interface
     output deps_new_task_tvalid,
     input deps_new_task_tready,
@@ -39,9 +40,9 @@ module Cutoff_Manager
     output ack_tvalid,
     input ack_tready,
     output logic [7:0] ack_tdata,
-    output [3:0] ack_tdest,
+    output [$clog2(MAX_ACCS)-1:0] ack_tdest,
     //Taskwait memory
-    output reg [3:0] tw_info_addr,
+    output reg [7:0] tw_info_addr,
     output logic tw_info_en,
     output logic tw_info_we,
     output logic [111:0] tw_info_din,
@@ -50,6 +51,7 @@ module Cutoff_Manager
 );
 
     import OmpSsManager::*;
+    localparam ACC_BITS = $clog2(MAX_ACCS);
 
     localparam MAX_ADDR = TW_MEM_SIZE-1;
     
@@ -82,13 +84,8 @@ module Cutoff_Manager
     
     assign tw_info_clk = clk;
     
-    if (ACC_BITS != 4) begin
-        assign sched_inStream_tid[3:ACC_BITS] = 0;
-        assign ack_tdest[3:ACC_BITS] = 0;
-    end
-    
-    if (TW_MEM_BITS != 4) begin
-        assign tw_info_addr[3:TW_MEM_BITS] = 0;
+    if (TW_MEM_BITS != 8) begin
+        assign tw_info_addr[7:TW_MEM_BITS] = 0;
     end
         
     assign ack_tvalid = state == ACK;
@@ -175,7 +172,7 @@ module Cutoff_Manager
             IDLE: begin
                 tw_info_addr[TW_MEM_BITS-1:0] <= 0;
                 empty_entry_found <= 0;
-                acc_id <= inStream_tid[ACC_BITS-1:0];
+                acc_id <= inStream_tid;
                 deps_selected <= inStream_tdest == HWR_DEPS_ID;
                 buf_tdata <= inStream_tdata;
                 buf_tlast <= 0;
