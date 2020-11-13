@@ -13,20 +13,21 @@
 
 `timescale 1ns / 1ps
 
-module Scheduler_sched_info_mem
-(
+module Scheduler_sched_info_mem #(
+    parameter MAX_ACCS = 16
+) (
     input  clk,
     //Port A
-    input [OmpSsManager::ACC_BITS-1:0] scheduleData_portA_addr,
+    input [$clog2(MAX_ACCS)-1:0] scheduleData_portA_addr,
     input scheduleData_portA_en,
     input [49:0] scheduleData_portA_din,
     //Port B
-    input [OmpSsManager::ACC_BITS-1:0] scheduleData_portB_addr,
+    input [$clog2(MAX_ACCS)-1:0] scheduleData_portB_addr,
     input scheduleData_portB_en,
     output logic [49:0] scheduleData_portB_dout
 );
 
-    reg [49:0] mem[OmpSsManager::MAX_ACCS];
+    reg [49:0] mem[MAX_ACCS];
     
     always_ff @(posedge clk) begin
         if (scheduleData_portA_en) begin

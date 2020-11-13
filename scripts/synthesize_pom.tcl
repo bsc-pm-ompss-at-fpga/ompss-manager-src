@@ -1,3 +1,16 @@
+#------------------------------------------------------------------------#
+# Copyright (C) Barcelona Supercomputing Center                          #
+#               Centro Nacional de Supercomputacion (BSC-CNS)            #
+#                                                                        #
+# All Rights Reserved.                                                   #
+# This file is part of OmpSs@FPGA toolchain.                             #
+#                                                                        #
+# Unauthorized copying and/or distribution of this file,                 #
+# via any medium is strictly prohibited.                                 #
+# The intellectual and technical concepts contained herein are           #
+# propietary to BSC-CNS and may be covered by Patents.                   #
+#------------------------------------------------------------------------#
+
 variable project_path [lindex $argv 0]
 variable name_IP [lindex $argv 1]
 variable part [lindex $argv 2]

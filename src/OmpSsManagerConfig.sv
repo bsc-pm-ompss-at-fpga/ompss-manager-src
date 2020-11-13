@@ -13,9 +13,6 @@
 
 package OmpSsManager;
 
-    localparam MAX_ACCS = 16;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
-
     //Headers
     localparam ENTRY_VALID_OFFSET = 63;
     localparam ENTRY_VALID_BYTE_OFFSET = 56;
@@ -46,7 +43,6 @@ package OmpSsManager;
     
     localparam SUBQUEUE_SIZE = 64;
     localparam SUBQUEUE_BITS = $clog2(SUBQUEUE_SIZE);
-        
     
     localparam MAX_ACCS_TYPES = 16;
     localparam DEFAULT_ARG_FLAGS = 2'b11;

@@ -2,7 +2,7 @@
 # Copyright (C) Barcelona Supercomputing Center                          #
 #               Centro Nacional de Supercomputacion (BSC-CNS)            #
 #                                                                        #
-# All Rights Reserved.                                                    #
+# All Rights Reserved.                                                   #
 # This file is part of OmpSs@FPGA toolchain.                             #
 #                                                                        #
 # Unauthorized copying and/or distribution of this file,                 #
@@ -18,6 +18,7 @@ variable board_part [lindex $argv 3]
 variable root_dir [lindex $argv 4]
 variable prj_dir [lindex $argv 5]
 variable encrypt [lindex $argv 6]
+variable max_accs [lindex $argv 7]
 
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
@@ -33,7 +34,9 @@ set_property ip_repo_paths "[get_property ip_repo_paths [current_project]] $root
 update_ip_catalog
 
 foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
-	update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
+	if { ![ file exists [ file rootname $IP ] ] } {
+		update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
+	}
 }
 
 if {[catch {source $root_dir/scripts/${name_IP}_bd.tcl}]} {
@@ -89,7 +92,7 @@ set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::cur
 set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
 # Add num_tw_accs parameter
 variable name_param "num_tw_accs"
@@ -103,7 +106,7 @@ set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::cur
 set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_maximum 16 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
 # Add lock_support parameter
 variable name_param "lock_support"
@@ -128,23 +131,22 @@ foreach bram_intf $bram_list {
 
 	if {$bram_intf == "cmdInQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value [ expr $max_accs*64*8 ] [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "cmdOutQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value [ expr $max_accs*64*8 ] [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "bitInfo"} {
 		set_property value 32 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 4096 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "spawnOutQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value [ expr $max_accs*64*8 ] [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	} elseif {$bram_intf == "spawnInQueue"} {
 		set_property value 64 [ipx::get_bus_parameters MEM_WIDTH -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
-		set_property value 8192 [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
+		set_property value [ expr $max_accs*64*8 ] [ipx::get_bus_parameters MEM_SIZE -of_objects [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]]
 	}
 }
 
-for {set i 0} {$i < 16} {incr i} {
+for {set i 0} {$i < $max_accs} {incr i} {
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces inStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces outStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_tw_accs > $i" [ipx::get_bus_interfaces twOutStream_$i -of_objects [ipx::current_core]]
@@ -160,12 +162,13 @@ set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$p
 set_property core_revision 1 [ipx::current_core]
 
 if {$encrypt == 1} {
-    foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
-	    encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
-    }
+	foreach hdl_file [glob $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/{{*/*,*}.v}] {
+		encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
+	}
 }
 
 add_files -norecurse $root_dir/src/OmpSsManagerConfig.sv -copy_to $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
+exec sed -i "s/localparam MAX_ACCS = [0-9]*/localparam MAX_ACCS = ${max_accs}/1" $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/OmpSsManagerConfig.sv
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes files [ipx::current_core]

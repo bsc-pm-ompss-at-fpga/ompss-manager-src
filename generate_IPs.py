@@ -4,7 +4,7 @@
 # Copyright (C) Barcelona Supercomputing Center                          #
 #               Centro Nacional de Supercomputacion (BSC-CNS)            #
 #                                                                        #
-# All Rights Reserved.                                                    #
+# All Rights Reserved.                                                   #
 # This file is part of OmpSs@FPGA toolchain.                             #
 #                                                                        #
 # Unauthorized copying and/or distribution of this file,                 #
@@ -25,16 +25,16 @@ from distutils import spawn
 import xml.etree.cElementTree as cET
 
 SOM_MAJOR_VERSION = 3
-SOM_MINOR_VERSION = 3
+SOM_MINOR_VERSION = 4
 
 SOM_PREVIOUS_MAJOR_VERSION = 3
-SOM_PREVIOUS_MINOR_VERSION = 2
+SOM_PREVIOUS_MINOR_VERSION = 3
 
 POM_MAJOR_VERSION = 3
-POM_MINOR_VERSION = 3
+POM_MINOR_VERSION = 4
 
 POM_PREVIOUS_MAJOR_VERSION = 3
-POM_PREVIOUS_MINOR_VERSION = 2
+POM_PREVIOUS_MINOR_VERSION = 3
 
 class Logger(object):
     def __init__(self):
@@ -92,8 +92,9 @@ class ArgParser:
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
         self.parser.add_argument('--skip_som_synth', help='skips SOM IP synthesis to generate resouce utilization report', action='store_true', default=False)
-        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs (all disables all IPs)', nargs='+')
+        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs (\'all\' disables all IPs)', nargs='+')
         self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
+        self.parser.add_argument('--max_accs', help='maximum number of accelerators supported by the IP (def: \'16\')', type=int, default=16)
 
     def parse_args(self):
         args = self.parser.parse_args()
@@ -178,7 +179,8 @@ def compute_POM_resource_utilization():
                          + os.path.abspath(os.getcwd() + '/pom_IP/Synthesis') + ' '
                          + 'PicosOmpSsManager '
                          + args.board_part + ' '
-                         + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager'), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager') + ' '
+                         + str(args.max_accs), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -205,7 +207,8 @@ def compute_SOM_resource_utilization(extended):
                          + 'SmartOmpSsManager '
                          + ('1 ' if extended else '0 ')
                          + args.board_part + ' '
-                         + os.path.abspath(os.getcwd() + '/som_IP/IP_packager'), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/som_IP/IP_packager') + ' '
+                         + str(args.max_accs), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -265,7 +268,8 @@ def generate_POM_IP():
                          + str(POM_PREVIOUS_MAJOR_VERSION) + '.' + str(POM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
-                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
+                         + ('0' if args.no_encrypt else '1') + ' '
+                         + str(args.max_accs), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -291,7 +295,8 @@ def generate_SOM_IP():
                          + str(SOM_PREVIOUS_MAJOR_VERSION) + '.' + str(SOM_PREVIOUS_MINOR_VERSION) + ' '
                          + args.board_part + ' ' + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/som_IP') + ' '
-                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
+                         + ('0' if args.no_encrypt else '1') + ' '
+                         + str(args.max_accs), cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 

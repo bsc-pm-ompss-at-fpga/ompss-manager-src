@@ -13,22 +13,23 @@
 
 `timescale 1ns / 1ps
 
-module Taskwait
-(
+module Taskwait #(
+    parameter MAX_ACCS = 16
+) (
     input clk,
     input rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
-    input  [3:0] inStream_TID,
+    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
     output [7:0] outStream_TDATA,
     //outStream
     output outStream_TVALID,
     input  outStream_TREADY,
-    output [3:0] outStream_TDEST,
+    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     //Taskwait memory
-    output [3:0] twInfo_addr,
+    output [7:0] twInfo_addr,
     output logic twInfo_en,
     output twInfo_we,
     output logic [111:0] twInfo_din,
@@ -37,6 +38,7 @@ module Taskwait
 );
 
     import OmpSsManager::*;
+    localparam ACC_BITS = $clog2(MAX_ACCS);
     
     enum {
         READ_HEADER,
@@ -69,17 +71,13 @@ module Taskwait
     assign next_count = count+1;
     assign prev_count = count-1;
     
-    if (ACC_BITS != 4) begin
-        assign outStream_TDEST[3:ACC_BITS] = 0;
-    end
-    
-    if (TW_MEM_BITS != 4) begin
-        assign twInfo_addr[3:TW_MEM_BITS] = 0;
+    if (TW_MEM_BITS != 8) begin
+        assign twInfo_addr[7:TW_MEM_BITS] = 0;
     end
     
     assign outStream_TDATA = 8'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
-    assign outStream_TDEST[ACC_BITS-1:0] = acc_id;
+    assign outStream_TDEST = acc_id;
     
     assign twInfo_addr[TW_MEM_BITS-1:0] = count;
     assign twInfo_we = update_entry;
@@ -136,7 +134,7 @@ module Taskwait
         case (state)
             
             READ_HEADER: begin
-                inStream_tid_r <= inStream_TID[ACC_BITS-1:0];
+                inStream_tid_r <= inStream_TID;
                 not_valid_entry_found <= 0;
                 count <= 0;
                 components <= inStream_TDATA[INSTREAM_COMPONENTS_H:INSTREAM_COMPONENTS_L];

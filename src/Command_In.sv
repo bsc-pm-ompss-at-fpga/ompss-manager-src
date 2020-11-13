@@ -13,8 +13,9 @@
 
 `timescale 1ns / 1ps
 
-module Command_In
-(
+module Command_In #(
+    parameter MAX_ACCS = 16
+) (
     input clk,
     input rstn,
     //Command in queue
@@ -26,7 +27,7 @@ module Command_In
     output cmdInQueue_clk,
     output cmdInQueue_rst,
     //Internal command in queue
-    output logic [9:0] intCmdInQueue_addr,
+    output logic [31:0] intCmdInQueue_addr,
     output logic intCmdInQueue_en,
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
@@ -36,16 +37,17 @@ module Command_In
     output [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
-    output [3:0] outStream_TDEST,
+    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     output outStream_TLAST,
     //Queue not empty and accelerator availability interfaces
-    input [3:0] sched_queue_nempty_address,
+    input [$clog2(MAX_ACCS)-1:0] sched_queue_nempty_address,
     input sched_queue_nempty_write,
-    input [3:0] acc_avail_wr_address,
+    input [$clog2(MAX_ACCS)-1:0] acc_avail_wr_address,
     input acc_avail_wr
 );
 
     import OmpSsManager::*;
+    localparam ACC_BITS = $clog2(MAX_ACCS);
     
     (* fsm_encoding = "one_hot" *)
     enum {
@@ -129,12 +131,9 @@ module Command_In
     assign cmdInQueue_addr[3 + SUBQUEUE_BITS+ACC_BITS-1:3 + SUBQUEUE_BITS] = acc_id;
     assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = acc_id;
     
-    if (ACC_BITS != 4) begin
-        assign intCmdInQueue_addr[9:SUBQUEUE_BITS+ACC_BITS] = 0;
-        assign outStream_TDEST[3:ACC_BITS] = 0;
-    end
+    assign intCmdInQueue_addr[31:SUBQUEUE_BITS+ACC_BITS] = 0;
     
-    assign outStream_TDEST[ACC_BITS-1:0] = acc_id;
+    assign outStream_TDEST = acc_id;
     assign outStream_TDATA = queue_select ? intCmdInQueue_dout : cmdInQueue_dout;
     assign outStream_TLAST = cmd_length == 0;
     
@@ -362,11 +361,11 @@ module Command_In
         endcase
         
         if (sched_queue_nempty_write) begin
-            queue_nempty[sched_queue_nempty_address[ACC_BITS-1:0] /*+ queue_nempty_offset*/] <= 1;
+            queue_nempty[sched_queue_nempty_address /*+ queue_nempty_offset*/] <= 1;
         end
         
         if (acc_avail_wr) begin
-            acc_avail[acc_avail_wr_address[ACC_BITS-1:0] /*+ queue_nempty_offset*/] <= 1;
+            acc_avail[acc_avail_wr_address /*+ queue_nempty_offset*/] <= 1;
         end
     
         if (!rstn) begin

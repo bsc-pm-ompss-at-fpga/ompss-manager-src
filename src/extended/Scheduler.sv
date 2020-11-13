@@ -13,12 +13,13 @@
 
 `timescale 1ns / 1ps
 
-module Scheduler
-(
+module Scheduler #(
+    parameter MAX_ACCS = 16
+) (
     input  clk,
     input  rstn,
     //Internal command queue
-    output logic [9:0] intCmdInQueue_addr,
+    output logic [31:0] intCmdInQueue_addr,
     output logic intCmdInQueue_en,
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
@@ -42,23 +43,22 @@ module Scheduler
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
     output inStream_TREADY,
-    input  [3:0] inStream_TID,
+    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     input  inStream_TLAST,
     //outStream
     output logic [7:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
-    output [3:0] outStream_TDEST,
+    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     //Picos reject interface
     output [31:0] picosRejectTask_id,
     output picosRejectTask_valid,
     //Queue not empty interface
-    output logic [3:0] sched_queue_nempty_address,
+    output logic [$clog2(MAX_ACCS)-1:0] sched_queue_nempty_address,
     output logic sched_queue_nempty_write
 );
 
     import OmpSsManager::*;
-
     localparam ACC_BITS = $clog2(MAX_ACCS);
 
     enum {
@@ -139,11 +139,15 @@ module Scheduler
         .*
     );
     
-    Scheduler_sched_info_mem sched_info_mem (
+    Scheduler_sched_info_mem #(
+        .MAX_ACCS(MAX_ACCS)
+    ) sched_info_mem (
         .*
     );
     
-    Scheduler_parse_bitinfo bitinfo_parser (
+    Scheduler_parse_bitinfo #(
+        .MAX_ACCS(MAX_ACCS)
+    ) bitinfo_parser (
         .*
     );
     
@@ -157,11 +161,7 @@ module Scheduler
     assign spawnOutQueue_rst = 0;
     assign spawnOutQueue_clk = clk;
     
-    if (ACC_BITS != 4) begin
-        assign intCmdInQueue_addr[9:SUBQUEUE_BITS+ACC_BITS] = 0;
-        assign outStream_TDEST[3:ACC_BITS] = 0;
-        assign sched_queue_nempty_address[3:ACC_BITS] = 0;
-    end
+    assign intCmdInQueue_addr[31:SUBQUEUE_BITS+ACC_BITS] = 0;
     
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
     assign intCmdInQueue_addr[6+ACC_BITS-1:6] = accID;
@@ -169,7 +169,7 @@ module Scheduler
     assign next_wIdx = wIdx + 1;
     assign scheduleData_portB_addr = data_idx;
     assign scheduleData_portB_en = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
-    assign outStream_TDEST[ACC_BITS-1:0] = srcAccID;
+    assign outStream_TDEST = srcAccID;
     assign picosRejectTask_id = taskID[31:0];
     assign picosRejectTask_valid = state == SCHED_REJECT_TASK && comes_from_dep_mod;
     
@@ -290,7 +290,7 @@ module Scheduler
             SCHED_READ_HEADER_1: begin
                 count_cops <= 0;
                 count_args <= 1;
-                srcAccID <= inStream_TID[ACC_BITS-1:0];
+                srcAccID <= inStream_TID;
                 arg_idx <= 0;
                 data_idx <= 0;
                 comes_from_dep_mod <= inStream_TDATA[0];

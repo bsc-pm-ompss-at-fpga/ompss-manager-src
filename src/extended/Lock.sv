@@ -13,23 +13,25 @@
 
 `timescale 1ns / 1ps
 
-module Lock
-(
+module Lock #(
+    parameter MAX_ACCS = 16
+) (
     input  clk,
     input  rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
-    input  [3:0] inStream_TID,
+    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
     //outStream
     output [7:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
-    output [3:0] outStream_TDEST
+    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST
 );
 
     import OmpSsManager::*;
+    localparam ACC_BITS = $clog2(MAX_ACCS);
     
     enum {
         READ_HEADER,
@@ -44,13 +46,9 @@ module Lock
     reg [LOCK_ID_BITS-1:0] lock_id;
     reg [7:0] ack_data;
     
-    if (ACC_BITS != 4) begin
-        assign outStream_TDEST[ACC_BITS:3] = 0;
-    end
-    
     assign outStream_TDATA = ack_data;
     assign outStream_TVALID = state == SEND_ACK;
-    assign outStream_TDEST[ACC_BITS-1:0] = acc_id;
+    assign outStream_TDEST = acc_id;
     
     always_comb begin
     
@@ -73,7 +71,7 @@ module Lock
         case (state)
             
             READ_HEADER: begin
-                acc_id <= inStream_TID[ACC_BITS-1:0];
+                acc_id <= inStream_TID;
                 cmd_code <= inStream_TDATA[CMD_TYPE_H:CMD_TYPE_L];
                 lock_id <= inStream_TDATA[LOCK_ID_H:LOCK_ID_L];
                 if (inStream_TVALID) begin

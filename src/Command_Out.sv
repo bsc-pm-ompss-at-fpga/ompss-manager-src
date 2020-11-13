@@ -13,8 +13,9 @@
 
 `timescale 1ns / 1ps
 
-module Command_Out
-(
+module Command_Out #(
+    parameter MAX_ACCS = 16
+) (
     input clk,
     input rstn,
     output [31:0] cmdOutQueue_addr,
@@ -27,7 +28,7 @@ module Command_Out
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
     output logic inStream_TREADY,
-    input  [3:0] inStream_TID,
+    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
@@ -35,11 +36,12 @@ module Command_Out
     output [31:0] picosFinishTask_TDATA,
     output logic picosFinishTask_TVALID,
     input  picosFinishTask_TREADY,
-    output reg [3:0] acc_avail_wr_address,
+    output reg [$clog2(MAX_ACCS)-1:0] acc_avail_wr_address,
     output reg acc_avail_wr
 );
 
     import OmpSsManager::*;
+    localparam ACC_BITS = $clog2(MAX_ACCS);
         
     reg r_READ_HEADER;
     reg r_READ_TID;
@@ -99,11 +101,11 @@ module Command_Out
     
     always_ff @(posedge clk) begin
         
-        acc_avail_wr_address[ACC_BITS-1:0] <= inStream_TID[ACC_BITS-1:0];
+        acc_avail_wr_address <= inStream_TID;
         acc_avail_wr <= 0;
         
         if (r_READ_HEADER) begin
-            acc_id <= inStream_TID[ACC_BITS-1:0];
+            acc_id <= inStream_TID;
             acc_avail_wr <= inStream_TVALID;
             r_READ_TID <= inStream_TVALID;
             r_READ_HEADER <= !inStream_TVALID;
