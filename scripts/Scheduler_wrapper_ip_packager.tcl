@@ -37,7 +37,7 @@ set_property display_name $name_IP [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
-set_property supported_families {zynquplus Beta zynq Beta virtex7 Beta kintexu Beta virtexuplus Beta} [ipx::current_core]
+set_property supported_families {zynquplus Beta zynq Beta virtex7 Beta kintexu Beta virtexuplus Beta virtexuplusHBM Beta} [ipx::current_core]
 
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
