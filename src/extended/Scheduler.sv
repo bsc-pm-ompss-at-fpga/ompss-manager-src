@@ -46,7 +46,7 @@ module Scheduler #(
     input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     input  inStream_TLAST,
     //outStream
-    output logic [7:0] outStream_TDATA,
+    output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,

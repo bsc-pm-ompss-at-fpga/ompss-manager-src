@@ -23,8 +23,8 @@ module Taskwait #(
     input  inStream_TVALID,
     input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
-    output [7:0] outStream_TDATA,
     //outStream
+    output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
@@ -74,8 +74,8 @@ module Taskwait #(
     if (TW_MEM_BITS != 8) begin
         assign twInfo_addr[7:TW_MEM_BITS] = 0;
     end
-    
-    assign outStream_TDATA = 8'd1;
+
+    assign outStream_TDATA = 64'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST = acc_id;
 

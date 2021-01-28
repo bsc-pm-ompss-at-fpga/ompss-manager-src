@@ -39,7 +39,7 @@ module Cutoff_Manager #(
     //Ack interface
     output ack_tvalid,
     input ack_tready,
-    output logic [7:0] ack_tdata,
+    output logic [63:0] ack_tdata,
     output [$clog2(MAX_ACCS)-1:0] ack_tdest,
     //Taskwait memory
     output reg [7:0] tw_info_addr,

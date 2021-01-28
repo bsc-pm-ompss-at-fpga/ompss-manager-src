@@ -24,7 +24,7 @@ module Lock #(
     input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
     //outStream
-    output [7:0] outStream_TDATA,
+    output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST
