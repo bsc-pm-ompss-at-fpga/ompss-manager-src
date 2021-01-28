@@ -29,7 +29,7 @@ create_ip -name $name_IP_lower -vendor bsc -library ompss -module_name $mod_name
 
 set_property generate_synth_checkpoint false [get_files  $project_path/synth_project.srcs/sources_1/ip/$mod_name/$mod_name.xci]
 
-set_property -dict [list CONFIG.num_accs {16} CONFIG.num_tw_accs {16}] [get_ips $mod_name]
+set_property -dict [list CONFIG.num_accs {16}] [get_ips $mod_name]
 
 reset_run synth_1
 

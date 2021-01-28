@@ -99,21 +99,6 @@ set_property value_validation_type range_long [ipx::get_user_parameters $name_pa
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
-# Add num_tw_accs parameter
-variable name_param "num_tw_accs"
-ipx::add_user_parameter $name_param [ipx::current_core]
-set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-ipgui::add_param -name $name_param -component [ipx::current_core] -show_label {true}
-set_property display_name "Number of accelerators with taskwait" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property tooltip "Number of accelerators with taskwait capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr "\$extended_mode==1" [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-
 # Add extended_mode parameter
 variable name_param "extended_mode"
 set_property value_validation_type list [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
@@ -174,8 +159,7 @@ ipgui::add_group -name "Extended Mode" -component [ipx::current_core] -display_n
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "extended_mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 ipgui::move_group -component [ipx::current_core] -order 2 [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "lock_support" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "lock_support" -component [ipx::current_core]] -parent [ipgui::get_groupspec -name "Extended Mode" -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
