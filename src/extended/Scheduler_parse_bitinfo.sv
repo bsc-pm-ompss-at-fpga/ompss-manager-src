@@ -46,7 +46,7 @@ module Scheduler_parse_bitinfo #(
         CHECK_FINISH,
         IDLE
     } state;
-    
+
     reg [6:0] offset;
     reg [31:0] bitinfoCast;
     reg [33:0] task_type;
@@ -55,25 +55,25 @@ module Scheduler_parse_bitinfo #(
     reg [1:0] c;
     reg [2:0] w;
     reg [ACC_BITS-1:0] first_free_id;
-    
+
     assign scheduleData_portA_din[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] = first_free_id;
     assign scheduleData_portA_din[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L] = num_instances - {{ACC_BITS-1{1'b0}}, 1'b1};
     assign scheduleData_portA_din[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] = task_type;
     assign scheduleData_portA_en = state == WRITE_SCHEDULE_DATA;
-    
+
     assign bitinfo_addr[31:9] = 0;
     assign bitinfo_addr[8:2] = offset;
     assign bitinfo_addr[1:0] = 0;
     assign bitinfo_en = state == READ_ACC_TYPE || state == READ_NUM_INSTANCES || state == READ_NEXT_ITERATION_WORD;
-    
+
     always_ff @(posedge clk) begin
-    
+
         bitinfoCast <= bitinfo_dout;
         //'0' in ascii is 6'b110000 (48) which means that the lower 4 bits correspond to the binary representation of the digit
         bitinfoDigit <= bitinfoCast[c*8 +: 4];
-                
+
         case (state)
-        
+
             START: begin
                 w <= 0;
                 first_free_id <= 0;
@@ -82,25 +82,25 @@ module Scheduler_parse_bitinfo #(
                 offset <= 4 /*words before the xtasks.config data*/ + 5 /*words of xtasks.config header*/;
                 state <= READ_ACC_TYPE;
             end 
-            
+
             //Issue mem read
             READ_ACC_TYPE: begin
                 c <= 0;
                 offset <= offset+1;
                 state <= STORE_ACC_TYPE;
             end
-            
+
             //Store mem data in bitinfoCast
             STORE_ACC_TYPE: begin
                 state <= COMPUTE_ACC_TYPE_MUL;
             end
-            
+
             //Store current char in bitinfoChar
             COMPUTE_ACC_TYPE_MUL: begin
                 task_type <= task_type*10;
                 state <= COMPUTE_ACC_TYPE_ADD;
             end
-            
+
             COMPUTE_ACC_TYPE_ADD: begin
                 task_type <= task_type + {30'd0, bitinfoDigit};
                 c <= c+1;
@@ -120,23 +120,23 @@ module Scheduler_parse_bitinfo #(
                     state <= COMPUTE_ACC_TYPE_MUL;
                 end
             end
-            
+
             READ_NUM_INSTANCES: begin
                 c <= 0;
                 offset <= offset+1;
                 num_instances <= 0;
                 state <= STORE_NUM_INSTANCES;
             end
-            
+
             STORE_NUM_INSTANCES: begin
                 state <= COMPUTE_NUM_INSTANCES_MUL;
             end
-            
+
             COMPUTE_NUM_INSTANCES_MUL: begin
                 num_instances <= num_instances*10;
                 state <= COMPUTE_NUM_INSTANCES_ADD;
             end
-            
+
             COMPUTE_NUM_INSTANCES_ADD: begin
                 num_instances <= num_instances + bitinfoDigit;
                 c <= c+1;
@@ -146,19 +146,19 @@ module Scheduler_parse_bitinfo #(
                     state <= COMPUTE_NUM_INSTANCES_MUL;
                 end
             end
-            
+
             WRITE_SCHEDULE_DATA: begin
                 first_free_id <= first_free_id + num_instances[ACC_BITS-1:0];
                 scheduleData_portA_addr <= scheduleData_portA_addr+1;
                 offset <= offset+9; //8 words of name + 1 word of frequency
                 state <= READ_NEXT_ITERATION_WORD;
             end
-            
+
             READ_NEXT_ITERATION_WORD: begin
                 offset <= offset+1;
                 state <= CHECK_FINISH;
             end
-            
+
             CHECK_FINISH: begin
                 c <= 0;
                 w <= 0;
@@ -169,13 +169,13 @@ module Scheduler_parse_bitinfo #(
                     state <= COMPUTE_ACC_TYPE_MUL;
                 end
             end
-            
+
             IDLE: begin
-            
+
             end
-        
+
         endcase
-    
+
         if (!rstn) begin
             state <= START;
         end

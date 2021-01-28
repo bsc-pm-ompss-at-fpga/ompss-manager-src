@@ -54,7 +54,7 @@ module Cutoff_Manager #(
     localparam ACC_BITS = $clog2(MAX_ACCS);
 
     localparam MAX_ADDR = TW_MEM_SIZE-1;
-    
+
     enum {
         IDLE,
         SEARCH_ENTRY,
@@ -67,7 +67,7 @@ module Cutoff_Manager #(
         ACK,
         WAIT_PICOS
     } state;
-        
+
     reg[TW_MEM_BITS-1:0] tw_info_addr_delay;
     reg[ACC_BITS-1:0] acc_id;
     reg[63:0] buf_tdata;
@@ -81,72 +81,72 @@ module Cutoff_Manager #(
     reg selected_slave_tvalid;
     reg empty_entry_found;
     reg [TW_MEM_BITS-1:0] empty_entry;
-    
+
     assign tw_info_clk = clk;
-    
+
     if (TW_MEM_BITS != 8) begin
         assign tw_info_addr[7:TW_MEM_BITS] = 0;
     end
         
     assign ack_tvalid = state == ACK;
     assign ack_tdest[ACC_BITS-1:0] = acc_id;
-    
+
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
-    
+
     assign sched_inStream_tvalid = selected_slave_tvalid && !deps_selected;
     assign sched_inStream_tdata = buf_tdata;
     assign sched_inStream_tlast = buf_tlast;
     assign sched_inStream_tid = acc_id;
     assign deps_new_task_tvalid = selected_slave_tvalid && deps_selected;
     assign deps_new_task_tdata = buf_tdata;
-    
+
     always @(*) begin
-    
+
         tw_info_en = 0;
         tw_info_we = 0;
-        
+
         tw_info_din = 0;
         tw_info_din[TW_INFO_VALID_ENTRY_B] = 1;
         tw_info_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
         tw_info_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = 0;
         tw_info_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = tid;
-        
+
         ack_tdata = ACK_REJECT_CODE;
         if (accept) begin
             ack_tdata = ACK_OK_CODE;
         end else if (final_mode) begin
             ack_tdata = ACK_FINAL_CODE;
         end
-        
+
         inStream_tready = 0;
         selected_slave_tvalid = 0;
         case (state)
-        
+
             IDLE: begin
                 inStream_tready = 1;
             end
-            
+
             READ_PTID: begin
                 tw_info_en = 1;
             end
-            
+
             SEARCH_FREE_ENTRY: begin
                 tw_info_en = 1;
             end
-            
+
             SEARCH_ENTRY: begin
                 tw_info_en = 1;
             end
-            
+
             CREATE_ENTRY: begin
                 tw_info_en = 1;
                 tw_info_we = 1;
             end
-            
+
             READ_REST: begin
                 inStream_tready = 1;
             end
-            
+
             BUF_FULL: begin
                 selected_slave_tvalid = 1;
                 if (selected_slave_tready && !buf_tlast) begin
@@ -155,20 +155,20 @@ module Cutoff_Manager #(
                     inStream_tready = 0;
                 end
             end
-            
+
             BUF_EMPTY: begin
                 inStream_tready = 1;
             end
-            
+
         endcase
     end
-    
+
     always @(posedge clk) begin
-    
+
         tw_info_addr_delay <= tw_info_addr[TW_MEM_BITS-1:0];
 
         case (state)
-        
+
             IDLE: begin
                 tw_info_addr[TW_MEM_BITS-1:0] <= 0;
                 empty_entry_found <= 0;
@@ -195,7 +195,7 @@ module Cutoff_Manager #(
                     end
                 end
             end
-            
+
             READ_PTID: begin
                 tid <= inStream_tdata;
                 if (inStream_tvalid) begin
@@ -207,7 +207,7 @@ module Cutoff_Manager #(
                     end
                 end
             end
-            
+
             SEARCH_FREE_ENTRY: begin
                 final_mode <= 0;
                 if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
@@ -235,7 +235,7 @@ module Cutoff_Manager #(
                     end
                 end
             end
-            
+
             WAIT_PICOS: begin
                 final_mode <= 1;
                 if (deps_new_task_tready) begin
@@ -250,7 +250,7 @@ module Cutoff_Manager #(
                     end
                 end
             end
-            
+
             CREATE_ENTRY: begin
                 if (deps_selected) begin
                    state <= WAIT_PICOS;
@@ -258,7 +258,7 @@ module Cutoff_Manager #(
                     state <= BUF_FULL;
                 end
             end
-            
+
             SEARCH_ENTRY: begin
                 final_mode <= tw_info_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] == buf_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L];
                 if (tw_info_din[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
@@ -266,14 +266,14 @@ module Cutoff_Manager #(
                 end
                 tw_info_addr[TW_MEM_BITS-1:0] <= tw_info_addr[TW_MEM_BITS-1:0] + 1;
             end
-            
+
             READ_REST: begin
                 accept <= 0;
                 if (inStream_tvalid && inStream_tlast) begin
                     state <= ACK;
                 end
             end
-            
+
             BUF_FULL: begin
                 accept <= 1;
                 if (!inStream_tvalid && selected_slave_tready && !buf_tlast) begin
@@ -290,7 +290,7 @@ module Cutoff_Manager #(
                     buf_tlast <= inStream_tlast;
                 end
             end
-            
+
             BUF_EMPTY: begin
                 buf_tdata <= inStream_tdata;
                 buf_tlast <= inStream_tlast;
@@ -298,19 +298,18 @@ module Cutoff_Manager #(
                     state <= BUF_FULL;
                 end
             end
-            
+
             ACK: begin
                 if (ack_tready) begin
                     state <= IDLE;
                 end
             end
-            
+
         endcase
-    
+
         if (!rstn) begin
             state <= IDLE;
         end
     end
 
 endmodule
-

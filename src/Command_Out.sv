@@ -42,7 +42,7 @@ module Command_Out #(
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
-        
+
     reg r_READ_HEADER;
     reg r_READ_TID;
     reg r_READ_PTID;
@@ -52,7 +52,7 @@ module Command_Out #(
     reg r_NOTIFY_PICOS;
     reg r_NOTIFY_TW_1;
     reg r_NOTIFY_TW_2;
-    
+
     reg [SUBQUEUE_BITS-1:0] wIdx_mem[MAX_ACCS];
     reg [SUBQUEUE_BITS-1:0] wIdx;
     reg [SUBQUEUE_BITS-1:0] wIdx_first;
@@ -61,33 +61,33 @@ module Command_Out #(
     reg [63:0] task_id;
     reg [63:0] parent_task_id;
     reg notify_tw;
-    
+
     assign cmdOutQueue_clk = clk;
     assign cmdOutQueue_rst = 0;
-    
+
     assign cmdOutQueue_addr[31:3 + SUBQUEUE_BITS+ACC_BITS] = 0;
     assign cmdOutQueue_addr[3 + SUBQUEUE_BITS+ACC_BITS-1:3 + SUBQUEUE_BITS] = acc_id;
     assign cmdOutQueue_addr[3 + SUBQUEUE_BITS-1:3] = wIdx;
     assign cmdOutQueue_addr[2:0] = 0;
-    
+
     assign outStream_TLAST = r_NOTIFY_TW_2;
-    
+
     assign picosFinishTask_TDATA = task_id[31:0];
-    
+
     assign next_wIdx = wIdx + 1;
-    
+
     always_comb begin
-    
+
         cmdOutQueue_en = r_READ_PTID || r_CMD_OUT_WAIT || r_WRITE_TID || r_WRITE_HEADER;
         cmdOutQueue_we = r_WRITE_TID || r_WRITE_HEADER ? 8'hFF : 0;
         cmdOutQueue_din = task_id;
-        
+
         inStream_TREADY = r_READ_HEADER || r_READ_TID || r_READ_PTID;
         outStream_TVALID = notify_tw && (r_NOTIFY_TW_1 || r_NOTIFY_TW_2);
         picosFinishTask_TVALID = r_NOTIFY_PICOS && !task_id[62];
-        
+
         outStream_TDATA = 64'h8000001000000001;
-        
+
         if (r_WRITE_HEADER) begin
             cmdOutQueue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
             cmdOutQueue_din[15:8] = {{(8-ACC_BITS){1'd0}}, acc_id};
@@ -98,12 +98,12 @@ module Command_Out #(
         end
  
     end
-    
+
     always_ff @(posedge clk) begin
-        
+
         acc_avail_wr_address <= inStream_TID;
         acc_avail_wr <= 0;
-        
+
         if (r_READ_HEADER) begin
             acc_id <= inStream_TID;
             acc_avail_wr <= inStream_TVALID;
@@ -165,7 +165,7 @@ module Command_Out #(
                 r_NOTIFY_TW_2 <= 0;
             end
         end
-        
+
         if (!rstn) begin
             int i;
             for (i = 0; i < MAX_ACCS; i = i+1) begin
@@ -181,7 +181,7 @@ module Command_Out #(
             r_NOTIFY_TW_1 <= 0;
             r_NOTIFY_TW_2 <= 0;
         end
-    
+
     end
 
 endmodule

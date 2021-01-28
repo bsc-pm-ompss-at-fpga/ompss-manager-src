@@ -68,52 +68,52 @@ module Scheduler_spawnout(
     reg [5:0] num_slots_1;
     reg [5:0] num_slots_2;
     wire [6:0] num_slots;
-    
+
     assign num_slots = 7'd4 + {1'd0, num_slots_1} + {1'd0, num_slots_2};
     assign next_wIdx = wIdx + 1;
-    
+
     always_comb begin
-    
+
         spawnOutQueue_addr = 0;
         spawnOutQueue_addr[12:3] = wIdx;
         spawnOutQueue_en = 0;
         spawnOutQueue_we = 8'hFF;
         spawnOutQueue_din = taskID;
-        
+
         inStream_spawnout_TREADY = 0;
-        
+
         case (spawnout_state)
-            
+
             SPAWNOUT_CHECK: begin
                 spawnOutQueue_en = 1;
                 spawnOutQueue_we = 0;
                 spawnOutQueue_addr[12:3] = rIdx;
             end
-            
+
             SPAWNOUT_WRITE_TASKID: begin
                 spawnOutQueue_en = 1;
             end
-            
+
             SPAWNOUT_WRITE_PTASKID: begin
                 spawnOutQueue_en = 1;
                 spawnOutQueue_din = pTaskID;
             end
-            
+
             SPAWNOUT_WRITE_TASKTYPE: begin
                 spawnOutQueue_en = 1;
                 spawnOutQueue_din[63:34] = 0;
                 spawnOutQueue_din[33:0] = task_type;
             end
-            
+
             SPAWNOUT_WRITE_REST_1: begin
                 inStream_spawnout_TREADY = 1;
             end
-            
+
             SPAWNOUT_WRITE_REST_2: begin
                 spawnOutQueue_en = 1;
                 spawnOutQueue_din = inStream_data_buf;
             end
-            
+
             SPAWNOUT_WRITE_HEADER: begin
                 spawnOutQueue_en = 1;
                 spawnOutQueue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
@@ -121,31 +121,31 @@ module Scheduler_spawnout(
                 spawnOutQueue_din[NUM_DEPS_OFFSET+7:NUM_DEPS_OFFSET] = {4'd0, num_deps};
                 spawnOutQueue_din[NUM_COPS_OFFSET+7:NUM_COPS_OFFSET] = {4'd0, num_cops};
             end
-            
+
             default: begin
-            
+
             end
-            
+
         endcase
-        
+
     end
-    
+
     always_ff @(posedge clk) begin
-    
+
         num_slots_1 <= spawnout_num_cops*4'd3;
         num_slots_2 <= {2'd0, spawnout_num_args} + {2'd0, spawnout_num_deps};
-        
+
         spawnout_ret <= 0;
-        
+
         case (spawnout_state)
-        
+
             SPAWNOUT_IDLE: begin
                 needed_slots <= 7'd4 + {3'd0, num_deps} + {3'd0, num_args} + num_cops*4'd3;
                 if (spawnout_state_start) begin
                     spawnout_state <= SPAWNOUT_CHECK;
                 end
             end
-            
+
             SPAWNOUT_CHECK: begin
                 header_wIdx <= wIdx;
                 if ({4'd0, needed_slots} <= avail_slots) begin
@@ -155,7 +155,7 @@ module Scheduler_spawnout(
                     spawnout_state <= SPAWNOUT_READ;
                 end
             end
-            
+
             SPAWNOUT_READ: begin
                 spawnout_num_deps <= spawnOutQueue_dout[NUM_DEPS_OFFSET+3:NUM_DEPS_OFFSET];
                 spawnout_num_args <= spawnOutQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET];
@@ -167,38 +167,38 @@ module Scheduler_spawnout(
                     spawnout_state <= SPAWNOUT_IDLE;
                 end
             end
-            
+
             SPAWNOUT_COMPUTE_CMD_LEN: begin
                 spawnout_state <= SPAWNOUT_UPDATE_AVAIL_SLOTS;
             end
-            
+
             SPAWNOUT_UPDATE_AVAIL_SLOTS: begin
                 avail_slots <= avail_slots + {4'd0, num_slots};
                 rIdx <= rIdx + {3'd0, num_slots};
                 spawnout_state <= SPAWNOUT_CHECK;
             end
-            
+
             SPAWNOUT_WRITE_TASKID: begin
                 wIdx <= next_wIdx;
                 spawnout_state <= SPAWNOUT_WRITE_PTASKID;
             end
-            
+
             SPAWNOUT_WRITE_PTASKID: begin
                 wIdx <= next_wIdx;
                 spawnout_state <= SPAWNOUT_WRITE_TASKTYPE;
             end
-            
+
             SPAWNOUT_WRITE_TASKTYPE: begin
                 wIdx <= next_wIdx;
                 spawnout_state <= SPAWNOUT_WRITE_REST_1;
             end
-            
+
             SPAWNOUT_WRITE_REST_1: begin
                 if (inStream_TVALID) begin
                     spawnout_state <= SPAWNOUT_WRITE_REST_2;
                 end
             end
-            
+
             SPAWNOUT_WRITE_REST_2: begin
                 if (inStream_last_buf) begin
                     wIdx <= header_wIdx;
@@ -209,16 +209,16 @@ module Scheduler_spawnout(
                     spawnout_state <= SPAWNOUT_WRITE_REST_1;
                 end
             end
-            
+
             SPAWNOUT_WRITE_HEADER: begin
                 wIdx <= header_wIdx;
                 spawnout_ret <= 2'd1;
                 spawnout_state <= SPAWNOUT_IDLE;
                 avail_slots <= avail_slots - {4'd0, needed_slots};
             end
-            
+
         endcase
-    
+
         if (!rstn) begin
             spawnout_state <= SPAWNOUT_IDLE;
             avail_slots <= 11'd1024;
@@ -226,5 +226,5 @@ module Scheduler_spawnout(
             rIdx <= 0;
         end
     end
-    
+
 endmodule
