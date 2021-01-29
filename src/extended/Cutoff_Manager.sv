@@ -40,6 +40,7 @@ module Cutoff_Manager #(
     output ack_tvalid,
     input ack_tready,
     output logic [63:0] ack_tdata,
+    output ack_tlast,
     output [$clog2(MAX_ACCS)-1:0] ack_tdest,
     //Taskwait memory
     output reg [7:0] tw_info_addr,
@@ -89,7 +90,8 @@ module Cutoff_Manager #(
     end
         
     assign ack_tvalid = state == ACK;
-    assign ack_tdest[ACC_BITS-1:0] = acc_id;
+    assign ack_tdest = acc_id;
+    assign ack_last = 1'b1;
 
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
 
@@ -111,11 +113,11 @@ module Cutoff_Manager #(
         tw_info_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = 0;
         tw_info_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = tid;
 
-        ack_tdata = ACK_REJECT_CODE;
+        ack_tdata = {56'd0, ACK_REJECT_CODE};
         if (accept) begin
-            ack_tdata = ACK_OK_CODE;
+            ack_tdata = {56'd0, ACK_OK_CODE};
         end else if (final_mode) begin
-            ack_tdata = ACK_FINAL_CODE;
+            ack_tdata = {56'd0, ACK_FINAL_CODE};
         end
 
         inStream_tready = 0;

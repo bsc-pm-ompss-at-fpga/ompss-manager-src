@@ -27,6 +27,7 @@ module Taskwait #(
     output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
+    output outStream_TLAST,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     //Taskwait memory
     output [7:0] twInfo_addr,
@@ -78,6 +79,7 @@ module Taskwait #(
     assign outStream_TDATA = 64'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST = acc_id;
+    assign outStream_TLAST = 1'b1;
 
     assign twInfo_addr[TW_MEM_BITS-1:0] = count;
     assign twInfo_we = update_entry;

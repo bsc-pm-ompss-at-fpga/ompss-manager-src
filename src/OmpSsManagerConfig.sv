@@ -63,9 +63,9 @@ package OmpSsManager;
     localparam TW_INFO_TASKID_L = 48;
     localparam TW_INFO_TASKID_H = 111;
 
-    localparam ACK_REJECT_CODE = 64'h00;
-    localparam ACK_OK_CODE = 64'h01;
-    localparam ACK_FINAL_CODE = 64'h02;
+    localparam ACK_REJECT_CODE = 8'h00;
+    localparam ACK_OK_CODE = 8'h01;
+    localparam ACK_FINAL_CODE = 8'h02;
 
     localparam HWR_DEPS_ID = 5'h12;
     localparam HWR_SCHED_ID = 5'h13;

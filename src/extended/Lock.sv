@@ -27,6 +27,7 @@ module Lock #(
     output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
+    output outStream_TLAST,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST
 );
 
@@ -46,9 +47,10 @@ module Lock #(
     reg [LOCK_ID_BITS-1:0] lock_id;
     reg [7:0] ack_data;
 
-    assign outStream_TDATA = ack_data;
+    assign outStream_TDATA = {56'd0, ack_data};
     assign outStream_TVALID = state == SEND_ACK;
     assign outStream_TDEST = acc_id;
+    assign outStream_TLAST = 1'b1;
 
     always_comb begin
 

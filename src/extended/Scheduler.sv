@@ -49,6 +49,7 @@ module Scheduler #(
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
+    output outStream_TLAST,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     //Picos reject interface
     output [31:0] picosRejectTask_id,
@@ -170,6 +171,7 @@ module Scheduler #(
     assign scheduleData_portB_addr = data_idx;
     assign scheduleData_portB_en = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
     assign outStream_TDEST = srcAccID;
+    assign outStream_TLAST = 1'b1;
     assign picosRejectTask_id = taskID[31:0];
     assign picosRejectTask_valid = state == SCHED_REJECT_TASK && comes_from_dep_mod;
 
@@ -183,7 +185,7 @@ module Scheduler #(
         inStream_main_TREADY = 0;
 
         outStream_TVALID = 0;
-        outStream_TDATA = ACK_REJECT_CODE;
+        outStream_TDATA = {56'd0, ACK_REJECT_CODE};
 
         case (state)
 
@@ -265,7 +267,7 @@ module Scheduler #(
             end
 
             SCHED_ACCEPT_TASK: begin
-                outStream_TDATA = ACK_OK_CODE;
+                outStream_TDATA = {56'd0, ACK_OK_CODE};
                 outStream_TVALID = !comes_from_dep_mod;
             end
 

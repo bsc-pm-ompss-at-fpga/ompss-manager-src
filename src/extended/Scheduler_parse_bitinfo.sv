@@ -47,7 +47,7 @@ module Scheduler_parse_bitinfo #(
         IDLE
     } state;
 
-    reg [6:0] offset;
+    reg [7:0] offset;
     reg [31:0] bitinfoCast;
     reg [33:0] task_type;
     reg [ACC_BITS:0] num_instances;
@@ -61,8 +61,8 @@ module Scheduler_parse_bitinfo #(
     assign scheduleData_portA_din[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] = task_type;
     assign scheduleData_portA_en = state == WRITE_SCHEDULE_DATA;
 
-    assign bitinfo_addr[31:9] = 0;
-    assign bitinfo_addr[8:2] = offset;
+    assign bitinfo_addr[31:10] = 0;
+    assign bitinfo_addr[9:2] = offset;
     assign bitinfo_addr[1:0] = 0;
     assign bitinfo_en = state == READ_ACC_TYPE || state == READ_NUM_INSTANCES || state == READ_NEXT_ITERATION_WORD;
 
