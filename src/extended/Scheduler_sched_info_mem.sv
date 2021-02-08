@@ -16,7 +16,7 @@
 module Scheduler_sched_info_mem #(
     parameter MAX_ACCS = 16
 ) (
-    input  clk,
+    input clk,
     //Port A
     input [$clog2(MAX_ACCS)-1:0] scheduleData_portA_addr,
     input scheduleData_portA_en,
@@ -28,13 +28,13 @@ module Scheduler_sched_info_mem #(
 );
 
     reg [49:0] mem[MAX_ACCS];
-    
+
     always_ff @(posedge clk) begin
         if (scheduleData_portA_en) begin
             mem[scheduleData_portA_addr] <= scheduleData_portA_din;
         end
     end
-    
+
     always_ff @(posedge clk) begin
         if (scheduleData_portB_en) begin
             scheduleData_portB_dout <= mem[scheduleData_portB_addr];

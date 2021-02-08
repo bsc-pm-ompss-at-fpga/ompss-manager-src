@@ -94,20 +94,6 @@ set_property value_validation_type range_long [ipx::get_user_parameters $name_pa
 set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
 
-# Add num_tw_accs parameter
-variable name_param "num_tw_accs"
-ipx::add_user_parameter $name_param [ipx::current_core]
-set_property value_resolve_type user [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-ipgui::add_param -name $name_param -component [ipx::current_core] -show_label {true}
-set_property display_name "Number of accelerators with taskwait" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property tooltip "Number of accelerators with taskwait capabilities" [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property widget {textEdit} [ipgui::get_guiparamspec -name $name_param -component [ipx::current_core] ]
-set_property value 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_format long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_type range_long [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 0 [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-set_property value_validation_range_maximum $max_accs [ipx::get_user_parameters $name_param -of_objects [ipx::current_core]]
-
 # Add lock_support parameter
 variable name_param "lock_support"
 ipx::add_user_parameter $name_param [ipx::current_core]
@@ -149,14 +135,12 @@ foreach bram_intf $bram_list {
 for {set i 0} {$i < $max_accs} {incr i} {
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces inStream_$i -of_objects [ipx::current_core]]
 	set_property enablement_dependency "\$num_accs > $i" [ipx::get_bus_interfaces outStream_$i -of_objects [ipx::current_core]]
-	set_property enablement_dependency "\$num_tw_accs > $i" [ipx::get_bus_interfaces twOutStream_$i -of_objects [ipx::current_core]]
 }
 
 ipgui::remove_page -component [ipx::current_core] [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
 
 ipgui::move_param -component [ipx::current_core] -order 0 [ipgui::get_guiparamspec -name "num_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "num_tw_accs" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
-ipgui::move_param -component [ipx::current_core] -order 2 [ipgui::get_guiparamspec -name "lock_support" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
+ipgui::move_param -component [ipx::current_core] -order 1 [ipgui::get_guiparamspec -name "lock_support" -component [ipx::current_core]] -parent [ipgui::get_canvasspec -component [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]

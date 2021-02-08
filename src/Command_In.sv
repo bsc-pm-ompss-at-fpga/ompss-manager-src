@@ -48,7 +48,7 @@ module Command_In #(
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
-    
+
     (* fsm_encoding = "one_hot" *)
     enum {
         IDLE,
@@ -66,13 +66,13 @@ module Command_In #(
         logic [SUBQUEUE_BITS-1:0] cmd_in;
         logic [SUBQUEUE_BITS-1:0] int_cmd_in;
     } subqueue_idx[MAX_ACCS];
-    
+
     reg [MAX_ACCS-1:0] acc_avail;
     reg [MAX_ACCS-1:0] queue_nempty;
     //NOTE: For the moment, I don't think the shift feature is really necessary
     //reg shift;
     //reg [ACC_BITS-1:0] queue_nempty_offset;
-        
+
     reg [ACC_BITS-1:0] cmd_in_acc_id;
     reg [ACC_BITS-1:0] acc_id;
     //reg [ACC_BITS-1:0] shift_acc_id;
@@ -85,22 +85,22 @@ module Command_In #(
     reg [SUBQUEUE_BITS-1:0] first_int_cmd_in_idx;
     reg [SUBQUEUE_BITS-1:0] cmd_in_idx;
     reg [SUBQUEUE_BITS-1:0] int_cmd_in_idx;
-    
+
     reg queue_select; //0 --> cmd in, 1 --> int cmd in
-    
+
     wire [5:0] copy_opt_intCmdInQueue_addr;
     wire copy_opt_intCmdInQueue_en;
     wire copy_opt_intCmdInQueue_we;
     wire [63:0] copy_opt_intCmdInQueue_din;
-   
+
     wire [5:0] copy_opt_cmdInQueue_addr;
     wire copy_opt_cmdInQueue_en;
     wire [7:0] copy_opt_cmdInQueue_we;
     wire [63:0] copy_opt_cmdInQueue_din;
-    
+
     reg copy_opt_start;
     reg copy_opt_finished;
-    
+
     Command_In_copy_opt copy_opt (
         .clk(clk),
         .rstn(rstn),
@@ -121,46 +121,46 @@ module Command_In #(
         .queue_select(queue_select),
         .cmd_type(cmd_type)
     );
-    
+
     assign cmdInQueue_clk = clk;
     assign cmdInQueue_rst = 0;
     assign intCmdInQueue_clk = clk;
-    
+
     assign cmdInQueue_addr[31:3 + SUBQUEUE_BITS+ACC_BITS] = 0;
     assign cmdInQueue_addr[2:0] = 0;
     assign cmdInQueue_addr[3 + SUBQUEUE_BITS+ACC_BITS-1:3 + SUBQUEUE_BITS] = acc_id;
     assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = acc_id;
-    
+
     assign intCmdInQueue_addr[31:SUBQUEUE_BITS+ACC_BITS] = 0;
-    
+
     assign outStream_TDEST = acc_id;
     assign outStream_TDATA = queue_select ? intCmdInQueue_dout : cmdInQueue_dout;
     assign outStream_TLAST = cmd_length == 0;
-    
+
     always_comb begin
-        
+
         cmdInQueue_en = 0;
         cmdInQueue_we = 0;
         cmdInQueue_addr[3 + SUBQUEUE_BITS-1:3] = cmd_in_idx;
         cmdInQueue_din = 64'dX;
         cmdInQueue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 0;
-        
+
         intCmdInQueue_en = 0;
         intCmdInQueue_we = 0;
         intCmdInQueue_addr[SUBQUEUE_BITS-1:0] = int_cmd_in_idx;
         intCmdInQueue_din = 64'dX;
         intCmdInQueue_din[ENTRY_VALID_OFFSET] = 0;
         intCmdInQueue_din[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET] = num_args;
-        
+
         outStream_TVALID = 0;
-        
+
         case (state)
-            
+
             ISSUE_CMD_READ: begin
                 cmdInQueue_en = 1;
                 intCmdInQueue_en = 1;
             end
-            
+
             SEND_CMD: begin
                 outStream_TVALID = 1;
                 if (outStream_TREADY) begin
@@ -172,19 +172,19 @@ module Command_In #(
                     end
                 end
             end
-            
+
             READ_NEXT_CMD: begin
                 intCmdInQueue_addr[SUBQUEUE_BITS-1:0] = first_next_idx;
                 cmdInQueue_addr[3 + SUBQUEUE_BITS-1:3] = first_next_idx;
                 intCmdInQueue_en = 1;
                 cmdInQueue_en = 1;
             end
-            
+
             CHECK_NEXT_CMD: begin
                 cmdInQueue_en = 1;
                 intCmdInQueue_en = 1;
             end
-            
+
             WAIT_COPY_OPT: begin
                 if (copy_opt_finished) begin
                     cmdInQueue_en = 1;
@@ -200,7 +200,7 @@ module Command_In #(
                     intCmdInQueue_din = copy_opt_intCmdInQueue_din;
                 end
             end
-            
+
             CLEAR_HEADER: begin
                 cmdInQueue_addr[3 + SUBQUEUE_BITS-1:3] = first_cmd_in_idx;
                 intCmdInQueue_addr[SUBQUEUE_BITS-1:0] = first_int_cmd_in_idx;
@@ -212,29 +212,29 @@ module Command_In #(
                     cmdInQueue_we = 8'h80;
                 end
             end
-            
+
             default: begin
-            
+
             end
-        
+
         endcase
-        
+
     end
-    
+
     always_ff @(posedge clk) begin
-    
+
         /*if (shift) begin
             queue_nempty <= {queue_nempty[0], queue_nempty[MAX_ACCS-1:1]};
             acc_avail <= {acc_avail[0], acc_avail[MAX_ACCS-1:1]};
         end*/
-                
+
         //shift <= 0;
         //shift_acc_id <= acc_id + queue_nempty_offset;
-        
+
         copy_opt_start <= 0;
-        
+
         case (state)
-        
+
             IDLE: begin
                 int i;
                 acc_id <= cmd_in_acc_id;
@@ -248,7 +248,7 @@ module Command_In #(
                 end
                 state <= GET_QUEUE_IDX;
             end
-            
+
             GET_QUEUE_IDX: begin
                 cmd_in_acc_id <= cmd_in_acc_id+1;
                 if (!acc_avail[acc_id/* + queue_nempty_offset*/]) begin
@@ -259,7 +259,7 @@ module Command_In #(
                 cmd_in_idx <= subqueue_idx[acc_id].cmd_in;
                 int_cmd_in_idx <= subqueue_idx[acc_id].int_cmd_in;
             end
-            
+
             ISSUE_CMD_READ: begin
                 //queue_nempty_offset <= queue_nempty_offset - 1;
                 //shift <= 1;
@@ -267,7 +267,7 @@ module Command_In #(
                 first_int_cmd_in_idx <= int_cmd_in_idx;
                 state <= CHECK_CMD_QUEUE;
             end
-            
+
             CHECK_CMD_QUEUE: begin
                 if (cmdInQueue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == SETUP_HW_INST_CODE) begin
                     cmd_length <= 1;
@@ -300,11 +300,11 @@ module Command_In #(
                     state <= IDLE;
                 end
             end
-            
+
             READ_NEXT_CMD: begin
                 state <= CHECK_NEXT_CMD;
             end
-            
+
             CHECK_NEXT_CMD: begin
                 //If the cmd is setup inst, argument flag optimization is not necessary
                 if (cmd_type != 2'd1 && (!queue_select && cmdInQueue_dout[ENTRY_VALID_OFFSET] || queue_select && intCmdInQueue_dout[ENTRY_VALID_OFFSET])) begin
@@ -319,7 +319,7 @@ module Command_In #(
                     end
                 end
             end
-            
+
             WAIT_COPY_OPT: begin
                 if (copy_opt_finished) begin
                     state <= SEND_CMD;
@@ -330,7 +330,7 @@ module Command_In #(
                     end
                 end
             end
-            
+
             SEND_CMD: begin
                 if (outStream_TREADY) begin
                     cmd_length <= cmd_length - 1;
@@ -345,7 +345,7 @@ module Command_In #(
                     end
                 end
             end
-            
+
             CLEAR_HEADER: begin
                 if (queue_select && !intCmdInQueue_dout[ENTRY_VALID_OFFSET]) begin
                     queue_nempty[acc_id/*shift_acc_id*/] <= 0;
@@ -357,17 +357,17 @@ module Command_In #(
                 subqueue_idx[acc_id].int_cmd_in <= int_cmd_in_idx;
                 state <= IDLE;
             end
-        
+
         endcase
-        
+
         if (sched_queue_nempty_write) begin
             queue_nempty[sched_queue_nempty_address /*+ queue_nempty_offset*/] <= 1;
         end
-        
+
         if (acc_avail_wr) begin
             acc_avail[acc_avail_wr_address /*+ queue_nempty_offset*/] <= 1;
         end
-    
+
         if (!rstn) begin
             int i;
             for (i = 0; i < MAX_ACCS; i = i+1) begin

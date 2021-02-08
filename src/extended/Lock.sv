@@ -24,15 +24,16 @@ module Lock #(
     input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
     //outStream
-    output [7:0] outStream_TDATA,
+    output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
+    output outStream_TLAST,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST
 );
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
-    
+
     enum {
         READ_HEADER,
         CHECK_LOCK,
@@ -45,31 +46,32 @@ module Lock #(
     reg [7:0] cmd_code;
     reg [LOCK_ID_BITS-1:0] lock_id;
     reg [7:0] ack_data;
-    
-    assign outStream_TDATA = ack_data;
+
+    assign outStream_TDATA = {56'd0, ack_data};
     assign outStream_TVALID = state == SEND_ACK;
     assign outStream_TDEST = acc_id;
-    
+    assign outStream_TLAST = 1'b1;
+
     always_comb begin
-    
+
         inStream_TREADY = 0;
-        
+
         case (state)
-        
+
             READ_HEADER: begin
                 inStream_TREADY = 1;
             end
-        
+
         endcase
-    
+
     end
-    
+
     always_ff @(posedge clk) begin
-    
+
         locked <= next_locked;
-                
+
         case (state)
-            
+
             READ_HEADER: begin
                 acc_id <= inStream_TID;
                 cmd_code <= inStream_TDATA[CMD_TYPE_H:CMD_TYPE_L];
@@ -78,7 +80,7 @@ module Lock #(
                     state <= CHECK_LOCK;
                 end
             end
-            
+
             CHECK_LOCK: begin
                 if (cmd_code == CMD_LOCK_CODE) begin
                     // Trying to lock
@@ -97,15 +99,15 @@ module Lock #(
                     state <= READ_HEADER;
                 end
             end
-            
+
             SEND_ACK: begin
                 if (outStream_TREADY) begin
                     state <= READ_HEADER;
                 end
             end
-            
+
         endcase
-        
+
         if (!rstn) begin
             next_locked <= 0;
             state <= READ_HEADER;

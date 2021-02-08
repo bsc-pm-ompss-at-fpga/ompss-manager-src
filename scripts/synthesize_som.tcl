@@ -34,7 +34,7 @@ if { [ glob -nocomplain $project_path/synth_project.xpr ] == "" } {
     open_project $project_path/synth_project.xpr
 }
 
-set_property -dict [list CONFIG.extended_mode $extended_mode CONFIG.num_accs {16} CONFIG.num_tw_accs {16}] [get_ips $mod_name]
+set_property -dict [list CONFIG.extended_mode $extended_mode CONFIG.num_accs {16}] [get_ips $mod_name]
 
 reset_run synth_1
 

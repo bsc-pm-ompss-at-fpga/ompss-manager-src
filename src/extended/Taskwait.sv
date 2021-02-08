@@ -23,10 +23,11 @@ module Taskwait #(
     input  inStream_TVALID,
     input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
     output logic inStream_TREADY,
-    output [7:0] outStream_TDATA,
     //outStream
+    output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
+    output outStream_TLAST,
     output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
     //Taskwait memory
     output [7:0] twInfo_addr,
@@ -39,7 +40,7 @@ module Taskwait #(
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
-    
+
     enum {
         READ_HEADER,
         READ_TID,
@@ -48,7 +49,7 @@ module Taskwait #(
         CHECK_RESULTS,
         WAKEUP_ACC
     } state;
-    
+
     reg [TW_MEM_BITS-1:0] not_valid_idx;
     reg not_valid_entry_found;
     reg task_id_not_found;
@@ -65,55 +66,56 @@ module Taskwait #(
     reg tw_info_valid;
     reg _type;
     reg update_entry;
-    
+
     assign twInfo_clk = clk;
-    
+
     assign next_count = count+1;
     assign prev_count = count-1;
-    
+
     if (TW_MEM_BITS != 8) begin
         assign twInfo_addr[7:TW_MEM_BITS] = 0;
     end
-    
-    assign outStream_TDATA = 8'd1;
+
+    assign outStream_TDATA = 64'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST = acc_id;
-    
+    assign outStream_TLAST = 1'b1;
+
     assign twInfo_addr[TW_MEM_BITS-1:0] = count;
     assign twInfo_we = update_entry;
-    
+
     always_comb begin
-    
+
         inStream_TREADY = 0;
-        
+
         twInfo_en = update_entry;
         twInfo_din = 112'dX;
         twInfo_din[TW_INFO_VALID_ENTRY_B] = tw_info_valid;
         twInfo_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
         twInfo_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = result_components;
         twInfo_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = task_id;
-        
+
         case (state)
-        
+
             READ_HEADER: begin
                 inStream_TREADY = 1;
             end
-            
+
             READ_TID: begin
                 inStream_TREADY = 1;
                 twInfo_en = 1;
             end
-            
+
             GET_ENTRY_2: begin
                 twInfo_en = 1;
             end
-        
+
         endcase
-    
+
     end
-    
+
     always_ff @(posedge clk) begin
-    
+
         tw_info_task_id <= twInfo_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L];
         tw_info_valid <= twInfo_dout[TW_INFO_VALID_ENTRY_B];
         if (!twInfo_dout[TW_INFO_VALID_ENTRY_B]) begin
@@ -126,13 +128,13 @@ module Taskwait #(
         end else begin
             result_components <= tw_info_components + 1;
         end
-        
+
         update_entry <= 0;
-        
+
         task_id_not_found <= 0;
-                
+
         case (state)
-            
+
             READ_HEADER: begin
                 inStream_tid_r <= inStream_TID;
                 not_valid_entry_found <= 0;
@@ -143,20 +145,20 @@ module Taskwait #(
                     state <= READ_TID;
                 end
             end
-            
+
             READ_TID: begin
                 task_id <= inStream_TDATA;
                 if (inStream_TVALID) begin
                     state <= GET_ENTRY_1;
                 end
             end
-            
+
             GET_ENTRY_1: begin
                 count <= next_count;
                 acc_id <= twInfo_dout[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L];
                 state <= GET_ENTRY_2;
             end
-            
+
             GET_ENTRY_2: begin
                 if (!not_valid_entry_found && !tw_info_valid) begin
                     not_valid_idx <= prev_count;
@@ -171,7 +173,7 @@ module Taskwait #(
                     state <= GET_ENTRY_1;
                 end
             end
-            
+
             CHECK_RESULTS: begin
                 if (_type) begin
                     acc_id <= inStream_tid_r;
@@ -190,15 +192,15 @@ module Taskwait #(
                     state <= READ_HEADER;
                 end
             end
-            
+
             WAKEUP_ACC: begin
                 if (outStream_TREADY) begin
                     state <= READ_HEADER;;
                 end
             end
-            
+
         endcase
-        
+
         if (!rstn) begin
             state <= READ_HEADER;
         end

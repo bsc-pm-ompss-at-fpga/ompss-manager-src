@@ -34,27 +34,27 @@ package OmpSsManager;
     localparam EXEC_PERI_TASK_CODE = 4'h5;
     localparam CMD_LOCK_CODE = 8'h04;
     localparam CMD_UNLOCK_CODE = 8'h06;
-    
+
     //Argument flags
     localparam ARG_FLAG_L = 0;
     localparam ARG_FLAG_H = 7;
     localparam ARG_IDX_L = 32;
     localparam ARG_IDX_H = 35;
-    
+
     localparam SUBQUEUE_SIZE = 64;
     localparam SUBQUEUE_BITS = $clog2(SUBQUEUE_SIZE);
-    
+
     localparam MAX_ACCS_TYPES = 16;
     localparam DEFAULT_ARG_FLAGS = 2'b11;
-    
+
     localparam TW_MEM_SIZE = 16;
     localparam TW_MEM_BITS = $clog2(TW_MEM_SIZE);
-    
+
     //Taskwait inStream
     localparam INSTREAM_COMPONENTS_L = 0;
     localparam INSTREAM_COMPONENTS_H = 31;
     localparam TYPE_B = 32;
-    
+
     //TW mem struct
     localparam TW_INFO_VALID_ENTRY_B = 0;
     localparam TW_INFO_ACCID_L = 8;
@@ -62,16 +62,16 @@ package OmpSsManager;
     localparam TW_INFO_COMPONENTS_H = 47;
     localparam TW_INFO_TASKID_L = 48;
     localparam TW_INFO_TASKID_H = 111;
-    
-    localparam ACK_OK_CODE = 8'h01;
+
     localparam ACK_REJECT_CODE = 8'h00;
+    localparam ACK_OK_CODE = 8'h01;
     localparam ACK_FINAL_CODE = 8'h02;
 
     localparam HWR_DEPS_ID = 5'h12;
     localparam HWR_SCHED_ID = 5'h13;
     localparam HWR_TASKWAIT_ID = 5'h14;
     localparam HWR_LOCK_ID = 5'h15;
-    
+
     //Scheduler data mem struct
     localparam SCHED_DATA_ACCID_L = 0; 
     localparam SCHED_DATA_COUNT_L = 8;
