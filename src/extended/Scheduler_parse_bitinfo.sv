@@ -14,7 +14,9 @@
 `timescale 1ns / 1ps
 
 module Scheduler_parse_bitinfo #(
-    parameter MAX_ACCS = 16
+    parameter MAX_ACCS = 16,
+    parameter MAX_ACC_TYPES = 16,
+    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES)
 ) (
     input clk,
     input rstn,
@@ -23,15 +25,16 @@ module Scheduler_parse_bitinfo #(
     output bitinfo_en,
     input [31:0] bitinfo_dout,
     //Scheduling data memory
-    output reg [$clog2(MAX_ACCS)-1:0] scheduleData_portA_addr,
+    output reg [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     output scheduleData_portA_en,
     output logic [49:0] scheduleData_portA_din
 );
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
+    localparam OFFSET_BITS = $clog2(9 + MAX_ACC_TYPES*12); //9 header words + 12 words per task type
 
-    enum {
+    typedef enum {
         START,
         READ_ACC_TYPE,
         STORE_ACC_TYPE,
@@ -45,9 +48,11 @@ module Scheduler_parse_bitinfo #(
         READ_NEXT_ITERATION_WORD,
         CHECK_FINISH,
         IDLE
-    } state;
+    } State_t;
+    
+    State_t state;
 
-    reg [7:0] offset;
+    reg [OFFSET_BITS-1:0] offset;
     reg [31:0] bitinfoCast;
     reg [33:0] task_type;
     reg [ACC_BITS:0] num_instances;
@@ -61,8 +66,8 @@ module Scheduler_parse_bitinfo #(
     assign scheduleData_portA_din[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] = task_type;
     assign scheduleData_portA_en = state == WRITE_SCHEDULE_DATA;
 
-    assign bitinfo_addr[31:10] = 0;
-    assign bitinfo_addr[9:2] = offset;
+    assign bitinfo_addr[31:2+OFFSET_BITS] = 0;
+    assign bitinfo_addr[2+OFFSET_BITS-1:2] = offset;
     assign bitinfo_addr[1:0] = 0;
     assign bitinfo_en = state == READ_ACC_TYPE || state == READ_NUM_INSTANCES || state == READ_NEXT_ITERATION_WORD;
 

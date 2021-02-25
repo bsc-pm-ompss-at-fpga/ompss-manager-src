@@ -13,18 +13,19 @@
 
 `timescale 1ns / 1ps
 
-module Command_In_copy_opt
-(
+module Command_In_copy_opt #(
+    parameter SUBQUEUE_BITS = 6
+) (
     input  clk,
     input  rstn,
     //Command in queue
-    output logic [5:0] cmdInQueue_addr,
-    output logic cmdInQueue_en,
-    output logic [7:0] cmdInQueue_we,
-    output logic [63:0] cmdInQueue_din,
-    input  [63:0] cmdInQueue_dout,
+    output logic [SUBQUEUE_BITS-1:0] cmdin_queue_addr,
+    output logic cmdin_queue_en,
+    output logic [7:0] cmdin_queue_we,
+    output logic [63:0] cmdin_queue_din,
+    input  [63:0] cmdin_queue_dout,
     //Internal command in queue
-    output logic [5:0] intcmdInQueue_addr,
+    output logic [SUBQUEUE_BITS-1:0] intcmdin_queue_addr,
     output logic intCmdInQueue_en,
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
@@ -32,14 +33,13 @@ module Command_In_copy_opt
     //Other signals
     input start,
     output reg finished,
-    input [5:0] first_idx,
-    input [5:0] first_next_idx,
+    input [SUBQUEUE_BITS-1:0] first_idx,
+    input [SUBQUEUE_BITS-1:0] first_next_idx,
     input queue_select, //0 --> cmd in, 1 --> int cmd in
     input [1:0] cmd_type //0 --> exec task, 1 --> setup inst, 2 --> exec periodic task
 );
 
-    (* fsm_encoding = "one_hot" *)
-    enum {
+    typedef enum {
         IDLE,
         READ_ARG_0,
         READ_ARG_1,
@@ -47,17 +47,20 @@ module Command_In_copy_opt
         READ_FLAG_1,
         WRITE_FLAG_0,
         WRITE_FLAG_1
-    } state;
+    } State_t;
 
-    reg [5:0] idx; //Current subqueue index of the current command
-    reg [5:0] cmd_next_idx; //Current subqueue index of the next command
-    wire [5:0] next_arg_idx;
+    (* fsm_encoding = "one_hot" *)
+    State_t state;
+
+    reg [SUBQUEUE_BITS-1:0] idx; //Current subqueue index of the current command
+    reg [SUBQUEUE_BITS-1:0] cmd_next_idx; //Current subqueue index of the next command
+    wire [SUBQUEUE_BITS-1:0] next_arg_idx;
     reg [63:0] arg;
     reg [2:0] flag;
     reg [2:0] flag_d;
     reg [63:0] intCmdInQueue_buf;
     wire copyflag_bit;
-    wire [5:0] idx_prev;
+    wire [SUBQUEUE_BITS-1:0] idx_prev;
 
     assign next_arg_idx = idx + 2;
 
@@ -67,16 +70,16 @@ module Command_In_copy_opt
 
     always_comb begin
 
-        cmdInQueue_en = !queue_select;
-        cmdInQueue_we = 0;
-        cmdInQueue_addr = idx;
-        cmdInQueue_din[7] = flag[2];
-        cmdInQueue_din[5] = flag[1] & !cmdInQueue_dout[5];
-        cmdInQueue_din[4] = flag[0];
+        cmdin_queue_en = !queue_select;
+        cmdin_queue_we = 0;
+        cmdin_queue_addr = idx;
+        cmdin_queue_din[7] = flag[2];
+        cmdin_queue_din[5] = flag[1] & !cmdin_queue_dout[5];
+        cmdin_queue_din[4] = flag[0];
 
         intCmdInQueue_en = queue_select;
         intCmdInQueue_we = 0;
-        intcmdInQueue_addr = idx;
+        intcmdin_queue_addr = idx;
         intCmdInQueue_din = intCmdInQueue_buf;
         intCmdInQueue_din[7] = flag[2];
         intCmdInQueue_din[5] = flag[1] & !intCmdInQueue_dout[5];
@@ -85,25 +88,25 @@ module Command_In_copy_opt
         case (state)
 
             IDLE: begin
-                cmdInQueue_en = 0;
+                cmdin_queue_en = 0;
                 intCmdInQueue_en = 0;
             end
 
             READ_ARG_1: begin
-                cmdInQueue_addr = cmd_next_idx;
-                intcmdInQueue_addr = cmd_next_idx;
+                cmdin_queue_addr = cmd_next_idx;
+                intcmdin_queue_addr = cmd_next_idx;
             end
 
             READ_FLAG_1: begin
-                cmdInQueue_addr = cmd_next_idx;
-                intcmdInQueue_addr = cmd_next_idx;
+                cmdin_queue_addr = cmd_next_idx;
+                intcmdin_queue_addr = cmd_next_idx;
             end
 
             //memory data: flags next cmd
             //flag register: flags current cmd
             //memory buffer: flags current cmd
             WRITE_FLAG_0: begin
-                cmdInQueue_we = 8'h01;
+                cmdin_queue_we = 8'h01;
                 intCmdInQueue_we = 1;
             end
 
@@ -112,13 +115,13 @@ module Command_In_copy_opt
             //flag_d register: flags current cmd
             //memory buffer: flags next cmd
             WRITE_FLAG_1: begin
-                cmdInQueue_we = 8'h01;
+                cmdin_queue_we = 8'h01;
                 intCmdInQueue_we = 1;
-                cmdInQueue_addr = cmd_next_idx;
-                cmdInQueue_din[7] = !copyflag_bit & flag[0];
-                cmdInQueue_din[5] = flag[1];
-                cmdInQueue_din[4] = copyflag_bit;
-                intcmdInQueue_addr = cmd_next_idx;
+                cmdin_queue_addr = cmd_next_idx;
+                cmdin_queue_din[7] = !copyflag_bit & flag[0];
+                cmdin_queue_din[5] = flag[1];
+                cmdin_queue_din[4] = copyflag_bit;
+                intcmdin_queue_addr = cmd_next_idx;
                 intCmdInQueue_din[7] = !copyflag_bit & flag[0];
                 intCmdInQueue_din[5] = flag[1];
                 intCmdInQueue_din[4] = copyflag_bit;
@@ -134,16 +137,16 @@ module Command_In_copy_opt
     always_ff @(posedge clk) begin
 
         finished <= 0;
-        arg <= queue_select ? intCmdInQueue_dout : cmdInQueue_dout;
-        flag <= queue_select ? {intCmdInQueue_dout[7], intCmdInQueue_dout[5], intCmdInQueue_dout[4]} : {cmdInQueue_dout[7], cmdInQueue_dout[5], cmdInQueue_dout[4]};
+        arg <= queue_select ? intCmdInQueue_dout : cmdin_queue_dout;
+        flag <= queue_select ? {intCmdInQueue_dout[7], intCmdInQueue_dout[5], intCmdInQueue_dout[4]} : {cmdin_queue_dout[7], cmdin_queue_dout[5], cmdin_queue_dout[4]};
         flag_d <= flag;
         intCmdInQueue_buf <= intCmdInQueue_dout;
 
         case (state)
 
             IDLE: begin
-                idx <= first_idx + (cmd_type == 0 ? 6'd4 : 6'd5);
-                cmd_next_idx <= first_next_idx + (cmd_type == 0 ? 6'd4 : 6'd5);
+                idx <= first_idx + (cmd_type == 0 ? {{SUBQUEUE_BITS-3{1'b0}},3'd4} : {{SUBQUEUE_BITS-3{1'b0}},3'd5});
+                cmd_next_idx <= first_next_idx + (cmd_type == 0 ? {{SUBQUEUE_BITS-3{1'b0}},3'd4} : {{SUBQUEUE_BITS-3{1'b0}},3'd5});
                 if (start) begin
                     state <= READ_ARG_0;
                 end
@@ -160,7 +163,7 @@ module Command_In_copy_opt
             end
 
             READ_FLAG_0: begin
-                if ((queue_select && arg == intCmdInQueue_dout) || (!queue_select && arg == cmdInQueue_dout)) begin
+                if ((queue_select && arg == intCmdInQueue_dout) || (!queue_select && arg == cmdin_queue_dout)) begin
                     state <= READ_FLAG_1;
                 end else if (next_arg_idx == first_next_idx) begin
                     state <= IDLE;

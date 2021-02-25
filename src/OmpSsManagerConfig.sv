@@ -40,15 +40,7 @@ package OmpSsManager;
     localparam ARG_FLAG_H = 7;
     localparam ARG_IDX_L = 32;
     localparam ARG_IDX_H = 35;
-
-    localparam SUBQUEUE_SIZE = 64;
-    localparam SUBQUEUE_BITS = $clog2(SUBQUEUE_SIZE);
-
-    localparam MAX_ACCS_TYPES = 16;
     localparam DEFAULT_ARG_FLAGS = 2'b11;
-
-    localparam TW_MEM_SIZE = 16;
-    localparam TW_MEM_BITS = $clog2(TW_MEM_SIZE);
 
     //Taskwait inStream
     localparam INSTREAM_COMPONENTS_L = 0;
@@ -57,11 +49,12 @@ package OmpSsManager;
 
     //TW mem struct
     localparam TW_INFO_VALID_ENTRY_B = 0;
-    localparam TW_INFO_ACCID_L = 8;
-    localparam TW_INFO_COMPONENTS_L = 16;
-    localparam TW_INFO_COMPONENTS_H = 47;
-    localparam TW_INFO_TASKID_L = 48;
-    localparam TW_INFO_TASKID_H = 111;
+    localparam TW_INFO_COMPONENTS_L = 1;
+    localparam TW_INFO_COMPONENTS_H = 32;
+    localparam TW_INFO_TASKID_L = 33;
+    localparam TW_INFO_TASKID_H = 96;
+    localparam TW_INFO_ACCID_L = 97;
+    localparam TW_INFO_CW = 97; //Constant bit width of the tw info struct
 
     localparam ACK_REJECT_CODE = 8'h00;
     localparam ACK_OK_CODE = 8'h01;

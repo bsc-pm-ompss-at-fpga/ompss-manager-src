@@ -13,17 +13,19 @@
 
 `timescale 1ns / 1ps
 
-module Spawn_In(
+module Spawn_In #(
+    parameter SPAWNIN_QUEUE_LEN = 1024
+) (
     input  clk,
     input  rstn,
     //SpawnInQueue memory
-    output logic [31:0] spawnInQueue_addr,
-    output spawnInQueue_en,
-    output logic [7:0] spawnInQueue_we,
-    output [63:0] spawnInQueue_din,
-    input [63:0] spawnInQueue_dout,
-    output spawnInQueue_clk,
-    output spawnInQueue_rst,
+    output logic [31:0] spawnin_queue_addr,
+    output spawnin_queue_en,
+    output logic [7:0] spawnin_queue_we,
+    output [63:0] spawnin_queue_din,
+    input [63:0] spawnin_queue_dout,
+    output spawnin_queue_clk,
+    output spawnin_queue_rst,
     //outStream
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
@@ -36,9 +38,9 @@ module Spawn_In(
 );
 
     import OmpSsManager::*;
+    localparam QUEUE_BITS = $clog2(SPAWNIN_QUEUE_LEN);
 
-    (* fsm_encoding = "one_hot" *)
-    enum {
+    typedef enum {
         START_LOOP_1,
         START_LOOP_2,
         READ_HEADER,
@@ -47,28 +49,31 @@ module Spawn_In(
         NOTIFY_PICOS,
         NOTIFY_TW_1,
         NOTIFY_TW_2
-    } state;
+    } State_t;
 
-    reg [9:0] rIdx;
-    wire [9:0] next_rIdx;
-    reg [9:0] first_rIdx;
-    logic [9:0] spawnInQueue_useful_addr;
+    (* fsm_encoding = "one_hot" *)
+    State_t state;
+
+    reg [QUEUE_BITS-1:0] rIdx;
+    wire [QUEUE_BITS-1:0] next_rIdx;
+    reg [QUEUE_BITS-1:0] first_rIdx;
+    logic [QUEUE_BITS-1:0] spawnin_queue_useful_addr;
     reg [63:0] pTask_id;
     reg spawnIn_valid;
     reg spawnIn_picos;
 
-    assign spawnInQueue_addr = {19'd0, spawnInQueue_useful_addr, 3'd0};
-    assign spawnInQueue_clk = clk;
-    assign spawnInQueue_rst = 0;
-    assign spawnInQueue_din[63:56] = 0;
-    assign spawnInQueue_en = 1;
+    assign spawnin_queue_addr = {{29-QUEUE_BITS{1'b0}}, spawnin_queue_useful_addr, 3'd0};
+    assign spawnin_queue_clk = clk;
+    assign spawnin_queue_rst = 0;
+    assign spawnin_queue_din[63:56] = 0;
+    assign spawnin_queue_en = 1;
 
     assign next_rIdx = rIdx+1;
 
     always_comb begin
 
-        spawnInQueue_we = 0;
-        spawnInQueue_useful_addr = rIdx;
+        spawnin_queue_we = 0;
+        spawnin_queue_useful_addr = rIdx;
 
         outStream_TDATA = pTask_id;
         outStream_TVALID = 0;
@@ -80,18 +85,18 @@ module Spawn_In(
 
             READ_HEADER: begin
                 if (spawnIn_valid) begin
-                    spawnInQueue_we[7] = 1;
-                    spawnInQueue_useful_addr = next_rIdx;
+                    spawnin_queue_we[7] = 1;
+                    spawnin_queue_useful_addr = next_rIdx;
                 end
             end
 
             READ_TID_1: begin
-                spawnInQueue_we[7] = 1;
+                spawnin_queue_we[7] = 1;
             end
 
             READ_TID_2: begin
-                spawnInQueue_we[7] = 1;
-                spawnInQueue_useful_addr = first_rIdx;
+                spawnin_queue_we[7] = 1;
+                spawnin_queue_useful_addr = first_rIdx;
             end
 
             NOTIFY_TW_1: begin
@@ -114,8 +119,8 @@ module Spawn_In(
 
     always_ff @(posedge clk) begin
 
-        spawnIn_valid <= spawnInQueue_dout[ENTRY_VALID_OFFSET];
-        spawnIn_picos <= spawnInQueue_dout[62];
+        spawnIn_valid <= spawnin_queue_dout[ENTRY_VALID_OFFSET];
+        spawnIn_picos <= spawnin_queue_dout[62];
 
         case (state)
 
@@ -136,13 +141,13 @@ module Spawn_In(
             end
 
             READ_TID_1: begin
-                picosFinishTask_TDATA <= spawnInQueue_dout[31:0];
+                picosFinishTask_TDATA <= spawnin_queue_dout[31:0];
                 state <= READ_TID_2;
                 rIdx <= next_rIdx;
             end
 
             READ_TID_2: begin
-                pTask_id <= spawnInQueue_dout;
+                pTask_id <= spawnin_queue_dout;
                 if (!spawnIn_picos) begin
                     state <= NOTIFY_PICOS;
                 end else begin

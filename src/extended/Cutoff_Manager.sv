@@ -14,7 +14,10 @@
 `timescale 1ns / 1ps
 
 module Cutoff_Manager #(
-    parameter MAX_ACCS = 16
+    parameter ACC_BITS = 4,
+    parameter MAX_ACC_CREATORS = 16,
+    parameter TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
+    parameter TW_MEM_WIDTH = 101
 ) (
     input clk,
     input rstn,
@@ -24,14 +27,14 @@ module Cutoff_Manager #(
     output reg inStream_tready,
     input [63:0] inStream_tdata,
     input inStream_tlast,
-    input [$clog2(MAX_ACCS)-1:0] inStream_tid,
+    input [ACC_BITS-1:0] inStream_tid,
     input [4:0] inStream_tdest,
     //Scheduler interface
     output sched_inStream_tvalid,
     input sched_inStream_tready,
     output [63:0] sched_inStream_tdata,
     output sched_inStream_tlast,
-    output [$clog2(MAX_ACCS)-1:0] sched_inStream_tid,
+    output [ACC_BITS-1:0] sched_inStream_tid,
     //Picos interface
     output deps_new_task_tvalid,
     input deps_new_task_tready,
@@ -41,22 +44,21 @@ module Cutoff_Manager #(
     input ack_tready,
     output logic [63:0] ack_tdata,
     output ack_tlast,
-    output [$clog2(MAX_ACCS)-1:0] ack_tdest,
+    output [ACC_BITS-1:0] ack_tdest,
     //Taskwait memory
-    output reg [7:0] tw_info_addr,
+    output reg [TW_MEM_BITS-1:0] tw_info_addr,
     output logic tw_info_en,
     output logic tw_info_we,
-    output logic [111:0] tw_info_din,
-    input [111:0] tw_info_dout,
+    output logic [TW_MEM_WIDTH-1:0] tw_info_din,
+    input [TW_MEM_WIDTH-1:0] tw_info_dout,
     output tw_info_clk
 );
 
     import OmpSsManager::*;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
 
-    localparam MAX_ADDR = TW_MEM_SIZE-1;
+    localparam MAX_ADDR = MAX_ACC_CREATORS-1;
 
-    enum {
+    typedef enum {
         IDLE,
         SEARCH_ENTRY,
         SEARCH_FREE_ENTRY,
@@ -67,8 +69,11 @@ module Cutoff_Manager #(
         BUF_EMPTY,
         ACK,
         WAIT_PICOS
-    } state;
+    } State_t;
 
+    State_t state;
+
+    wire [TW_MEM_BITS-1:0] next_tw_info_addr;
     reg[TW_MEM_BITS-1:0] tw_info_addr_delay;
     reg[ACC_BITS-1:0] acc_id;
     reg[63:0] buf_tdata;
@@ -85,13 +90,11 @@ module Cutoff_Manager #(
 
     assign tw_info_clk = clk;
 
-    if (TW_MEM_BITS != 8) begin
-        assign tw_info_addr[7:TW_MEM_BITS] = 0;
-    end
-        
+    assign next_tw_info_addr = tw_info_addr+1;
+
     assign ack_tvalid = state == ACK;
     assign ack_tdest = acc_id;
-    assign ack_last = 1'b1;
+    assign ack_tlast = 1'b1;
 
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
 
@@ -167,12 +170,12 @@ module Cutoff_Manager #(
 
     always @(posedge clk) begin
 
-        tw_info_addr_delay <= tw_info_addr[TW_MEM_BITS-1:0];
+        tw_info_addr_delay <= tw_info_addr;
 
         case (state)
 
             IDLE: begin
-                tw_info_addr[TW_MEM_BITS-1:0] <= 0;
+                tw_info_addr <= 0;
                 empty_entry_found <= 0;
                 acc_id <= inStream_tid;
                 deps_selected <= inStream_tdest == HWR_DEPS_ID;
@@ -201,7 +204,7 @@ module Cutoff_Manager #(
             READ_PTID: begin
                 tid <= inStream_tdata;
                 if (inStream_tvalid) begin
-                    tw_info_addr[TW_MEM_BITS-1:0] <= 1;
+                    tw_info_addr <= 1;
                     if (first_task) begin
                         state <= SEARCH_FREE_ENTRY;
                     end else begin
@@ -218,16 +221,16 @@ module Cutoff_Manager #(
                 end
                 if (tw_info_addr_delay == MAX_ADDR[TW_MEM_BITS-1:0]) begin
                     if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
-                        tw_info_addr[TW_MEM_BITS-1:0] <= MAX_ADDR[TW_MEM_BITS-1:0];
+                        tw_info_addr <= MAX_ADDR[TW_MEM_BITS-1:0];
                         state <= CREATE_ENTRY;
                     end else if (empty_entry_found) begin
-                        tw_info_addr[TW_MEM_BITS-1:0] <= empty_entry;
+                        tw_info_addr <= empty_entry;
                         state <= CREATE_ENTRY;
                     end else begin
                         state <= READ_REST;
                     end
                 end else begin
-                    tw_info_addr[TW_MEM_BITS-1:0] <= tw_info_addr[TW_MEM_BITS-1:0] + 1;
+                    tw_info_addr <= next_tw_info_addr;
                 end
                 if (tw_info_dout[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
                     if (deps_selected) begin
@@ -266,7 +269,7 @@ module Cutoff_Manager #(
                 if (tw_info_din[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
                     state <= READ_REST;
                 end
-                tw_info_addr[TW_MEM_BITS-1:0] <= tw_info_addr[TW_MEM_BITS-1:0] + 1;
+                tw_info_addr <= next_tw_info_addr;
             end
 
             READ_REST: begin

@@ -24,17 +24,17 @@ import argparse
 from distutils import spawn
 import xml.etree.cElementTree as cET
 
-SOM_MAJOR_VERSION = 3
-SOM_MINOR_VERSION = 7
+SOM_MAJOR_VERSION = 4
+SOM_MINOR_VERSION = 0
 
 SOM_PREVIOUS_MAJOR_VERSION = 3
-SOM_PREVIOUS_MINOR_VERSION = 6
+SOM_PREVIOUS_MINOR_VERSION = 7
 
-POM_MAJOR_VERSION = 3
-POM_MINOR_VERSION = 7
+POM_MAJOR_VERSION = 4
+POM_MINOR_VERSION = 0
 
 POM_PREVIOUS_MAJOR_VERSION = 3
-POM_PREVIOUS_MINOR_VERSION = 6
+POM_PREVIOUS_MINOR_VERSION = 7
 
 class Logger(object):
     def __init__(self):
@@ -81,10 +81,9 @@ class ArgParser:
     def __init__(self):
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-        self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower, required=True)
+        self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower)
         self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
-        self.parser.add_argument('--skip_hls', help='skips the cleanup and HLS step', action='store_true', default=False)
         self.parser.add_argument('--skip_pom', help='skips the POM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_som', help='skips the SOM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
@@ -92,7 +91,6 @@ class ArgParser:
         self.parser.add_argument('--skip_som_gen', help='skips generation of the SOM IP', action='store_true', default=False)
         self.parser.add_argument('--skip_pom_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
         self.parser.add_argument('--skip_som_synth', help='skips SOM IP synthesis to generate resouce utilization report', action='store_true', default=False)
-        self.parser.add_argument('--skip_int_IPs', help='skips generation of specified internal IPs (\'all\' disables all IPs)', nargs='+')
         self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
         self.parser.add_argument('--max_accs', help='maximum number of accelerators supported by the IP (def: \'16\')', type=int, default=16)
 
@@ -175,9 +173,10 @@ def compute_POM_resource_utilization():
     msg.info('Synthesizing PicosOmpSsManager IP')
     prj_path = './pom_IP/Synthesis'
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/synthesize_pom.tcl -tclargs '
+                         + os.getcwd() + '/scripts/synthesize_ip.tcl -tclargs '
                          + os.path.abspath(os.getcwd() + '/pom_IP/Synthesis') + ' '
                          + 'PicosOmpSsManager '
+                         + '1 '
                          + args.board_part + ' '
                          + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager') + ' '
                          + str(args.max_accs), cwd=prj_path,
@@ -202,7 +201,7 @@ def compute_SOM_resource_utilization(extended):
     msg.info('Synthesizing' + (' extended ' if extended else ' ') + 'SmartOmpSsManager IP')
     prj_path = './som_IP/Synthesis'
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/synthesize_som.tcl -tclargs '
+                         + os.getcwd() + '/scripts/synthesize_ip.tcl -tclargs '
                          + os.path.abspath(os.getcwd() + '/som_IP/Synthesis') + ' '
                          + 'SmartOmpSsManager '
                          + ('1 ' if extended else '0 ')
@@ -226,50 +225,20 @@ def compute_SOM_resource_utilization(extended):
                                       './som_IP/IP_packager/' + ('ext_' if extended else '') + 'som_resource_utilization.json',
                                       ('Extended ' if extended else ' ') + 'SmartOmpSsManager')
 
-def generate_internal_IP(ip_name):
-    msg.info('Generating ' + ip_name + ' IP')
-
-    if os.path.exists('./internal_IPs/' + ip_name + '_IP'):
-        shutil.rmtree('./internal_IPs/' + ip_name + '_IP')
-
-    os.makedirs('./internal_IPs/' + ip_name + '_IP/Vivado/' + ip_name)
-    os.makedirs('./internal_IPs/' + ip_name + '_IP/IP_packager')
-
-    prj_path = './internal_IPs/' + ip_name  + '_IP/Vivado/' + ip_name
-
-    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/' + ip_name + '_ip_packager.tcl -tclargs '
-                         + ip_name + ' '
-                         + args.board_part + ' ' + os.getcwd() + ' '
-                         + os.path.abspath(os.getcwd() + '/internal_IPs/' + ip_name + '_IP') + ' '
-                         + ('0' if args.no_encrypt else '1'), cwd=prj_path,
-                         stdout=sys.stdout.subprocess,
-                         stderr=sys.stdout.subprocess, shell=True)
-
-    if args.verbose:
-        for line in iter(p.stdout.readline, b''):
-            sys.stdout.write(line.decode('utf-8'))
-
-    retval = p.wait()
-    if retval:
-        msg.error('Generation of ' + ip_name +  ' IP failed')
-    else:
-        msg.success('Finished generation of ' + ip_name + ' IP')
-
 def generate_POM_IP():
     msg.info('Generating PicosOmpSsManager IP')
 
     prj_path = './pom_IP/Vivado/PicosOmpSsManager'
 
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/pom_ip_packager.tcl -tclargs '
+                         + os.getcwd() + '/scripts/ip_packager.tcl -tclargs '
                          + 'PicosOmpSsManager '
                          + str(POM_MAJOR_VERSION) + '.' + str(POM_MINOR_VERSION) + ' '
                          + str(POM_PREVIOUS_MAJOR_VERSION) + '.' + str(POM_PREVIOUS_MINOR_VERSION) + ' '
-                         + args.board_part + ' ' + os.getcwd() + ' '
+                         + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/pom_IP') + ' '
-                         + ('0' if args.no_encrypt else '1') + ' '
-                         + str(args.max_accs), cwd=prj_path,
+                         + ('0' if args.no_encrypt else '1') + ' ',
+                         cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -289,14 +258,14 @@ def generate_SOM_IP():
     prj_path = './som_IP/Vivado/SmartOmpSsManager'
 
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/som_ip_packager.tcl -tclargs '
+                         + os.getcwd() + '/scripts/ip_packager.tcl -tclargs '
                          + 'SmartOmpSsManager '
                          + str(SOM_MAJOR_VERSION) + '.' + str(SOM_MINOR_VERSION) + ' '
                          + str(SOM_PREVIOUS_MAJOR_VERSION) + '.' + str(SOM_PREVIOUS_MINOR_VERSION) + ' '
-                         + args.board_part + ' ' + os.getcwd() + ' '
+                         + os.getcwd() + ' '
                          + os.path.abspath(os.getcwd() + '/som_IP') + ' '
-                         + ('0' if args.no_encrypt else '1') + ' '
-                         + str(args.max_accs), cwd=prj_path,
+                         + ('0' if args.no_encrypt else '1') + ' ',
+                         cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 
@@ -310,59 +279,16 @@ def generate_SOM_IP():
     else:
         msg.success('Finished generation of SmartOmpSsManager IP')
 
-def synthesize_hls(file_, includes, extended=False):
-    acc_file = os.path.basename(file_)
-    acc_name = os.path.splitext(acc_file)[0].replace('\.*', '')
-
-    if extended:
-        dst_path = './Vivado_HLS/extended/'
-    else:
-        dst_path = './Vivado_HLS/'
-
-    os.makedirs(dst_path + acc_name)
-    shutil.copy2(file_, dst_path + acc_name + '/' + acc_file)
-    for include in includes:
-        include_file = os.path.basename(include)
-        shutil.copy2(include, dst_path + acc_name + '/' + include_file)
-
-    accel_tcl_script = '# Script automatically generated by the Accelerator Integration Tool. Edit at your own risk.\n' \
-                       + 'cd ../\n' \
-                       + 'open_project ' + acc_name + '\n' \
-                       + 'set_top ' + acc_name + '_wrapper\n' \
-                       + 'add_files ' + acc_name + '/' + acc_file + '\n' \
-                       + 'open_solution "solution1"\n' \
-                       + 'set_part {' + args.board_part + '} -tool vivado\n' \
-                       + 'create_clock -period ' + str(args.clock) + 'MHz -name default\n' \
-                       + 'csynth_design\n' \
-                       + 'export_design -rtl verilog -format ip_catalog -vendor bsc -library ompss -display_name ' + acc_name + ' -taxonomy /BSC/OmpSs\n' \
-                       + 'exit\n'
-
-    accel_tcl_script_file = open(dst_path + acc_name + '/HLS_' + acc_name + '.tcl', 'w')
-    accel_tcl_script_file.write(accel_tcl_script)
-    accel_tcl_script_file.close()
-
-    msg.info('Synthesizing \'' + acc_name + '\'')
-    p = subprocess.Popen('vivado_hls ' + 'HLS_' + acc_name + '.tcl -l '
-                         + 'HLS_' + acc_name + '.log', cwd=dst_path + acc_name,
-                         stdout=sys.stdout.subprocess, stderr=sys.stdout.subprocess, shell=True)
-    if args.verbose:
-        for line in iter(p.stdout.readline, b''):
-            sys.stdout.write(line.decode('utf-8'))
-
-    retval = p.wait()
-    if retval:
-        msg.error('Synthesis of \'' + acc_name + '\' failed')
-    else:
-        msg.success('Finished synthesis of \'' + acc_name + '\'')
-
-
 msg = Messages()
 parser = ArgParser()
 args = parser.parse_args()
 sys.stdout = Logger()
 
-if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
-    if not args.skip_board_check:
+if (not args.skip_som_synth or not args.skip_pom_synth) and args.board_part is None:
+    msg.error('board_part must be specified to synthetize a design')
+
+if spawn.find_executable('vivado'):
+    if not args.skip_board_check and args.board_part is not None:
         msg.info('Checking if your current version of Vivado supports the selected board part')
         os.system('echo "if {[llength [get_parts ' + args.board_part + ']] == 0} {exit 1}" > ./board_part_check.tcl')
         p = subprocess.Popen('vivado -nojournal -nolog -mode batch -source ./board_part_check.tcl', shell=True, stdout=open(os.devnull, 'w'))
@@ -374,27 +300,7 @@ if spawn.find_executable('vivado_hls') and spawn.find_executable('vivado'):
         msg.success('Success')
 
 else:
-    msg.error('vivado_hls or vivado not found. Please set PATH correctly')
-
-if not args.skip_hls:
-    # Synthesize HLS source codes
-    shutil.rmtree('./Vivado_HLS', ignore_errors=True)
-    os.makedirs('./Vivado_HLS')
-    used_resources = {True:{},False:{}}
-
-    msg.info('Synthesizing HLS sources')
-    for file_ in glob.glob('./src/*.cpp'):
-        synthesize_hls(file_, ['./src/som.hpp'])
-
-    for file_ in glob.glob('./src/extended/*.cpp'):
-        synthesize_hls(file_, ['./src/som.hpp'], True)
-
-internal_IPs = ['CutoffManager', 'Command_In_wrapper', 'Command_Out_wrapper', 'Scheduler_wrapper', 'Taskwait_wrapper', 'Lock_wrapper', 'Spawn_In_wrapper']
-
-if args.skip_int_IPs is None or args.skip_int_IPs[0] != 'all':
-    for ip_name in internal_IPs:
-        if args.skip_int_IPs is None or ip_name not in args.skip_int_IPs:
-            generate_internal_IP(ip_name)
+    msg.error('vivado not found. Please set PATH correctly')
 
 if not args.skip_pom_gen:
     if os.path.exists('./pom_IP'):

@@ -14,41 +14,45 @@
 `timescale 1ns / 1ps
 
 module Taskwait #(
-    parameter MAX_ACCS = 16
+    parameter ACC_BITS = 4,
+    parameter MAX_ACC_CREATORS = 16,
+    parameter TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
+    parameter TW_MEM_WIDTH = 101
 ) (
     input clk,
     input rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
-    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
+    input  [ACC_BITS-1:0] inStream_TID,
     output logic inStream_TREADY,
     //outStream
     output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
     output outStream_TLAST,
-    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
+    output [ACC_BITS-1:0] outStream_TDEST,
     //Taskwait memory
-    output [7:0] twInfo_addr,
+    output [TW_MEM_BITS-1:0] twInfo_addr,
     output logic twInfo_en,
     output twInfo_we,
-    output logic [111:0] twInfo_din,
-    input  [111:0] twInfo_dout,
+    output logic [TW_MEM_WIDTH-1:0] twInfo_din,
+    input  [TW_MEM_WIDTH-1:0] twInfo_dout,
     output twInfo_clk
 );
 
     import OmpSsManager::*;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
 
-    enum {
+    typedef enum {
         READ_HEADER,
         READ_TID,
         GET_ENTRY_1,
         GET_ENTRY_2,
         CHECK_RESULTS,
         WAKEUP_ACC
-    } state;
+    } State_t;
+    
+    State_t state;
 
     reg [TW_MEM_BITS-1:0] not_valid_idx;
     reg not_valid_entry_found;
@@ -72,16 +76,12 @@ module Taskwait #(
     assign next_count = count+1;
     assign prev_count = count-1;
 
-    if (TW_MEM_BITS != 8) begin
-        assign twInfo_addr[7:TW_MEM_BITS] = 0;
-    end
-
     assign outStream_TDATA = 64'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST = acc_id;
     assign outStream_TLAST = 1'b1;
 
-    assign twInfo_addr[TW_MEM_BITS-1:0] = count;
+    assign twInfo_addr = count;
     assign twInfo_we = update_entry;
 
     always_comb begin
@@ -166,7 +166,7 @@ module Taskwait #(
                 end
                 if (tw_info_valid && tw_info_task_id == task_id) begin
                     state <= CHECK_RESULTS;
-                end else if (count == 0) begin
+                end else if (count == MAX_ACC_CREATORS[TW_MEM_BITS-1:0]) begin
                     task_id_not_found <= 1;
                     state <= CHECK_RESULTS;
                 end else begin
