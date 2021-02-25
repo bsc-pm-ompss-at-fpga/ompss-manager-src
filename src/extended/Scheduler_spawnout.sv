@@ -13,15 +13,18 @@
 
 `timescale 1ns / 1ps
 
-module Scheduler_spawnout(
+module Scheduler_spawnout #(
+    parameter QUEUE_LEN = 1024,
+    parameter QUEUE_BITS = $clog2(QUEUE_LEN)
+) (
     input  clk,
     input  rstn,
     //Spawn out queue
-    output logic [31:0] spawnOutQueue_addr,
-    output logic spawnOutQueue_en,
-    output logic [7:0] spawnOutQueue_we,
-    output logic [63:0] spawnOutQueue_din,
-    input [63:0] spawnOutQueue_dout,
+    output logic [31:0] spawnout_queue_addr,
+    output logic spawnout_queue_en,
+    output logic [7:0] spawnout_queue_we,
+    output logic [63:0] spawnout_queue_din,
+    input [63:0] spawnout_queue_dout,
     //inStream
     input  inStream_TVALID,
     output logic inStream_spawnout_TREADY,
@@ -56,11 +59,11 @@ module Scheduler_spawnout(
 
     SpawnOutState_t spawnout_state;
 
-    reg [9:0] header_wIdx;
-    reg [9:0] wIdx;
-    reg [9:0] rIdx;
-    wire [9:0] next_wIdx;
-    reg [10:0] avail_slots;
+    reg [QUEUE_BITS-1:0] header_wIdx;
+    reg [QUEUE_BITS-1:0] wIdx;
+    reg [QUEUE_BITS-1:0] rIdx;
+    wire [QUEUE_BITS-1:0] next_wIdx;
+    reg [QUEUE_BITS:0] avail_slots;
     reg [6:0] needed_slots;
     reg [3:0] spawnout_num_deps;
     reg [3:0] spawnout_num_args;
@@ -74,35 +77,35 @@ module Scheduler_spawnout(
 
     always_comb begin
 
-        spawnOutQueue_addr = 0;
-        spawnOutQueue_addr[12:3] = wIdx;
-        spawnOutQueue_en = 0;
-        spawnOutQueue_we = 8'hFF;
-        spawnOutQueue_din = taskID;
+        spawnout_queue_addr = 0;
+        spawnout_queue_addr[3 + QUEUE_BITS-1:3] = wIdx;
+        spawnout_queue_en = 0;
+        spawnout_queue_we = 8'hFF;
+        spawnout_queue_din = taskID;
 
         inStream_spawnout_TREADY = 0;
 
         case (spawnout_state)
 
             SPAWNOUT_CHECK: begin
-                spawnOutQueue_en = 1;
-                spawnOutQueue_we = 0;
-                spawnOutQueue_addr[12:3] = rIdx;
+                spawnout_queue_en = 1;
+                spawnout_queue_we = 0;
+                spawnout_queue_addr[3 + QUEUE_BITS-1:3] = rIdx;
             end
 
             SPAWNOUT_WRITE_TASKID: begin
-                spawnOutQueue_en = 1;
+                spawnout_queue_en = 1;
             end
 
             SPAWNOUT_WRITE_PTASKID: begin
-                spawnOutQueue_en = 1;
-                spawnOutQueue_din = pTaskID;
+                spawnout_queue_en = 1;
+                spawnout_queue_din = pTaskID;
             end
 
             SPAWNOUT_WRITE_TASKTYPE: begin
-                spawnOutQueue_en = 1;
-                spawnOutQueue_din[63:34] = 0;
-                spawnOutQueue_din[33:0] = task_type;
+                spawnout_queue_en = 1;
+                spawnout_queue_din[63:34] = 0;
+                spawnout_queue_din[33:0] = task_type;
             end
 
             SPAWNOUT_WRITE_REST_1: begin
@@ -110,16 +113,16 @@ module Scheduler_spawnout(
             end
 
             SPAWNOUT_WRITE_REST_2: begin
-                spawnOutQueue_en = 1;
-                spawnOutQueue_din = inStream_data_buf;
+                spawnout_queue_en = 1;
+                spawnout_queue_din = inStream_data_buf;
             end
 
             SPAWNOUT_WRITE_HEADER: begin
-                spawnOutQueue_en = 1;
-                spawnOutQueue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
-                spawnOutQueue_din[NUM_ARGS_OFFSET+7:NUM_ARGS_OFFSET] = {4'd0, num_args};
-                spawnOutQueue_din[NUM_DEPS_OFFSET+7:NUM_DEPS_OFFSET] = {4'd0, num_deps};
-                spawnOutQueue_din[NUM_COPS_OFFSET+7:NUM_COPS_OFFSET] = {4'd0, num_cops};
+                spawnout_queue_en = 1;
+                spawnout_queue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
+                spawnout_queue_din[NUM_ARGS_OFFSET+7:NUM_ARGS_OFFSET] = {4'd0, num_args};
+                spawnout_queue_din[NUM_DEPS_OFFSET+7:NUM_DEPS_OFFSET] = {4'd0, num_deps};
+                spawnout_queue_din[NUM_COPS_OFFSET+7:NUM_COPS_OFFSET] = {4'd0, num_cops};
             end
 
             default: begin
@@ -157,10 +160,10 @@ module Scheduler_spawnout(
             end
 
             SPAWNOUT_READ: begin
-                spawnout_num_deps <= spawnOutQueue_dout[NUM_DEPS_OFFSET+3:NUM_DEPS_OFFSET];
-                spawnout_num_args <= spawnOutQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET];
-                spawnout_num_cops <= spawnOutQueue_dout[NUM_COPS_OFFSET+3:NUM_COPS_OFFSET];
-                if (!spawnOutQueue_dout[ENTRY_VALID_OFFSET]) begin
+                spawnout_num_deps <= spawnout_queue_dout[NUM_DEPS_OFFSET+3:NUM_DEPS_OFFSET];
+                spawnout_num_args <= spawnout_queue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET];
+                spawnout_num_cops <= spawnout_queue_dout[NUM_COPS_OFFSET+3:NUM_COPS_OFFSET];
+                if (!spawnout_queue_dout[ENTRY_VALID_OFFSET]) begin
                     spawnout_state <= SPAWNOUT_COMPUTE_CMD_LEN;
                 end else begin
                     spawnout_ret <= 2'd2;
@@ -221,7 +224,7 @@ module Scheduler_spawnout(
 
         if (!rstn) begin
             spawnout_state <= SPAWNOUT_IDLE;
-            avail_slots <= 11'd1024;
+            avail_slots <= QUEUE_LEN;
             wIdx <= 0;
             rIdx <= 0;
         end

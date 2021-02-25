@@ -14,31 +14,32 @@
 `timescale 1ns / 1ps
 
 module Lock #(
-    parameter MAX_ACCS = 16
+    parameter ACC_BITS = 4
 ) (
     input  clk,
     input  rstn,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
-    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
+    input  [ACC_BITS-1:0] inStream_TID,
     output logic inStream_TREADY,
     //outStream
     output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
     output outStream_TLAST,
-    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST
+    output [ACC_BITS-1:0] outStream_TDEST
 );
 
     import OmpSsManager::*;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
 
-    enum {
+    typedef enum {
         READ_HEADER,
         CHECK_LOCK,
         SEND_ACK
-    } state;
+    } State_t;
+
+    State_t state;
 
     reg locked;
     reg next_locked;

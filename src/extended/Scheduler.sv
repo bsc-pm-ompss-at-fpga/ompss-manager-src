@@ -14,25 +14,30 @@
 `timescale 1ns / 1ps
 
 module Scheduler #(
-    parameter MAX_ACCS = 16
+    parameter MAX_ACCS = 16,
+    parameter ACC_BITS = $clog2(MAX_ACCS),
+    parameter SUBQUEUE_LEN = 64,
+    parameter SUBQUEUE_BITS = $clog2(SUBQUEUE_LEN),
+    parameter MAX_ACC_TYPES = 16,
+    parameter SPAWNOUT_QUEUE_LEN = 1024
 ) (
     input  clk,
     input  rstn,
     //Internal command queue
-    output logic [31:0] intCmdInQueue_addr,
+    output logic [SUBQUEUE_BITS+ACC_BITS-1:0] intCmdInQueue_addr,
     output logic intCmdInQueue_en,
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
     input  [63:0] intCmdInQueue_dout,
     output intCmdInQueue_clk,
     //Spawn out queue
-    output logic [31:0] spawnOutQueue_addr,
-    output logic spawnOutQueue_en,
-    output logic [7:0] spawnOutQueue_we,
-    output logic [63:0] spawnOutQueue_din,
-    input [63:0] spawnOutQueue_dout,
-    output spawnOutQueue_clk,
-    output spawnOutQueue_rst,
+    output logic [31:0] spawnout_queue_addr,
+    output logic spawnout_queue_en,
+    output logic [7:0] spawnout_queue_we,
+    output logic [63:0] spawnout_queue_din,
+    input [63:0] spawnout_queue_dout,
+    output spawnout_queue_clk,
+    output spawnout_queue_rst,
     //Bitinfo memory
     output [31:0] bitinfo_addr,
     output bitinfo_en,
@@ -43,26 +48,26 @@ module Scheduler #(
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
     output inStream_TREADY,
-    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
+    input  [ACC_BITS-1:0] inStream_TID,
     input  inStream_TLAST,
     //outStream
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
     output outStream_TLAST,
-    output [$clog2(MAX_ACCS)-1:0] outStream_TDEST,
+    output [ACC_BITS-1:0] outStream_TDEST,
     //Picos reject interface
     output [31:0] picosRejectTask_id,
     output picosRejectTask_valid,
     //Queue not empty interface
-    output logic [$clog2(MAX_ACCS)-1:0] sched_queue_nempty_address,
+    output logic [ACC_BITS-1:0] sched_queue_nempty_address,
     output logic sched_queue_nempty_write
 );
 
     import OmpSsManager::*;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
+    localparam ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES);
 
-    enum {
+    typedef enum {
         SCHED_READ_HEADER_1,
         SCHED_READ_HEADER_OTHER_1,
         SCHED_READ_HEADER_OTHER_2,
@@ -84,7 +89,9 @@ module Scheduler #(
         SCHED_CMDIN_WRITE_4,
         SCHED_ACCEPT_TASK,
         SCHED_REJECT_TASK
-    } state;
+    } State_t;
+
+    State_t state;
 
     struct packed {
         logic [SUBQUEUE_BITS-1:0] wIdx;       //< Slot where the current task creation starts
@@ -101,7 +108,7 @@ module Scheduler #(
     wire inStream_spawnout_TREADY;
     logic inStream_main_TREADY;
 
-    reg [ACC_BITS-1:0] last_acc_id[MAX_ACCS_TYPES];
+    reg [ACC_BITS-1:0] last_acc_id[MAX_ACC_TYPES];
     reg [ACC_BITS-1:0] accID;         //< Accelerator ID where the current task will be executed
     reg [ACC_BITS-1:0] srcAccID;
     reg [ACC_BITS-1:0] count;
@@ -116,8 +123,8 @@ module Scheduler #(
     reg [63:0] taskID;
     reg [63:0] pTaskID;
     reg [33:0] task_type;
-    reg [3:0] data_idx;
-    reg [3:0] data_idx_d;
+    reg [ACC_TYPE_BITS-1:0] data_idx;
+    reg [ACC_TYPE_BITS-1:0] data_idx_d;
     reg [5:0] needed_slots;
     reg [SUBQUEUE_BITS-1:0] rIdx;
     reg [SUBQUEUE_BITS-1:0] wIdx;
@@ -129,25 +136,27 @@ module Scheduler #(
     wire [5:0] tmp_num_slots;
     wire [SUBQUEUE_BITS-1:0] next_wIdx;
 
-    wire [ACC_BITS-1:0] scheduleData_portA_addr;
+    wire [ACC_TYPE_BITS-1:0] scheduleData_portA_addr;
     wire scheduleData_portA_en;
     wire [49:0] scheduleData_portA_din;
-    wire [ACC_BITS-1:0] scheduleData_portB_addr;
+    wire [ACC_TYPE_BITS-1:0] scheduleData_portB_addr;
     wire scheduleData_portB_en;
     wire [49:0] scheduleData_portB_dout;
 
-    Scheduler_spawnout sched_spawnout (
+    Scheduler_spawnout #(
+        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
+    ) sched_spawnout (
         .*
     );
 
     Scheduler_sched_info_mem #(
-        .MAX_ACCS(MAX_ACCS)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES)
     ) sched_info_mem (
         .*
     );
 
     Scheduler_parse_bitinfo #(
-        .MAX_ACCS(MAX_ACCS)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES)
     ) bitinfo_parser (
         .*
     );
@@ -159,13 +168,11 @@ module Scheduler #(
 
     assign inStream_TREADY = inStream_main_TREADY | inStream_spawnout_TREADY;
 
-    assign spawnOutQueue_rst = 0;
-    assign spawnOutQueue_clk = clk;
-
-    assign intCmdInQueue_addr[31:SUBQUEUE_BITS+ACC_BITS] = 0;
+    assign spawnout_queue_rst = 0;
+    assign spawnout_queue_clk = clk;
 
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
-    assign intCmdInQueue_addr[6+ACC_BITS-1:6] = accID;
+    assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = accID;
     assign tmp_num_slots = 6'd3 + {1'd0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
     assign next_wIdx = wIdx + 1;
     assign scheduleData_portB_addr = data_idx;
@@ -177,7 +184,7 @@ module Scheduler #(
 
     always_comb begin
 
-        intCmdInQueue_addr[5:0] = wIdx[5:0];
+        intCmdInQueue_addr[SUBQUEUE_BITS-1:0] = wIdx[SUBQUEUE_BITS-1:0];
         intCmdInQueue_en = 0;
         intCmdInQueue_we = 0;
         intCmdInQueue_din = taskID;
@@ -211,7 +218,7 @@ module Scheduler #(
 
             SCHED_CMDIN_CHECK: begin
                 intCmdInQueue_en = 1;
-                intCmdInQueue_addr[5:0] = rIdx;
+                intCmdInQueue_addr[SUBQUEUE_BITS-1:0] = rIdx;
             end
 
             SCHED_CMDIN_WRITE_1: begin
@@ -335,7 +342,7 @@ module Scheduler #(
                     end else begin
                         state <= SCHED_ASSIGN_SEARCH;
                     end
-                    data_idx <= 4'd1;
+                    data_idx <= 1;
                 end
             end
 
@@ -352,6 +359,9 @@ module Scheduler #(
             end
 
             SCHED_ASSIGN_SEARCH: begin
+                //Even though MAX_ACC_TYPES can be a number which is not power of 2,
+                //there's no need to take the overflow case into account since this implementation assumes that
+                //the task type is always in the scheduleData memory
                 data_idx <= data_idx + 1;
                 count <= scheduleData_portB_dout[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
                 accID <= scheduleData_portB_dout[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] + last_acc_id[data_idx_d];
@@ -513,9 +523,9 @@ module Scheduler #(
             for (i = 0; i < MAX_ACCS; i = i+1) begin
                 subqueue_info[i].rIdx <= 0;
                 subqueue_info[i].wIdx <= 0;
-                subqueue_info[i].availSlots <= 7'd64;
+                subqueue_info[i].availSlots <= SUBQUEUE_LEN;
             end
-            for (i = 0; i < MAX_ACCS_TYPES; i = i+1) begin
+            for (i = 0; i < MAX_ACC_TYPES; i = i+1) begin
                 last_acc_id[i] <= 0;
             end
             last_task_id <= 0;

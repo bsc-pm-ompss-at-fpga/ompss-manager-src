@@ -14,21 +14,23 @@
 `timescale 1ns / 1ps
 
 module Command_Out #(
-    parameter MAX_ACCS = 16
+    parameter MAX_ACCS = 16,
+    parameter ACC_BITS = $clog2(MAX_ACCS),
+    parameter SUBQUEUE_BITS = 6
 ) (
     input clk,
     input rstn,
-    output [31:0] cmdOutQueue_addr,
-    output logic cmdOutQueue_en,
-    output logic [7:0] cmdOutQueue_we,
-    output logic [63:0] cmdOutQueue_din,
-    input  [63:0] cmdOutQueue_dout,
-    output cmdOutQueue_clk,
-    output cmdOutQueue_rst,
+    output [31:0] cmdout_queue_addr,
+    output logic cmdout_queue_en,
+    output logic [7:0] cmdout_queue_we,
+    output logic [63:0] cmdout_queue_din,
+    input  [63:0] cmdout_queue_dout,
+    output cmdout_queue_clk,
+    output cmdout_queue_rst,
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
     output logic inStream_TREADY,
-    input  [$clog2(MAX_ACCS)-1:0] inStream_TID,
+    input  [ACC_BITS-1:0] inStream_TID,
     output logic [63:0] outStream_TDATA,
     output logic outStream_TVALID,
     input  outStream_TREADY,
@@ -36,12 +38,11 @@ module Command_Out #(
     output [31:0] picosFinishTask_TDATA,
     output logic picosFinishTask_TVALID,
     input  picosFinishTask_TREADY,
-    output reg [$clog2(MAX_ACCS)-1:0] acc_avail_wr_address,
+    output reg [ACC_BITS-1:0] acc_avail_wr_address,
     output reg acc_avail_wr
 );
 
     import OmpSsManager::*;
-    localparam ACC_BITS = $clog2(MAX_ACCS);
 
     reg r_READ_HEADER;
     reg r_READ_TID;
@@ -62,13 +63,13 @@ module Command_Out #(
     reg [63:0] parent_task_id;
     reg notify_tw;
 
-    assign cmdOutQueue_clk = clk;
-    assign cmdOutQueue_rst = 0;
+    assign cmdout_queue_clk = clk;
+    assign cmdout_queue_rst = 0;
 
-    assign cmdOutQueue_addr[31:3 + SUBQUEUE_BITS+ACC_BITS] = 0;
-    assign cmdOutQueue_addr[3 + SUBQUEUE_BITS+ACC_BITS-1:3 + SUBQUEUE_BITS] = acc_id;
-    assign cmdOutQueue_addr[3 + SUBQUEUE_BITS-1:3] = wIdx;
-    assign cmdOutQueue_addr[2:0] = 0;
+    assign cmdout_queue_addr[31:3 + SUBQUEUE_BITS+ACC_BITS] = 0;
+    assign cmdout_queue_addr[3 + SUBQUEUE_BITS+ACC_BITS-1:3 + SUBQUEUE_BITS] = acc_id;
+    assign cmdout_queue_addr[3 + SUBQUEUE_BITS-1:3] = wIdx;
+    assign cmdout_queue_addr[2:0] = 0;
 
     assign outStream_TLAST = r_NOTIFY_TW_2;
 
@@ -78,20 +79,20 @@ module Command_Out #(
 
     always_comb begin
 
-        cmdOutQueue_en = r_READ_PTID || r_CMD_OUT_WAIT || r_WRITE_TID || r_WRITE_HEADER;
-        cmdOutQueue_we = r_WRITE_TID || r_WRITE_HEADER ? 8'hFF : 0;
-        cmdOutQueue_din = task_id;
+        cmdout_queue_en = r_READ_PTID | r_CMD_OUT_WAIT | r_WRITE_TID | r_WRITE_HEADER;
+        cmdout_queue_we = (r_WRITE_TID | r_WRITE_HEADER) ? 8'hFF : 0;
+        cmdout_queue_din = task_id;
 
-        inStream_TREADY = r_READ_HEADER || r_READ_TID || r_READ_PTID;
-        outStream_TVALID = notify_tw && (r_NOTIFY_TW_1 || r_NOTIFY_TW_2);
+        inStream_TREADY = r_READ_HEADER | r_READ_TID | r_READ_PTID;
+        outStream_TVALID = notify_tw & (r_NOTIFY_TW_1 | r_NOTIFY_TW_2);
         picosFinishTask_TVALID = r_NOTIFY_PICOS && !task_id[62];
 
         outStream_TDATA = 64'h8000001000000001;
 
         if (r_WRITE_HEADER) begin
-            cmdOutQueue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
-            cmdOutQueue_din[15:8] = {{(8-ACC_BITS){1'd0}}, acc_id};
-            cmdOutQueue_din[7:0] = 8'h03;
+            cmdout_queue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
+            cmdout_queue_din[15:8] = {{(8-ACC_BITS){1'd0}}, acc_id};
+            cmdout_queue_din[7:0] = 8'h03;
         end
         if (r_NOTIFY_TW_2) begin
             outStream_TDATA = parent_task_id;
@@ -131,7 +132,7 @@ module Command_Out #(
         end
         r_WRITE_TID <= 0;
         if (r_CMD_OUT_WAIT) begin
-            if (!cmdOutQueue_dout[ENTRY_VALID_OFFSET]) begin
+            if (!cmdout_queue_dout[ENTRY_VALID_OFFSET]) begin
                 wIdx <= next_wIdx;
                 r_WRITE_TID <= 1;
                 r_CMD_OUT_WAIT <= 0;
