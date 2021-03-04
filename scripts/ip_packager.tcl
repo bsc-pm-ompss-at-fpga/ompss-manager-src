@@ -110,7 +110,7 @@ set_property value_validation_range_maximum 8192 [ipx::get_user_parameters MAX_A
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "CMDIN_SUBQUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters CMDIN_SUBQUEUE_LEN -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 2 [ipx::get_user_parameters CMDIN_SUBQUEUE_LEN -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 4 [ipx::get_user_parameters CMDIN_SUBQUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters CMDIN_SUBQUEUE_LEN -of_objects [ipx::current_core]]
 
@@ -122,14 +122,14 @@ set_property value_validation_range_maximum 8192 [ipx::get_user_parameters CMDOU
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "SPAWNIN_QUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 2 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 4 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "SPAWNOUT_QUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
-set_property value_validation_range_minimum 2 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 4 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
