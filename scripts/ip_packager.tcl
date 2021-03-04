@@ -77,6 +77,18 @@ set_property type LOGO [ipx::get_files src/${hwruntime_short}_logo.png -of_objec
 update_compile_order -fileset sources_1
 ipx::merge_project_changes hdl_parameters [ipx::current_core]
 
+set_property widget {checkBox} [ipgui::get_guiparamspec -name "EXTENDED_MODE" -component [ipx::current_core] ]
+set_property value false [ipx::get_user_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_user_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_hdl_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
+
+set_property widget {checkBox} [ipgui::get_guiparamspec -name "LOCK_SUPPORT" -component [ipx::current_core] ]
+set_property value false [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "MAX_ACCS" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACCS -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 2 [ipx::get_user_parameters MAX_ACCS -of_objects [ipx::current_core]]
@@ -88,6 +100,7 @@ set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACC_
 set_property value_validation_range_minimum 2 [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "MAX_ACC_TYPES" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACC_TYPES -of_objects [ipx::current_core]]
@@ -115,6 +128,7 @@ set_property value_validation_type range_long [ipx::get_user_parameters SPAWNIN_
 set_property value_validation_range_minimum 3 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "SPAWNOUT_QUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
@@ -122,18 +136,7 @@ set_property value_validation_type range_long [ipx::get_user_parameters SPAWNOUT
 set_property value_validation_range_minimum 79 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
-
-set_property widget {checkBox} [ipgui::get_guiparamspec -name "EXTENDED_MODE" -component [ipx::current_core] ]
-set_property value false [ipx::get_user_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
-set_property value false [ipx::get_hdl_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_user_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_hdl_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
-
-set_property widget {checkBox} [ipgui::get_guiparamspec -name "LOCK_SUPPORT" -component [ipx::current_core] ]
-set_property value false [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
-set_property value false [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 
 ipx::associate_bus_interfaces -busif cmdin_out -clock aclk [ipx::current_core]
 ipx::associate_bus_interfaces -busif cmdout_in -clock aclk [ipx::current_core]
