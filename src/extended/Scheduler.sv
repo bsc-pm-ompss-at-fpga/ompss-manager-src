@@ -67,7 +67,7 @@ module Scheduler #(
     import OmpSsManager::*;
     localparam ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES);
 
-    typedef enum bit [5:0] {
+    typedef enum bit [4:0] {
         SCHED_READ_HEADER_1,
         SCHED_READ_HEADER_OTHER_1,
         SCHED_READ_HEADER_OTHER_2,
