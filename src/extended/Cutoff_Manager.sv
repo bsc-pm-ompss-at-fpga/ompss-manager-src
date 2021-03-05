@@ -58,7 +58,7 @@ module Cutoff_Manager #(
 
     localparam MAX_ADDR = MAX_ACC_CREATORS-1;
 
-    typedef enum {
+    typedef enum bit [3:0] {
         IDLE,
         SEARCH_ENTRY,
         SEARCH_FREE_ENTRY,

@@ -40,7 +40,7 @@ module Spawn_In #(
     import OmpSsManager::*;
     localparam QUEUE_BITS = $clog2(SPAWNIN_QUEUE_LEN);
 
-    typedef enum {
+    typedef enum bit [2:0] {
         START_LOOP_1,
         START_LOOP_2,
         READ_HEADER,

@@ -43,7 +43,7 @@ module Taskwait #(
 
     import OmpSsManager::*;
 
-    typedef enum {
+    typedef enum bit [2:0] {
         READ_HEADER,
         READ_TID,
         GET_ENTRY_1,

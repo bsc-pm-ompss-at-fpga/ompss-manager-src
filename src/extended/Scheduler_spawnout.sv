@@ -43,7 +43,7 @@ module Scheduler_spawnout #(
 
     import OmpSsManager::*;
 
-    typedef enum {
+    typedef enum bit [3:0] {
         SPAWNOUT_IDLE,
         SPAWNOUT_CHECK,
         SPAWNOUT_READ,
@@ -151,7 +151,7 @@ module Scheduler_spawnout #(
 
             SPAWNOUT_CHECK: begin
                 header_wIdx <= wIdx;
-                if ({4'd0, needed_slots} <= avail_slots) begin
+                if (needed_slots <= avail_slots) begin
                     wIdx <= next_wIdx;
                     spawnout_state <= SPAWNOUT_WRITE_TASKID;
                 end else begin
@@ -217,7 +217,7 @@ module Scheduler_spawnout #(
                 wIdx <= header_wIdx;
                 spawnout_ret <= 2'd1;
                 spawnout_state <= SPAWNOUT_IDLE;
-                avail_slots <= avail_slots - {4'd0, needed_slots};
+                avail_slots <= avail_slots - needed_slots;
             end
 
         endcase

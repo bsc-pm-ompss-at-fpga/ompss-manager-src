@@ -33,7 +33,7 @@ module Lock #(
 
     import OmpSsManager::*;
 
-    typedef enum {
+    typedef enum bit [1:0] {
         READ_HEADER,
         CHECK_LOCK,
         SEND_ACK

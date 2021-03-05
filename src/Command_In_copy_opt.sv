@@ -39,7 +39,7 @@ module Command_In_copy_opt #(
     input [1:0] cmd_type //0 --> exec task, 1 --> setup inst, 2 --> exec periodic task
 );
 
-    typedef enum {
+    typedef enum bit [2:0] {
         IDLE,
         READ_ARG_0,
         READ_ARG_1,
@@ -145,8 +145,8 @@ module Command_In_copy_opt #(
         case (state)
 
             IDLE: begin
-                idx <= first_idx + (cmd_type == 0 ? {{SUBQUEUE_BITS-3{1'b0}},3'd4} : {{SUBQUEUE_BITS-3{1'b0}},3'd5});
-                cmd_next_idx <= first_next_idx + (cmd_type == 0 ? {{SUBQUEUE_BITS-3{1'b0}},3'd4} : {{SUBQUEUE_BITS-3{1'b0}},3'd5});
+                idx <= first_idx + (cmd_type == 0 ? 4 : 5);
+                cmd_next_idx <= first_next_idx + (cmd_type == 0 ? 4 : 5);
                 if (start) begin
                     state <= READ_ARG_0;
                 end

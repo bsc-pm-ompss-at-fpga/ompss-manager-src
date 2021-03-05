@@ -67,7 +67,7 @@ module Scheduler #(
     import OmpSsManager::*;
     localparam ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES);
 
-    typedef enum {
+    typedef enum bit [5:0] {
         SCHED_READ_HEADER_1,
         SCHED_READ_HEADER_OTHER_1,
         SCHED_READ_HEADER_OTHER_2,
@@ -133,7 +133,7 @@ module Scheduler #(
     reg [63:0] inStream_data_buf;
     reg inStream_last_buf;
     wire [ACC_BITS-1:0] next_acc_id;
-    wire [5:0] tmp_num_slots;
+    wire [5:0] cmd_num_slots;
     wire [SUBQUEUE_BITS-1:0] next_wIdx;
 
     wire [ACC_TYPE_BITS-1:0] scheduleData_portA_addr;
@@ -173,7 +173,7 @@ module Scheduler #(
 
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
     assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = accID;
-    assign tmp_num_slots = 6'd3 + {1'd0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
+    assign cmd_num_slots = 6'd3 + {1'd0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
     assign next_wIdx = wIdx + 1;
     assign scheduleData_portB_addr = data_idx;
     assign scheduleData_portB_en = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
@@ -320,7 +320,6 @@ module Scheduler #(
 
             //This state could be removed
             SCHED_GEN_TASK_ID: begin
-                last_task_id <= last_task_id + 1;
                 taskID <= {28'hF000000, last_task_id, 4'hF};
                 state <= SCHED_READ_HEADER_OTHER_1;
             end
@@ -348,6 +347,7 @@ module Scheduler #(
 
             SCHED_WAIT_SPAWNOUT: begin
                 if (spawnout_ret == 2'd1) begin
+                    last_task_id <= last_task_id + 1;
                     state <= SCHED_ACCEPT_TASK;
                 end else if (spawnout_ret == 2'd2) begin
                     if (num_deps != 0 || num_args != 0 || num_cops != 0) begin
@@ -387,7 +387,7 @@ module Scheduler #(
 
             SCHED_CMDIN_CHECK: begin
                 wIdx_copy <= wIdx;
-                if ({1'b0, needed_slots} <= avail_slots) begin
+                if (needed_slots <= avail_slots) begin
                     wIdx <= next_wIdx;
                     state <= SCHED_CMDIN_WRITE_1;
                 end else begin
@@ -397,8 +397,8 @@ module Scheduler #(
 
             SCHED_CMDIN_READ: begin
                 if (!intCmdInQueue_dout[ENTRY_VALID_OFFSET]) begin
-                    rIdx <= rIdx + tmp_num_slots;
-                    avail_slots <= avail_slots + {1'b0, tmp_num_slots};
+                    rIdx <= rIdx + cmd_num_slots;
+                    avail_slots <= avail_slots + cmd_num_slots;
                     state <= SCHED_CMDIN_CHECK;
                 end else begin
                     if (num_args != 0 || num_cops != 0) begin
@@ -422,7 +422,7 @@ module Scheduler #(
             end
 
             SCHED_CMDIN_WRITE_1: begin
-                avail_slots <= avail_slots - {1'b0, needed_slots};
+                avail_slots <= avail_slots - needed_slots;
                 wIdx <= next_wIdx;
                 state <= SCHED_CMDIN_WRITE_2;
             end
@@ -507,6 +507,7 @@ module Scheduler #(
                 subqueue_info[accID].wIdx <= wIdx_copy;
                 sched_queue_nempty_write <= 1;
                 sched_queue_nempty_address[ACC_BITS-1:0] <= accID;
+                last_task_id <= last_task_id + 1;
                 state <= SCHED_ACCEPT_TASK;
             end
 

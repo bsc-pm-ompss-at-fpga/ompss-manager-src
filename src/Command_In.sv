@@ -50,7 +50,7 @@ module Command_In #(
 
     import OmpSsManager::*;
 
-    typedef enum {
+    typedef enum bit [3:0] {
         IDLE,
         GET_QUEUE_IDX,
         ISSUE_CMD_READ,
@@ -88,6 +88,9 @@ module Command_In #(
     reg [SUBQUEUE_BITS-1:0] first_int_cmd_in_idx;
     reg [SUBQUEUE_BITS-1:0] cmd_in_idx;
     reg [SUBQUEUE_BITS-1:0] int_cmd_in_idx;
+    
+    wire [5:0] cmdin_task_num_slots;
+    wire [5:0] intcmdin_task_num_slots;
 
     reg queue_select; //0 --> cmd in, 1 --> int cmd in
 
@@ -139,6 +142,9 @@ module Command_In #(
     assign outStream_TDEST = acc_id;
     assign outStream_TDATA = queue_select ? intCmdInQueue_dout : cmdin_queue_dout;
     assign outStream_TLAST = cmd_length == 0;
+    
+    assign cmdin_task_num_slots = (cmdin_queue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == EXEC_TASK_CODE ? 6'd3 : 6'd4) + {1'b0, cmdin_queue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
+    assign intcmdin_task_num_slots = (intCmdInQueue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == EXEC_TASK_CODE ? 6'd3 : 6'd4) + {1'b0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
 
     always_comb begin
 
@@ -292,9 +298,9 @@ module Command_In #(
                 end
                 num_args <= cmdin_queue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET];
                 first_idx <= queue_select ? int_cmd_in_idx : cmd_in_idx;
-                first_next_idx <= cmd_in_idx + (cmdin_queue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == EXEC_TASK_CODE ? 6'd3 : 6'd4) + {1'b0, cmdin_queue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
+                first_next_idx <= cmd_in_idx + cmdin_task_num_slots;
                 if (queue_select) begin
-                    first_next_idx <= int_cmd_in_idx + (intCmdInQueue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == EXEC_TASK_CODE ? 6'd3 : 6'd4) + {1'b0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
+                    first_next_idx <= int_cmd_in_idx + intcmdin_task_num_slots;
                     num_args <= intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET];
                     //Accelerators don't setup instrumentation
                     if (intCmdInQueue_dout[CMD_TYPE_L+3:CMD_TYPE_L] == EXEC_TASK_CODE) begin
