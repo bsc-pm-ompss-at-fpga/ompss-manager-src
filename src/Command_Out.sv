@@ -91,7 +91,6 @@ module Command_Out #(
 
         if (r_WRITE_HEADER) begin
             cmdout_queue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 8'h80;
-            cmdout_queue_din[15:8] = {{(8-ACC_BITS){1'd0}}, acc_id};
             cmdout_queue_din[7:0] = 8'h03;
         end
         if (r_NOTIFY_TW_2) begin

@@ -18,7 +18,8 @@ module PicosOmpSsManager #(
     parameter ACC_BITS = $clog2(MAX_ACCS),
     parameter MAX_ACC_CREATORS = 16,
     parameter MAX_ACC_TYPES = 16,
-    parameter ACC_SUBQUEUE_LEN = 64,
+    parameter CMDIN_SUBQUEUE_LEN = 64,
+    parameter CMDOUT_SUBQUEUE_LEN = 64,
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
     parameter EXTENDED_MODE = 0,
@@ -119,8 +120,9 @@ module PicosOmpSsManager #(
 
     localparam TW_MEM_BITS = $clog2(MAX_ACC_CREATORS);
     localparam TW_MEM_WIDTH = OmpSsManager::TW_INFO_CW+ACC_BITS;
-    localparam ACC_SUBQUEUE_BITS = $clog2(ACC_SUBQUEUE_LEN);
-    localparam ACC_QUEUE_BITS = ACC_SUBQUEUE_BITS+ACC_BITS;
+    localparam CMDIN_SUBQUEUE_BITS = $clog2(CMDIN_SUBQUEUE_LEN);
+    localparam CMDOUT_SUBQUEUE_BITS = $clog2(CMDOUT_SUBQUEUE_LEN);
+    localparam CMDIN_QUEUE_BITS = CMDIN_SUBQUEUE_BITS+ACC_BITS;
 
     wire managed_aresetn_sig;
 
@@ -134,7 +136,7 @@ module PicosOmpSsManager #(
     wire Command_out_Picos_finish_task_tready;
     wire Command_out_Picos_finish_task_tvalid;
 
-    wire [ACC_QUEUE_BITS-1:0] Command_In_intCmdInQueue_addr;
+    wire [CMDIN_QUEUE_BITS-1:0] Command_In_intCmdInQueue_addr;
     wire Command_In_intCmdInQueue_clk;
     wire [63:0] Command_In_intCmdInQueue_din;
     wire [63:0] Command_In_intCmdInQueue_dout;
@@ -150,7 +152,7 @@ module PicosOmpSsManager #(
     wire Scheduler_inStream_tlast;
     wire Scheduler_inStream_tready;
     wire Scheduler_inStream_tvalid;
-    wire [ACC_QUEUE_BITS-1:0] Scheduler_intCmdInQueue_addr;
+    wire [CMDIN_QUEUE_BITS-1:0] Scheduler_intCmdInQueue_addr;
     wire Scheduler_intCmdInQueue_clk;
     wire [63:0] Scheduler_intCmdInQueue_din;
     wire [63:0] Scheduler_intCmdInQueue_dout;
@@ -215,7 +217,7 @@ module PicosOmpSsManager #(
 
     Command_In #(
         .MAX_ACCS(MAX_ACCS),
-        .SUBQUEUE_BITS(ACC_SUBQUEUE_BITS)
+        .SUBQUEUE_BITS(CMDIN_SUBQUEUE_BITS)
     ) Command_In_I (
         .acc_avail_wr(Command_Out_acc_avail_wr),
         .acc_avail_wr_address(Command_Out_acc_avail_wr_address),
@@ -245,7 +247,7 @@ module PicosOmpSsManager #(
 
     Command_Out #(
         .MAX_ACCS(MAX_ACCS),
-        .SUBQUEUE_BITS(ACC_SUBQUEUE_BITS)
+        .SUBQUEUE_BITS(CMDOUT_SUBQUEUE_BITS)
     ) Command_Out_I (
         .acc_avail_wr(Command_Out_acc_avail_wr),
         .acc_avail_wr_address(Command_Out_acc_avail_wr_address),
@@ -348,7 +350,7 @@ module PicosOmpSsManager #(
 
         Scheduler #(
             .MAX_ACCS(MAX_ACCS),
-            .SUBQUEUE_LEN(ACC_SUBQUEUE_LEN),
+            .SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
             .MAX_ACC_TYPES(MAX_ACC_TYPES),
             .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
         ) Scheduler_I (
@@ -434,7 +436,7 @@ module PicosOmpSsManager #(
         );
 
         dual_port_mem_wrapper #(
-            .SIZE(ACC_SUBQUEUE_LEN*MAX_ACCS),
+            .SIZE(CMDIN_SUBQUEUE_LEN*MAX_ACCS),
             .WIDTH(64),
             .MODE_A("READ_FIRST"),
             .MODE_B("READ_FIRST"),

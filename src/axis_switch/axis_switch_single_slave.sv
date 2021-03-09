@@ -47,11 +47,13 @@ module axis_switch_single_slave
     
     end else begin
     
-    enum {
+    typedef enum bit [0:0] {
         IDLE,
         TRANSACTION
-    } state;
+    } State_t;
     
+    State_t state;
+
     localparam SEL_MASTER_BITS = $clog2(NMASTERS);
     
     wire in_transaction;
