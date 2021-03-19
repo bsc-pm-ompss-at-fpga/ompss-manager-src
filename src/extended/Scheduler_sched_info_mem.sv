@@ -28,6 +28,8 @@ module Scheduler_sched_info_mem #(
     output logic [47:0] scheduleData_portB_dout
 );
 
+    import OmpSsManager::*;
+
     reg [SCHED_DATA_BITS-1:0] mem[MAX_ACC_TYPES];
 
     always_ff @(posedge clk) begin
