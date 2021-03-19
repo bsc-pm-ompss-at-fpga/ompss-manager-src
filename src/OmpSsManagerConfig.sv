@@ -71,6 +71,9 @@ package OmpSsManager;
     localparam SCHED_DATA_TASK_TYPE_L = 16;
     localparam SCHED_DATA_TASK_TYPE_H = 49;
 
+    //Scheduler module
+    localparam SCHED_INSTANCE_ANY = 8'hFF;
+
     //Lock module
     localparam LOCK_ID_BITS = 8;
     localparam LOCK_ID_L = 8;
