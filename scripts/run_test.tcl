@@ -31,4 +31,4 @@ set_property top ${name_IP}_tb [get_filesets sim_1]
 
 # Run simulation enough time
 launch_simulation
-run 1000
+run 2000
