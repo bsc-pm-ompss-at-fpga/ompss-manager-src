@@ -71,6 +71,7 @@ class ArgParser:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
+        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run', default=['extended/Lock', 'extended/Scheduler'])
 
     def parse_args(self):
         args = self.parser.parse_args()
@@ -88,7 +89,7 @@ prj_path = os.getcwd() + '/test_projects'
 if not os.path.exists(prj_path):
     os.makedirs(prj_path)
 
-for full_ip_name in ['extended/Lock']:
+for full_ip_name in args.ip:
     msg.info('Running test for ' + full_ip_name + ' IP')
     ip_name = os.path.basename(full_ip_name)
 
