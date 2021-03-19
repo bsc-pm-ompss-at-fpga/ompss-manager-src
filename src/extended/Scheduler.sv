@@ -124,8 +124,8 @@ module Scheduler #(
     reg [3:0] count_cops;
     reg [63:0] taskID;
     reg [63:0] pTaskID;
-    reg [33:0] task_type;
-    reg [7:0] task_instance_num;
+    reg [SCHED_TASKTYPE_BITS-1:0] task_type;
+    reg [SCHED_INSNUM_BITS-1:0] task_instance_num;
     reg [ACC_TYPE_BITS-1:0] data_idx;
     reg [ACC_TYPE_BITS-1:0] data_idx_d;
     reg [5:0] needed_slots;
@@ -141,10 +141,10 @@ module Scheduler #(
 
     wire [ACC_TYPE_BITS-1:0] scheduleData_portA_addr;
     wire scheduleData_portA_en;
-    wire [49:0] scheduleData_portA_din;
+    wire [SCHED_DATA_BITS-1:0] scheduleData_portA_din;
     wire [ACC_TYPE_BITS-1:0] scheduleData_portB_addr;
     wire scheduleData_portB_en;
-    wire [49:0] scheduleData_portB_dout;
+    wire [SCHED_DATA_BITS-1:0] scheduleData_portB_dout;
 
     Scheduler_spawnout #(
         .QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
@@ -335,13 +335,12 @@ module Scheduler #(
             end
 
             SCHED_READ_HEADER_OTHER_2: begin
-                task_type <= inStream_TDATA[33:0];
-                task_instance_num <= inStream_TDATA[47:40];
+                task_type <= inStream_TDATA[CMD_NEWTASK_TASKTYPE_H:CMD_NEWTASK_TASKTYPE_L];
+                task_instance_num <= inStream_TDATA[CMD_NEWTASK_INSNUM_H:CMD_NEWTASK_INSNUM_L];
                 data_idx_d <= 0;
                 if (inStream_TVALID) begin
-                    //If task has SMP bit (33) or deps forward to spawnOut queue
-                    //FIXME: A task may have SMP and FPGA bits set together. What is better in this case?
-                    if (inStream_TDATA[33] || num_deps != 0) begin
+                    //If task is not an FPGA task or has deps forward to spawnOut queue
+                    if (inStream_TDATA[CMD_NEWTASK_ARCHBITS_FPGA_B] == 0 || num_deps != 0) begin
                         spawnout_state_start <= 1;
                         state <= SCHED_WAIT_SPAWNOUT;
                     end else begin
@@ -379,7 +378,7 @@ module Scheduler #(
             end
 
             SCHED_ASSIGN_ACCID: begin
-                if (task_instance_num != SCHED_INSTANCE_ANY) begin
+                if (task_instance_num != SCHED_INSNUM_ANY) begin
                     accID <= scheddata_type_first + task_instance_num;
                     last_acc_id[data_idx_d] <= task_instance_num;
                 end else begin

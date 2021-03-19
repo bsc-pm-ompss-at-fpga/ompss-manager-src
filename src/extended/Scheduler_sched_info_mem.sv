@@ -21,14 +21,14 @@ module Scheduler_sched_info_mem #(
     //Port A
     input [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     input scheduleData_portA_en,
-    input [49:0] scheduleData_portA_din,
+    input [47:0] scheduleData_portA_din,
     //Port B
     input [ACC_TYPE_BITS-1:0] scheduleData_portB_addr,
     input scheduleData_portB_en,
-    output logic [49:0] scheduleData_portB_dout
+    output logic [47:0] scheduleData_portB_dout
 );
 
-    reg [49:0] mem[MAX_ACC_TYPES];
+    reg [SCHED_DATA_BITS-1:0] mem[MAX_ACC_TYPES];
 
     always_ff @(posedge clk) begin
         if (scheduleData_portA_en) begin

@@ -27,7 +27,7 @@ module Scheduler_parse_bitinfo #(
     //Scheduling data memory
     output reg [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     output scheduleData_portA_en,
-    output logic [49:0] scheduleData_portA_din
+    output logic [47:0] scheduleData_portA_din
 );
 
     import OmpSsManager::*;
@@ -54,7 +54,7 @@ module Scheduler_parse_bitinfo #(
 
     reg [OFFSET_BITS-1:0] offset;
     reg [31:0] bitinfoCast;
-    reg [33:0] task_type;
+    reg [33:0] task_type; //FIXME: Cannot be SCHED_TASKTYPE_BITS wide to avoid overflow due to ARCH bits
     reg [ACC_BITS:0] num_instances;
     reg [3:0] bitinfoDigit;
     reg [1:0] c;
@@ -63,7 +63,7 @@ module Scheduler_parse_bitinfo #(
 
     assign scheduleData_portA_din[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] = first_free_id;
     assign scheduleData_portA_din[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L] = num_instances - {{ACC_BITS-1{1'b0}}, 1'b1};
-    assign scheduleData_portA_din[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] = task_type;
+    assign scheduleData_portA_din[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] = task_type[SCHED_TASKTYPE_BITS-1:0];
     assign scheduleData_portA_en = state == WRITE_SCHEDULE_DATA;
 
     assign bitinfo_addr[31:2+OFFSET_BITS] = 0;

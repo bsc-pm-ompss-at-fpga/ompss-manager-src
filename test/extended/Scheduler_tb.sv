@@ -407,8 +407,8 @@ module Scheduler_tb;
         repeat (1) @(posedge clk);
         assert(outStream_TVALID == 0) else $error("Test 3.13: outStream_TVALID != 0");
 
-        //Create task with 0 args, 0 deps, 0 copies for any instance
-        $write("Test 4: Create task 0 args, 0 deps, 0 copies, type 0x112344321, any instance\n");
+        //Create task with 0 args, 0 deps, 0 copies, SMP+FPGA arch, any instance
+        $write("Test 4: Create task 0 args, 0 deps, 0 copies, type 0x312344321 (SMP+FPGA), any instance\n");
         //SCHED_READ_HEADER_1
         assert(inStream_TREADY == 1) else $error("Test 4.0: inStream_TREADY != 1");
         inStream_TID <= 0;
@@ -432,7 +432,7 @@ module Scheduler_tb;
         assert(inStream_TREADY == 1) else $error("Test 4.4: inStream_TREADY != 1");
         assert(outStream_TVALID == 0) else $error("Test 4.4: outStream_TVALID != 0");
         inStream_TVALID <= 1;
-        inStream_TDATA <= 64'h0000FF0112344321; //Instance number + type hash
+        inStream_TDATA <= 64'h0000FF0312344321; //Instance number + type hash
         inStream_TLAST <= 1;
         repeat (1) @(posedge clk);
         //SCHED_READ_HEADER_OTHER_2
@@ -820,6 +820,75 @@ module Scheduler_tb;
         outStream_TREADY <= 0;
         repeat (1) @(posedge clk);
         assert(outStream_TVALID == 0) else $error("Test 9.13: outStream_TVALID != 0");
+
+        //Create task with 0 args, 0 deps, 0 copies, arch SMP+FPGA, instance 2
+        $write("Test 10: Create task 0 args, 0 deps, 0 copies, type 0x333344333 (SMP+FPGA), instance 2\n");
+        //SCHED_READ_HEADER_1
+        assert(inStream_TREADY == 1) else $error("Test 10.0: inStream_TREADY != 1");
+        inStream_TID <= 1;
+        inStream_TDATA <= 64'h0000000000000000; //Task number + #Cpys + #Deps + #Args + 0
+        inStream_TVALID <= 1;
+        inStream_TLAST <= 0;
+        repeat (1) @(posedge clk);
+        //SCHED_READ_HEADER_1
+        inStream_TVALID <= 0;
+        repeat (2) @(posedge clk);
+        //SCHED_READ_HEADER_OTHER_1
+        assert(inStream_TREADY == 1) else $error("Test 10.2: inStream_TREADY != 1");
+        assert(outStream_TVALID == 0) else $error("Test 10.2: outStream_TVALID != 0");
+        inStream_TVALID <= 1;
+        inStream_TDATA <= 64'h0000000223456789; //Parent Task Identifier
+        repeat (1) @(posedge clk);
+        //SCHED_READ_HEADER_OTHER_1
+        inStream_TVALID <= 0;
+        repeat (2) @(posedge clk);
+        //SCHED_READ_HEADER_OTHER_2
+        assert(inStream_TREADY == 1) else $error("Test 10.4: inStream_TREADY != 1");
+        assert(outStream_TVALID == 0) else $error("Test 10.4: outStream_TVALID != 0");
+        inStream_TVALID <= 1;
+        inStream_TDATA <= 64'h0000020333344333; //Instance number + type hash
+        inStream_TLAST <= 1;
+        repeat (1) @(posedge clk);
+        //SCHED_READ_HEADER_OTHER_2
+        assert(intCmdInQueue_en == 0) else $error("Test 10.5: intCmdInQueue_en != 0");
+        assert(outStream_TVALID == 0) else $error("Test 10.5: outStream_TVALID != 0");
+        inStream_TVALID <= 0;
+        repeat (5) @(posedge clk); //NOTE: The number of cycles may change based on type entry
+        //SCHED_CMDIN_CHECK
+        repeat (1) @(posedge clk);
+        //SCHED_CMDIN_WRITE_1 taskId
+        assert(outStream_TVALID == 0) else $error("Test 10.7: outStream_TVALID != 0");
+        assert(intCmdInQueue_en == 1) else $error("Test 10.7: intCmdInQueue_en != 1");
+        assert(intCmdInQueue_we == 1) else $error("Test 10.7: intCmdInQueue_we != 1");
+        assert(intCmdInQueue_addr == 10'h181) else $error("Test 10.7: intCmdInQueue_addr");
+        //assert(intCmdInQueue_din == 64'h) else $error("Test 10.4: intCmdInQueue_din != 0xFF");
+        repeat (1) @(posedge clk);
+        //SCHED_CMDIN_WRITE_2 parentTaskId
+        assert(outStream_TVALID == 0) else $error("Test 10.8: outStream_TVALID != 0");
+        assert(intCmdInQueue_en == 1) else $error("Test 10.8: intCmdInQueue_en != 1");
+        assert(intCmdInQueue_we == 1) else $error("Test 10.8: intCmdInQueue_we != 1");
+        assert(intCmdInQueue_addr == 10'h182) else $error("Test 10.8: intCmdInQueue_addr");
+        assert(intCmdInQueue_din == 64'h0000000223456789) else $error("Test 10.8: intCmdInQueue_din");
+        repeat (1) @(posedge clk);
+        //SCHED_CMDIN_WRITE_4 header
+        assert(intCmdInQueue_en == 1) else $error("Test 10.9: intCmdInQueue_en != 1");
+        assert(intCmdInQueue_we == 1) else $error("Test 10.9: intCmdInQueue_we != 1");
+        assert(intCmdInQueue_addr == 10'h180) else $error("Test 10.9: intCmdInQueue_addr");
+        assert(intCmdInQueue_din[63:63] == 1'h1) else $error("Test 10.9: intCmdInQueue_din.valid");
+        assert(intCmdInQueue_din[47:40] == 8'h11) else $error("Test 10.9: intCmdInQueue_din.destID");
+        assert(intCmdInQueue_din[39:32] == 8'h01) else $error("Test 10.9: intCmdInQueue_din.comF");
+        assert(intCmdInQueue_din[15:8] == 8'h00) else $error("Test 10.9: intCmdInQueue_din.#Args");
+        assert(intCmdInQueue_din[7:0] == 8'h01) else $error("Test 10.9: intCmdInQueue_din.CmdCode");
+        repeat (2) @(posedge clk);
+        assert(outStream_TVALID == 1) else $error("Test 10.11: outStream_TVALID != 1");
+        assert(outStream_TLAST == 1) else $error("Test 10.11: outStream_TLAST != 1");
+        assert(outStream_TDEST == 1) else $error("Test 10.11: outStream_TDEST != 1");
+        assert(outStream_TDATA == 1) else $error("Test 10.11: outStream_TDATA != 1");
+        outStream_TREADY <= 1;
+        repeat (1) @(posedge clk);
+        outStream_TREADY <= 0;
+        repeat (1) @(posedge clk);
+        assert(outStream_TVALID == 0) else $error("Test 10.13: outStream_TVALID != 0");
 
         $write("===== End of test execution =====\n");
     end
