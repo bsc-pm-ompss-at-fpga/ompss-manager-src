@@ -75,6 +75,9 @@ package OmpSsManager;
     //Scheduler module
     localparam CMD_NEWTASK_ARCHBITS_FPGA_B = 32; //Bit idx of FPGA architecture bit in New Task Command
     localparam CMD_NEWTASK_ARCHBITS_SMP_B = 33; //Bit ifx of SMP architecture bit in New Task Command
+    localparam SCHED_ARCHBITS_BITS = 2;
+    localparam CMD_NEWTASK_ARCHBITS_L = 32; //Low bit idx of Arch bitmask field in New task command
+    localparam CMD_NEWTASK_ARCHBITS_H = 33; //High bit idx of ^
     localparam SCHED_TASKTYPE_BITS = 32;
     localparam CMD_NEWTASK_TASKTYPE_L = 0; //Low bit idx of TaskType field in New task command
     localparam CMD_NEWTASK_TASKTYPE_H = 31; //High bit idx of ^

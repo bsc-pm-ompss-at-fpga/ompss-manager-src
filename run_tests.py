@@ -72,7 +72,7 @@ class ArgParser:
 
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('-w', '--no_warn', help='treat warnings as errors', action='store_true', default=False)
-        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run', default=['extended/Lock', 'extended/Scheduler'])
+        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run', default=['extended/Lock', 'extended/Scheduler', 'extended/Scheduler_spawnout'])
 
     def parse_args(self):
         args = self.parser.parse_args()

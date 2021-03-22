@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -15,7 +15,9 @@
 
 module Scheduler_spawnout #(
     parameter QUEUE_LEN = 1024,
-    parameter QUEUE_BITS = $clog2(QUEUE_LEN)
+    parameter QUEUE_BITS = $clog2(QUEUE_LEN),
+    parameter TASKTYPE_BITS = 32,
+    parameter ARCHBITS_BITS = 2
 ) (
     input  clk,
     input  rstn,
@@ -31,7 +33,8 @@ module Scheduler_spawnout #(
     //Other signals
     input [63:0] taskID,
     input [63:0] pTaskID,
-    input [33:0] task_type,
+    input [ARCHBITS_BITS-1:0] task_arch,
+    input [TASKTYPE_BITS-1:0] task_type,
     input [3:0] num_args,
     input [3:0] num_cops,
     input [3:0] num_deps,
@@ -181,7 +184,7 @@ module Scheduler_tb;
         #10;
         inStream_TVALID <= 0;
         outStream_TREADY <= 0;
-        spawnout_queue_dout <= 64'h00000000; 
+        spawnout_queue_dout <= 64'hDDEEAADDBBEEFF;
         rstn <= 1; //< End reset
         repeat (1) @(posedge clk);
 

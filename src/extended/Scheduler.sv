@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -125,6 +125,7 @@ module Scheduler #(
     reg [63:0] taskID;
     reg [63:0] pTaskID;
     reg [SCHED_TASKTYPE_BITS-1:0] task_type;
+    reg [SCHED_ARCHBITS_BITS-1:0] task_arch;
     reg [SCHED_INSNUM_BITS-1:0] task_instance_num;
     reg [ACC_TYPE_BITS-1:0] data_idx;
     reg [ACC_TYPE_BITS-1:0] data_idx_d;
@@ -147,7 +148,9 @@ module Scheduler #(
     wire [SCHED_DATA_BITS-1:0] scheduleData_portB_dout;
 
     Scheduler_spawnout #(
-        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
+        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+        .ARCHBITS_BITS(SCHED_ARCHBITS_BITS),
+        .TASKTYPE_BITS(SCHED_TASKTYPE_BITS)
     ) sched_spawnout (
         .*
     );
@@ -336,6 +339,7 @@ module Scheduler #(
 
             SCHED_READ_HEADER_OTHER_2: begin
                 task_type <= inStream_TDATA[CMD_NEWTASK_TASKTYPE_H:CMD_NEWTASK_TASKTYPE_L];
+                task_arch <= inStream_TDATA[CMD_NEWTASK_ARCHBITS_H:CMD_NEWTASK_ARCHBITS_L];
                 task_instance_num <= inStream_TDATA[CMD_NEWTASK_INSNUM_H:CMD_NEWTASK_INSNUM_L];
                 data_idx_d <= 0;
                 if (inStream_TVALID) begin
