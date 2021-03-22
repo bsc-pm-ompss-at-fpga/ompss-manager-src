@@ -56,17 +56,18 @@ endmodule
 
 module Scheduler_sched_info_mem #(
     parameter MAX_ACC_TYPES = 16,
-    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES)
+    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES),
+    parameter DATA_BITS = 48
 ) (
     input clk,
     //Port A
     input [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     input scheduleData_portA_en,
-    input [49:0] scheduleData_portA_din,
+    input [DATA_BITS-1:0] scheduleData_portA_din,
     //Port B
     input [ACC_TYPE_BITS-1:0] scheduleData_portB_addr,
     input scheduleData_portB_en,
-    output logic [49:0] scheduleData_portB_dout
+    output logic [DATA_BITS-1:0] scheduleData_portB_dout
 );
 
     import OmpSsManager::*;
@@ -94,7 +95,8 @@ endmodule
 module Scheduler_parse_bitinfo #(
     parameter MAX_ACCS = 16,
     parameter MAX_ACC_TYPES = 16,
-    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES)
+    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES),
+    parameter SCHED_DATA_BITS = 48
 ) (
     input clk,
     input rstn,
@@ -105,14 +107,14 @@ module Scheduler_parse_bitinfo #(
     //Scheduling data memory
     output reg [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     output scheduleData_portA_en,
-    output logic [49:0] scheduleData_portA_din
+    output logic [SCHED_DATA_BITS-1:0] scheduleData_portA_din
 );
 
     assign bitinfo_addr = 32'hDEADBEEF;
     assign bitinfo_en = 0;
     assign scheduleData_portA_addr = 0;
     assign scheduleData_portA_en = 0;
-    assign scheduleData_portA_din = 50'h00DEAD0BEEF00;
+    assign scheduleData_portA_din = 48'h00DEAD0BEEF00;
 
 endmodule
 
@@ -124,6 +126,7 @@ module Scheduler_tb;
     localparam SUBQUEUE_BITS = 6; //$clog2(SUBQUEUE_LEN);
     localparam MAX_ACC_TYPES = 16;
     localparam SPAWNOUT_QUEUE_LEN = 1024;
+    localparam SCHED_DATA_BITS = 48;
 
     logic clk;
     logic rstn;

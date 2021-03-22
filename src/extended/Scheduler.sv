@@ -156,13 +156,15 @@ module Scheduler #(
     );
 
     Scheduler_sched_info_mem #(
-        .MAX_ACC_TYPES(MAX_ACC_TYPES)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES),
+        .DATA_BITS(SCHED_DATA_BITS)
     ) sched_info_mem (
         .*
     );
 
     Scheduler_parse_bitinfo #(
-        .MAX_ACC_TYPES(MAX_ACC_TYPES)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES),
+        .SCHED_DATA_BITS(SCHED_DATA_BITS)
     ) bitinfo_parser (
         .*
     );
