@@ -71,6 +71,7 @@ class ArgParser:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
+        self.parser.add_argument('-w', '--no_warn', help='treat warnings as errors', action='store_true', default=False)
         self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run', default=['extended/Lock', 'extended/Scheduler'])
 
     def parse_args(self):
@@ -93,7 +94,8 @@ for full_ip_name in args.ip:
     msg.info('Running test for ' + full_ip_name + ' IP')
     ip_name = os.path.basename(full_ip_name)
 
-    err = False    
+    err = False
+    warn = False
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/run_test.tcl -tclargs '
                          + ip_name + ' ' 
@@ -105,13 +107,20 @@ for full_ip_name in args.ip:
 
     for line in iter(p.stdout.readline, b''):
         line = line.decode('utf-8')
-        if line.casefold().find('error') != -1:
+        line_casefold = line.casefold()
+        if line_casefold.find('error') != -1:
             err = True
+        elif line_casefold.find('warning') != -1 and line_casefold.find('has a timescale but') == -1:
+            warn = True
         sys.stdout.writeVerbose(line)
 
     retval = p.wait()
     if retval or err:
         msg.error('Test failed')
+    elif args.no_warn and warn:
+        msg.error('Test failed due to warning')
+    elif warn:
+        msg.success('Test ok (but there are some warnings)')
     else:
         msg.success('Test ok')
 
