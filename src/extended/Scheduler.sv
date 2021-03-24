@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -75,6 +75,7 @@ module Scheduler #(
         SCHED_GEN_TASK_ID,
         SCHED_WAIT_SPAWNOUT,
         SCHED_ASSIGN_SEARCH,
+        SCHED_ASSIGN_ACCID,
         SCHED_ASSIGN,
         SCHED_CMDIN_CHECK,
         SCHED_CMDIN_READ,
@@ -111,7 +112,8 @@ module Scheduler #(
     reg [ACC_BITS-1:0] last_acc_id[MAX_ACC_TYPES];
     reg [ACC_BITS-1:0] accID;         //< Accelerator ID where the current task will be executed
     reg [ACC_BITS-1:0] srcAccID;
-    reg [ACC_BITS-1:0] count;
+    reg [ACC_BITS-1:0] scheddata_type_count;
+    reg [ACC_BITS-1:0] scheddata_type_first;
     reg comes_from_dep_mod;  //< The incoming task is sent by the dependencies module
     reg [31:0] last_task_id; //< Last assigned task identifier to tasks created inside the FPGA
     reg [3:0] num_args;
@@ -122,7 +124,9 @@ module Scheduler #(
     reg [3:0] count_cops;
     reg [63:0] taskID;
     reg [63:0] pTaskID;
-    reg [33:0] task_type;
+    reg [SCHED_TASKTYPE_BITS-1:0] task_type;
+    reg [SCHED_ARCHBITS_BITS-1:0] task_arch;
+    reg [SCHED_INSNUM_BITS-1:0] task_instance_num;
     reg [ACC_TYPE_BITS-1:0] data_idx;
     reg [ACC_TYPE_BITS-1:0] data_idx_d;
     reg [5:0] needed_slots;
@@ -138,25 +142,29 @@ module Scheduler #(
 
     wire [ACC_TYPE_BITS-1:0] scheduleData_portA_addr;
     wire scheduleData_portA_en;
-    wire [49:0] scheduleData_portA_din;
+    wire [SCHED_DATA_BITS-1:0] scheduleData_portA_din;
     wire [ACC_TYPE_BITS-1:0] scheduleData_portB_addr;
     wire scheduleData_portB_en;
-    wire [49:0] scheduleData_portB_dout;
+    wire [SCHED_DATA_BITS-1:0] scheduleData_portB_dout;
 
     Scheduler_spawnout #(
-        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
+        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+        .ARCHBITS_BITS(SCHED_ARCHBITS_BITS),
+        .TASKTYPE_BITS(SCHED_TASKTYPE_BITS)
     ) sched_spawnout (
         .*
     );
 
     Scheduler_sched_info_mem #(
-        .MAX_ACC_TYPES(MAX_ACC_TYPES)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES),
+        .DATA_BITS(SCHED_DATA_BITS)
     ) sched_info_mem (
         .*
     );
 
     Scheduler_parse_bitinfo #(
-        .MAX_ACC_TYPES(MAX_ACC_TYPES)
+        .MAX_ACC_TYPES(MAX_ACC_TYPES),
+        .SCHED_DATA_BITS(SCHED_DATA_BITS)
     ) bitinfo_parser (
         .*
     );
@@ -332,10 +340,13 @@ module Scheduler #(
             end
 
             SCHED_READ_HEADER_OTHER_2: begin
-                task_type <= inStream_TDATA[33:0];
+                task_type <= inStream_TDATA[CMD_NEWTASK_TASKTYPE_H:CMD_NEWTASK_TASKTYPE_L];
+                task_arch <= inStream_TDATA[CMD_NEWTASK_ARCHBITS_H:CMD_NEWTASK_ARCHBITS_L];
+                task_instance_num <= inStream_TDATA[CMD_NEWTASK_INSNUM_H:CMD_NEWTASK_INSNUM_L];
                 data_idx_d <= 0;
                 if (inStream_TVALID) begin
-                    if (inStream_TDATA[33] || num_deps != 0) begin
+                    //If task is not an FPGA task or has deps forward to spawnOut queue
+                    if (inStream_TDATA[CMD_NEWTASK_ARCHBITS_FPGA_B] == 0 || num_deps != 0) begin
                         spawnout_state_start <= 1;
                         state <= SCHED_WAIT_SPAWNOUT;
                     end else begin
@@ -363,13 +374,28 @@ module Scheduler #(
                 //there's no need to take the overflow case into account since this implementation assumes that
                 //the task type is always in the scheduleData memory
                 data_idx <= data_idx + 1;
-                count <= scheduleData_portB_dout[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
-                accID <= scheduleData_portB_dout[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L] + last_acc_id[data_idx_d];
+                scheddata_type_count <= scheduleData_portB_dout[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
+                scheddata_type_first <= scheduleData_portB_dout[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L];
                 if (scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] == task_type) begin
-                    state <= SCHED_ASSIGN;
+                    state <= SCHED_ASSIGN_ACCID;
                 end else begin
                     data_idx_d <= data_idx;
                 end
+            end
+
+            SCHED_ASSIGN_ACCID: begin
+                if (task_instance_num != SCHED_INSNUM_ANY) begin
+                    accID <= scheddata_type_first + task_instance_num;
+                    last_acc_id[data_idx_d] <= task_instance_num;
+                end else begin
+                    accID <= scheddata_type_first + last_acc_id[data_idx_d];
+                    if (last_acc_id[data_idx_d] == scheddata_type_count) begin
+                        last_acc_id[data_idx_d] <= 0;
+                    end else begin
+                        last_acc_id[data_idx_d] <= next_acc_id;
+                    end
+                end
+                state <= SCHED_ASSIGN;
             end
 
             SCHED_ASSIGN: begin
@@ -377,11 +403,6 @@ module Scheduler #(
                 rIdx <= subqueue_info[accID].rIdx;
                 wIdx <= subqueue_info[accID].wIdx;
                 avail_slots <= subqueue_info[accID].availSlots;
-                if (last_acc_id[data_idx_d] == count) begin
-                    last_acc_id[data_idx_d] <= 0;
-                end else begin
-                    last_acc_id[data_idx_d] <= next_acc_id;
-                end
                 state <= SCHED_CMDIN_CHECK;
             end
 

@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -15,20 +15,21 @@
 
 module Scheduler_sched_info_mem #(
     parameter MAX_ACC_TYPES = 16,
-    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES)
+    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES),
+    parameter DATA_BITS = 48
 ) (
     input clk,
     //Port A
     input [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
     input scheduleData_portA_en,
-    input [49:0] scheduleData_portA_din,
+    input [DATA_BITS-1:0] scheduleData_portA_din,
     //Port B
     input [ACC_TYPE_BITS-1:0] scheduleData_portB_addr,
     input scheduleData_portB_en,
-    output logic [49:0] scheduleData_portB_dout
+    output logic [DATA_BITS-1:0] scheduleData_portB_dout
 );
 
-    reg [49:0] mem[MAX_ACC_TYPES];
+    reg [DATA_BITS-1:0] mem[MAX_ACC_TYPES];
 
     always_ff @(posedge clk) begin
         if (scheduleData_portA_en) begin

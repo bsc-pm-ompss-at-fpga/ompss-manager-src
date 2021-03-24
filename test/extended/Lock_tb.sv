@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -23,7 +23,7 @@ module Lock_tb;
     logic [3:0] inStream_TID;
     logic inStream_TREADY;
     // outStream
-    logic [7:0] outStream_TDATA;
+    logic [63:0] outStream_TDATA;
     logic outStream_TVALID;
     logic outStream_TREADY;
     logic [3:0] outStream_TDEST;
@@ -38,7 +38,7 @@ module Lock_tb;
         rstn <= 0; //< Start reset
         #10;
         inStream_TVALID <= 0;
-        outStream_TREADY <= 0; 
+        outStream_TREADY <= 0;
         rstn <= 1; //< End reset
         #10;
 
@@ -67,7 +67,7 @@ module Lock_tb;
         outStream_TREADY <= 0;
         repeat (1) @(posedge clk);
         assert(outStream_TVALID == 0) else $error("outStream_TVALID != 0 after reading ack message");
-         
+
         // Send lock message for lock_ID 0
         $write("Test: Send lock message for lock_ID 0 (while locked)\n");
         assert(inStream_TREADY == 1) else $error("inStream_TREADY != 1 before sending message");

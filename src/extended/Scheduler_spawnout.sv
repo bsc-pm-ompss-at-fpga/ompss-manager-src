@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -15,7 +15,9 @@
 
 module Scheduler_spawnout #(
     parameter QUEUE_LEN = 1024,
-    parameter QUEUE_BITS = $clog2(QUEUE_LEN)
+    parameter QUEUE_BITS = $clog2(QUEUE_LEN),
+    parameter TASKTYPE_BITS = 32,
+    parameter ARCHBITS_BITS = 2
 ) (
     input  clk,
     input  rstn,
@@ -31,7 +33,8 @@ module Scheduler_spawnout #(
     //Other signals
     input [63:0] taskID,
     input [63:0] pTaskID,
-    input [33:0] task_type,
+    input [TASKTYPE_BITS-1:0] task_type,
+    input [ARCHBITS_BITS-1:0] task_arch,
     input [3:0] num_args,
     input [3:0] num_cops,
     input [3:0] num_deps,
@@ -104,8 +107,9 @@ module Scheduler_spawnout #(
 
             SPAWNOUT_WRITE_TASKTYPE: begin
                 spawnout_queue_en = 1;
-                spawnout_queue_din[63:34] = 0;
-                spawnout_queue_din[33:0] = task_type;
+                spawnout_queue_din[63:CMD_NEWTASK_ARCHBITS_H+1] = 0;
+                spawnout_queue_din[CMD_NEWTASK_ARCHBITS_H:CMD_NEWTASK_ARCHBITS_L] = task_arch;
+                spawnout_queue_din[CMD_NEWTASK_TASKTYPE_H:CMD_NEWTASK_TASKTYPE_L] = task_type;
             end
 
             SPAWNOUT_WRITE_REST_1: begin
@@ -193,7 +197,13 @@ module Scheduler_spawnout #(
 
             SPAWNOUT_WRITE_TASKTYPE: begin
                 wIdx <= next_wIdx;
-                spawnout_state <= SPAWNOUT_WRITE_REST_1;
+                if (needed_slots == 7'd4) begin
+                    wIdx <= header_wIdx;
+                    header_wIdx <= next_wIdx;
+                    spawnout_state <= SPAWNOUT_WRITE_HEADER;
+                end else begin
+                    spawnout_state <= SPAWNOUT_WRITE_REST_1;
+                end
             end
 
             SPAWNOUT_WRITE_REST_1: begin

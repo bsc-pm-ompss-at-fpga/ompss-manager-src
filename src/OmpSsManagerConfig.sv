@@ -66,10 +66,25 @@ package OmpSsManager;
     localparam HWR_LOCK_ID = 5'h15;
 
     //Scheduler data mem struct
+    localparam SCHED_DATA_BITS = 48;
     localparam SCHED_DATA_ACCID_L = 0; 
     localparam SCHED_DATA_COUNT_L = 8;
     localparam SCHED_DATA_TASK_TYPE_L = 16;
-    localparam SCHED_DATA_TASK_TYPE_H = 49;
+    localparam SCHED_DATA_TASK_TYPE_H = 47;
+
+    //Scheduler module
+    localparam CMD_NEWTASK_ARCHBITS_FPGA_B = 32; //Bit idx of FPGA architecture bit in New Task Command
+    localparam CMD_NEWTASK_ARCHBITS_SMP_B = 33; //Bit ifx of SMP architecture bit in New Task Command
+    localparam SCHED_ARCHBITS_BITS = 2;
+    localparam CMD_NEWTASK_ARCHBITS_L = 32; //Low bit idx of Arch bitmask field in New task command
+    localparam CMD_NEWTASK_ARCHBITS_H = 33; //High bit idx of ^
+    localparam SCHED_TASKTYPE_BITS = 32;
+    localparam CMD_NEWTASK_TASKTYPE_L = 0; //Low bit idx of TaskType field in New task command
+    localparam CMD_NEWTASK_TASKTYPE_H = 31; //High bit idx of ^
+    localparam SCHED_INSNUM_BITS = 8;
+    localparam SCHED_INSNUM_ANY = 8'hFF; //Value of InstanceNum field when a task can run in any instance
+    localparam CMD_NEWTASK_INSNUM_L = 40; //Low bit idx of InstanceNum field in New Task command
+    localparam CMD_NEWTASK_INSNUM_H = 47; //High bit idx of ^
 
     //Lock module
     localparam LOCK_ID_BITS = 8;
