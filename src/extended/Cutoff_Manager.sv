@@ -28,7 +28,7 @@ module Cutoff_Manager #(
     input [63:0] inStream_tdata,
     input inStream_tlast,
     input [ACC_BITS-1:0] inStream_tid,
-    input [4:0] inStream_tdest,
+    input [2:0] inStream_tdest,
     //Scheduler interface
     output sched_inStream_tvalid,
     input sched_inStream_tready,

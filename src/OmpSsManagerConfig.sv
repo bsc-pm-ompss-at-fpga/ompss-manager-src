@@ -60,10 +60,10 @@ package OmpSsManager;
     localparam ACK_OK_CODE = 8'h01;
     localparam ACK_FINAL_CODE = 8'h02;
 
-    localparam HWR_DEPS_ID = 5'h12;
-    localparam HWR_SCHED_ID = 5'h13;
-    localparam HWR_TASKWAIT_ID = 5'h14;
-    localparam HWR_LOCK_ID = 5'h15;
+    localparam HWR_LOCK_ID = 3'h1;
+    localparam HWR_DEPS_ID = 3'h2;
+    localparam HWR_SCHED_ID = 3'h3;
+    localparam HWR_TASKWAIT_ID = 3'h4;
 
     //Scheduler data mem struct
     localparam SCHED_DATA_BITS = 48;

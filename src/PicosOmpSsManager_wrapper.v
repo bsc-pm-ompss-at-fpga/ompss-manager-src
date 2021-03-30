@@ -46,7 +46,7 @@ module PicosOmpSsManager_wrapper #(
     input  spawn_in_tvalid,
     output spawn_in_tready,
     input  [$clog2(MAX_ACCS)-1:0] spawn_in_tid,
-    input  [4:0] spawn_in_tdest, //NOTE: For the moment I leave it at 5 bits, but this could be less
+    input  [2:0] spawn_in_tdest,
     input  [63:0] spawn_in_tdata,
     input  spawn_in_tlast,
     //Task creation ack
