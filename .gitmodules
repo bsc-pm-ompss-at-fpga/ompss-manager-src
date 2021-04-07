@@ -1,0 +1,3 @@
+[submodule "src/extended/picos"]
+	path = src/extended/picos
+	url = https://pm.bsc.es/gitlab/picos/picos.git
