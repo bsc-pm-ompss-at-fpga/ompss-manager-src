@@ -27,7 +27,7 @@ import_files $root_dir/src
 
 if {$encrypt == 1} {
     foreach hdl_file [get_files] {
-        if {[file tail $hdl_file] != "${name_IP}_wrapper.v"} {
+        if {[file tail $hdl_file] != "${name_IP}_wrapper.v" && [file tail $hdl_file] != "config.sv"} {
             encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
         }
     }
