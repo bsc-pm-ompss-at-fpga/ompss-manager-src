@@ -25,23 +25,28 @@ create_project -force [string tolower $name_IP]
 
 import_files $root_dir/src
 
+if {$name_IP == "PicosOmpSsManager"} {
+   import_files $root_dir/picos/src
+}
+
 if {$encrypt == 1} {
     foreach hdl_file [get_files] {
-        if {[file tail $hdl_file] != "${name_IP}_wrapper.v"} {
+        if {[file tail $hdl_file] != "${name_IP}_wrapper.v" && [file tail $hdl_file] != "config.sv"} {
             encrypt -key $root_dir/vivado_keyfile_ver.txt -lang verilog $hdl_file
         }
     }
 }
 
-set_property ip_repo_paths "$root_dir/IPs" [current_project]
-update_ip_catalog
-
-foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
-    if { ![ file exists [ file rootname $IP ] ] } {
-        update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
-    }
-    import_files [file rootname $IP]/src
-}
+# NOTE: No zip IPs are used now, but they may be used again in the future
+#set_property ip_repo_paths "$root_dir/IPs" [current_project]
+#update_ip_catalog
+#
+#foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
+#    if { ![ file exists [ file rootname $IP ] ] } {
+#        update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
+#    }
+#    import_files [file rootname $IP]/src
+#}
 
 set_property top ${name_IP}_wrapper [current_fileset]
 update_compile_order -fileset sources_1

@@ -1,0 +1,3 @@
+[submodule "picos"]
+	path = picos
+	url = ../../picos/picos.git
