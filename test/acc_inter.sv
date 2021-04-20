@@ -18,17 +18,17 @@ module acc_inter #(
     localparam NUM_INTF = NUM_CREATORS > 0 ? NUM_CREATORS : 1;
 
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) cmdin_inter[1]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) cmdout_inter[1]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) cmdout_inter[1]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) accInStream[NUM_ACCS]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) accOutStream[NUM_ACCS]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) accOutStream[NUM_ACCS]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) taskwait_in_inter[1]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) taskwait_out_inter[1]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) taskwait_out_inter[1]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) taskwait_in_accel[NUM_INTF]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) taskwait_out_accel[NUM_INTF]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) taskwait_out_accel[NUM_INTF]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) spawn_in_inter[1]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) spawn_out_inter[1]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_out_inter[1]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) spawn_in_accel[NUM_INTF]();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) spawn_out_accel[NUM_INTF]();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_out_accel[NUM_INTF]();
     
     // This is used to support concurrent new task id creation. This id is the index of the newTasks array.
     wire [NUM_ACCS-1:0] create_id;
@@ -59,7 +59,7 @@ module acc_inter #(
         .HAS_ID(1),
         .ID_WIDTH(ACC_BITS),
         .HAS_DEST(1),
-        .DEST_WIDTH(5),
+        .DEST_WIDTH(3),
         .HAS_LAST(1)
     ) acc_outstream (
         .aclk(clk),
@@ -120,7 +120,7 @@ module acc_inter #(
             .HAS_ID(1),
             .ID_WIDTH(ACC_BITS),
             .HAS_DEST(1),
-            .DEST_WIDTH(5),
+            .DEST_WIDTH(3),
             .HAS_LAST(1)
         ) acc_taskwait_out (
             .aclk(clk),
@@ -136,7 +136,7 @@ module acc_inter #(
             .HAS_ID(1),
             .ID_WIDTH(ACC_BITS),
             .HAS_DEST(1),
-            .DEST_WIDTH(5),
+            .DEST_WIDTH(3),
             .HAS_LAST(1)
         ) acc_spawn_out (
             .aclk(clk),
