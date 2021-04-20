@@ -33,7 +33,7 @@ module Scheduler_parse_bitinfo #(
 
     import OmpSsManager::*;
     localparam ACC_BITS = $clog2(MAX_ACCS);
-    localparam OFFSET_BITS = $clog2(9 + MAX_ACC_TYPES*12); //9 header words + 12 words per task type
+    localparam OFFSET_BITS = $clog2(9 + MAX_ACC_TYPES*15); //9 header words + 15 words per task type
 
     typedef enum bit [3:0] {
         START,
