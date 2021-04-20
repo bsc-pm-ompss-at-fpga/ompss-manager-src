@@ -221,15 +221,16 @@ module axis_switch
             end
             
         end else begin
-        
-            int k;
-            always_comb begin
-                s_reg_ready[i] = 0;
-                for (k = 0; k < NMASTERS; k = k+1) begin
-                    s_reg_ready[i] = s_reg_ready[i] | s_fil_ready[k*NSLAVES + i];
-                end
+            
+            wire [NMASTERS-1:0] s_fil_ready_serial;
+            
+            genvar j;
+            for (j = 0; j < NMASTERS; j = j+1) begin
+                assign s_fil_ready_serial[j] = s_fil_ready[j*NSLAVES + i];
             end
             
+            assign s_reg_ready[i] = |s_fil_ready_serial;
+             
         end
     
     end

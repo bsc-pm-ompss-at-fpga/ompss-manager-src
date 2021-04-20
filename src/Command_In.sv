@@ -122,6 +122,7 @@ module Command_In #(
         .intCmdInQueue_we(copy_opt_intCmdInQueue_we),
         .intCmdInQueue_dout(intCmdInQueue_dout),
         .intCmdInQueue_din(copy_opt_intCmdInQueue_din),
+        .num_args(num_args),
         .start(copy_opt_start),
         .finished(copy_opt_finished),
         .first_idx(first_idx),
@@ -151,7 +152,7 @@ module Command_In #(
         cmdin_queue_en = 0;
         cmdin_queue_we = 0;
         cmdin_queue_addr[3 + SUBQUEUE_BITS-1:3] = cmd_in_idx;
-        cmdin_queue_din = 64'dX;
+        cmdin_queue_din = 64'd0;
         cmdin_queue_din[ENTRY_VALID_BYTE_OFFSET+7:ENTRY_VALID_BYTE_OFFSET] = 0;
 
         intCmdInQueue_en = 0;
@@ -259,7 +260,7 @@ module Command_In #(
             end
 
             GET_QUEUE_IDX: begin
-                if (MAX_ACCS & (MAX_ACCS-1) == MAX_ACCS-1) begin //Power of 2
+                if (MAX_ACCS & (MAX_ACCS-1) == 0) begin //Power of 2
                     cmd_in_acc_id <= cmd_in_acc_id+1;
                 end else begin
                     if (cmd_in_acc_id == MAX_ACCS-1) begin
@@ -323,8 +324,9 @@ module Command_In #(
             end
 
             CHECK_NEXT_CMD: begin
-                //If the cmd is setup inst, argument flag optimization is not necessary
-                if (cmd_type != 2'd1 && (!queue_select && cmdin_queue_dout[ENTRY_VALID_OFFSET] || queue_select && intCmdInQueue_dout[ENTRY_VALID_OFFSET])) begin
+                //If any cmd is setup inst, argument flag optimization is not necessary
+                if (cmd_type != 2'd1 && ((!queue_select && cmdin_queue_dout[ENTRY_VALID_OFFSET] && cmdin_queue_dout[CMD_TYPE_L] != 0)
+                                       || (queue_select && intCmdInQueue_dout[ENTRY_VALID_OFFSET] && intCmdInQueue_dout[CMD_TYPE_L] != 0))) begin
                     state <= WAIT_COPY_OPT;
                     copy_opt_start <= 1;
                 end else begin

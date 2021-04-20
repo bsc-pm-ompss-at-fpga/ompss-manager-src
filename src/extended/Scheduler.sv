@@ -163,6 +163,7 @@ module Scheduler #(
     );
 
     Scheduler_parse_bitinfo #(
+        .MAX_ACCS(MAX_ACCS),
         .MAX_ACC_TYPES(MAX_ACC_TYPES),
         .SCHED_DATA_BITS(SCHED_DATA_BITS)
     ) bitinfo_parser (
@@ -273,7 +274,7 @@ module Scheduler #(
                 intCmdInQueue_din[ENTRY_VALID_OFFSET] = 1;
                 intCmdInQueue_din[DESTID_H:DESTID_L] = 8'h11;
                 intCmdInQueue_din[COMPF_H:COMPF_L] = 8'h01;
-                intCmdInQueue_din[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET] = num_args;
+                intCmdInQueue_din[NUM_ARGS_OFFSET +: 8] = {4'd0, num_args};
                 intCmdInQueue_din[CMD_TYPE_L+7:CMD_TYPE_L] = 8'h1;
             end
 
@@ -305,6 +306,10 @@ module Scheduler #(
         case (state)
 
             SCHED_READ_HEADER_1: begin
+                int i;
+                for (i = 0; i < 15; i = i+1) begin
+                    bufferArgFlags[i] <= 2'b11;
+                end
                 count_cops <= 0;
                 count_args <= 1;
                 srcAccID <= inStream_TID;
@@ -476,7 +481,7 @@ module Scheduler #(
 
             //[ size | padding | arg_idx | flags ]
             SCHED_READ_COPS_2: begin
-                cur_flag <= inStream_TDATA[1:0] != 2'd0 ? inStream_TDATA[1:0] : DEFAULT_ARG_FLAGS;
+                cur_flag <= inStream_TDATA[1:0];
                 arg_flag_idx <= inStream_TDATA[11:8];
                 if (inStream_TVALID) begin
                     count_cops <= count_cops + 1;

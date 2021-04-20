@@ -31,6 +31,7 @@ module Command_In_copy_opt #(
     output logic [63:0] intCmdInQueue_din,
     input  [63:0] intCmdInQueue_dout,
     //Other signals
+    input [3:0] num_args,
     input start,
     output reg finished,
     input [SUBQUEUE_BITS-1:0] first_idx,
@@ -148,7 +149,11 @@ module Command_In_copy_opt #(
                 idx <= first_idx + (cmd_type == 0 ? 4 : 5);
                 cmd_next_idx <= first_next_idx + (cmd_type == 0 ? 4 : 5);
                 if (start) begin
-                    state <= READ_ARG_0;
+                    if (num_args > 0) begin
+                        state <= READ_ARG_0;
+                    end else begin
+                        finished <= 1;
+                    end
                 end
             end
 
