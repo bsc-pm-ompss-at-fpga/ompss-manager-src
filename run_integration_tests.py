@@ -72,11 +72,53 @@ class ArgParser:
 
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('-w', '--no_warn', help='treat warnings as errors', action='store_true', default=False)
-        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run', default=['extended/Lock', 'extended/Scheduler', 'extended/Scheduler_spawnout'])
+        self.parser.add_argument('--conf_seed', help='Configuration seed used to reproduce a test', type=int, default=0)
+        self.parser.add_argument('--repeat_seed', help='Repetition seed used to reproduce a test', type=int, default=0)
+        self.parser.add_argument('--task_creation', help='Use task creation for the test that is going to be reproduced', type=int)
+        self.parser.add_argument('--hwruntime', help='Hwruntime for the test that is going to be reproduced', choices=['POM', 'SOM'])
 
     def parse_args(self):
         args = self.parser.parse_args()
         return args
+
+
+def exec_integration_test(num_confs, repeats, task_creation, max_commands, reproduce_conf_seed, reproduce_repeat_seed, hwruntime):
+    err = False
+    warn = False
+    msg.info('Running integration test with {} configurations, {} repetitions, {}, {} max commands, {}'.format(num_confs, repeats, 'task creation' if task_creation else 'no task creation', max_commands, hwruntime))
+    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
+                             + os.getcwd() + '/scripts/run_integration_test.tcl -tclargs '
+                             + os.path.abspath(os.getcwd()) + ' ' 
+                             + str(num_confs) + ' '
+                             + str(repeats) + ' '
+                             + str(task_creation) + ' '
+                             + str(max_commands) + ' '
+                             + str(reproduce_conf_seed) + ' '
+                             + str(reproduce_repeat_seed) + ' '
+                             + hwruntime,
+                             cwd=prj_path,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, shell=True)
+
+    for line in iter(p.stdout.readline, b''):
+        line = line.decode('utf-8')
+        line_casefold = line.casefold()
+        if line_casefold.find('error') != -1:
+            err = True                                       # timescale warning code                        module 'glbl' does not have a parameter named
+        elif line_casefold.find('warning') != -1 and line.find('XSIM 43-4099') == -1 and line_casefold.find("module 'glbl'") == -1:
+           warn = True
+        sys.stdout.writeVerbose(line)
+
+    retval = p.wait()
+    if retval or err:
+        msg.error('Test failed')
+    elif args.no_warn and warn:
+        msg.error('Test failed due to warning')
+    elif warn:
+        msg.success('Test ok (but there are some warnings)')
+    else:
+        msg.success('Test ok')
+
 
 msg = Messages()
 parser = ArgParser()
@@ -90,38 +132,13 @@ prj_path = os.getcwd() + '/test_projects'
 if not os.path.exists(prj_path):
     os.makedirs(prj_path)
 
-for full_ip_name in args.ip:
-    msg.info('Running test for ' + full_ip_name + ' IP')
-    ip_name = os.path.basename(full_ip_name)
-
-    err = False
-    warn = False
-    p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                         + os.getcwd() + '/scripts/run_test.tcl -tclargs '
-                         + ip_name + ' ' 
-                         + full_ip_name + ' '
-                         + os.path.abspath(os.getcwd()),
-                         cwd=prj_path,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, shell=True)
-
-    for line in iter(p.stdout.readline, b''):
-        line = line.decode('utf-8')
-        line_casefold = line.casefold()
-        if line_casefold.find('error') != -1:
-            err = True
-        elif line_casefold.find('warning') != -1 and line_casefold.find('has a timescale but') == -1:
-            warn = True
-        sys.stdout.writeVerbose(line)
-
-    retval = p.wait()
-    if retval or err:
-        msg.error('Test failed')
-    elif args.no_warn and warn:
-        msg.error('Test failed due to warning')
-    elif warn:
-        msg.success('Test ok (but there are some warnings)')
-    else:
-        msg.success('Test ok')
-
+if args.conf_seed != 0:
+    exec_integration_test(1, 1, args.task_creation, 1000, args.conf_seed, args.repeat_seed, args.hwruntime)
+else:
+    # No task creation POM
+    exec_integration_test(10, 5, 0, 1000, 0, 0, 'POM')
+    # Task creation with multiple levels of nesting POM
+    exec_integration_test(10, 10, 1, 1000, 0, 0, 'POM')
+    # Task creation with multiple levels of nesting SOM
+    exec_integration_test(5, 5, 1, 1000, 0, 0, 'SOM')
 

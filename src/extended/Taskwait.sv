@@ -63,6 +63,7 @@ module Taskwait #(
     reg [31:0] components;
     reg [31:0] tw_info_components;
     reg [31:0] result_components;
+    reg [31:0] tw_info_din_components;
     reg [ACC_BITS-1:0] acc_id;
     reg [ACC_BITS-1:0] inStream_tid_r;
     reg [63:0] task_id;
@@ -89,10 +90,10 @@ module Taskwait #(
         inStream_TREADY = 0;
 
         twInfo_en = update_entry;
-        twInfo_din = 112'dX;
+        twInfo_din = 112'd0;
         twInfo_din[TW_INFO_VALID_ENTRY_B] = tw_info_valid;
         twInfo_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
-        twInfo_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = result_components;
+        twInfo_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = tw_info_din_components;
         twInfo_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = task_id;
 
         case (state)
@@ -118,10 +119,19 @@ module Taskwait #(
 
         tw_info_task_id <= twInfo_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L];
         tw_info_valid <= twInfo_dout[TW_INFO_VALID_ENTRY_B];
-        if (!twInfo_dout[TW_INFO_VALID_ENTRY_B]) begin
-            tw_info_components <= 0;
+        tw_info_components <= twInfo_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L];
+        if (_type) begin
+            if (task_id_not_found) begin
+                tw_info_din_components <= 0-components;
+            end else begin
+                tw_info_din_components <= result_components;
+            end
         end else begin
-            tw_info_components <= twInfo_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L];
+            if (task_id_not_found) begin
+                tw_info_din_components <= 1;
+            end else begin
+                tw_info_din_components <= result_components;
+            end
         end
         if (_type) begin
             result_components <= tw_info_components - components;
@@ -179,17 +189,24 @@ module Taskwait #(
                     acc_id <= inStream_tid_r;
                 end
                 if (task_id_not_found) begin
+                    tw_info_valid <= 1;
                     count <= not_valid_idx;
                 end else begin
+                    tw_info_valid <= result_components != 0;
                     count <= prev_count;
                 end
-                update_entry <= 1;
-                if (result_components == 0) begin
-                    tw_info_valid <= 0;
-                    state <= WAKEUP_ACC;
+                // If an accelerator asks for a taskwait without creating any tasks, there's no need to allocate
+                // memory and it can be waken up immediately
+                if (task_id_not_found && _type) begin
+                    update_entry <= components != 0;
+                    state <= components != 0 ? READ_HEADER : WAKEUP_ACC;
                 end else begin
-                    tw_info_valid <= 1;
-                    state <= READ_HEADER;
+                    update_entry <= 1;
+                    if (!task_id_not_found && result_components == 0) begin
+                        state <= WAKEUP_ACC;
+                    end else begin
+                        state <= READ_HEADER;
+                    end
                 end
             end
 

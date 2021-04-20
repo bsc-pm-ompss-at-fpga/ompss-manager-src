@@ -99,7 +99,7 @@ module dual_port_mem_wrapper #(
     
     if (!SINGLE_PORT && MODE_B == "WRITE_FIRST") begin
         
-        always @(posedge clkA) begin
+        always @(posedge clkB) begin
             if (enB) begin
                 if (weB) begin
                     mem[addrB] <= dinB;

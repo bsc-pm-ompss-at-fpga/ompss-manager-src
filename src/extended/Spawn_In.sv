@@ -65,7 +65,7 @@ module Spawn_In #(
     assign spawnin_queue_addr = {{29-QUEUE_BITS{1'b0}}, spawnin_queue_useful_addr, 3'd0};
     assign spawnin_queue_clk = clk;
     assign spawnin_queue_rst = 0;
-    assign spawnin_queue_din[63:56] = 0;
+    assign spawnin_queue_din = 64'd0;
     assign spawnin_queue_en = 1;
 
     assign next_rIdx = rIdx+1;
