@@ -33,7 +33,7 @@ module acc_sim #(
     assign inStream.ready = state == IDLE || state == READ_HWINS_ADDR || state == READ_TID || state == READ_PTID || state == READ_ARGS;
     assign outStream.valid = state == SEND_COMMAND || state == SEND_TID || state == SEND_PTID;
     assign outStream.last = state == SEND_PTID;
-    assign outStream.dest = 5'h11;
+    assign outStream.dest = HWR_CMDOUT_ID;
     assign outStream.data = outPort;
     assign outStream.id = ID;
     

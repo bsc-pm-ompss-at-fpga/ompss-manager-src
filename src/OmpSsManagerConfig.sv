@@ -60,6 +60,8 @@ package OmpSsManager;
     localparam ACK_OK_CODE = 8'h01;
     localparam ACK_FINAL_CODE = 8'h02;
 
+    localparam HWR_CMDOUT_ID_BYTE = 8'h0;
+    localparam HWR_CMDOUT_ID = 3'h0;
     localparam HWR_LOCK_ID = 3'h1;
     localparam HWR_DEPS_ID = 3'h2;
     localparam HWR_SCHED_ID = 3'h3;
