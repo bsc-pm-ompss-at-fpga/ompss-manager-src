@@ -29,6 +29,7 @@ package OmpSsManager;
     localparam TASK_SEQ_ID_H = 63;
 
     //Cmd codes
+    localparam EXEC_TASK_CODE_BYTE = 8'h1;
     localparam EXEC_TASK_CODE = 4'h1;
     localparam SETUP_HW_INST_CODE = 4'h2;
     localparam EXEC_PERI_TASK_CODE = 4'h5;
