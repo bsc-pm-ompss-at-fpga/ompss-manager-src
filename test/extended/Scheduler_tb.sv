@@ -128,6 +128,8 @@ module Scheduler_tb;
     localparam SPAWNOUT_QUEUE_LEN = 1024;
     localparam SCHED_DATA_BITS = 48;
 
+    import OmpSsManager::*;
+
     logic clk;
     logic rstn;
     //Internal command queue
