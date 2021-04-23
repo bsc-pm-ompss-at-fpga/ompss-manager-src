@@ -126,12 +126,12 @@ module cmdin_sim #(
                 cmdinPort.din[ENTRY_VALID_BYTE_OFFSET +: 8] = 8'h80;
                 case (commands[cmd_idx].code)
                     EXEC_TASK_CODE: begin
-                        cmdinPort.din[DESTID_H:DESTID_L] = 8'h11;
+                        cmdinPort.din[DESTID_H:DESTID_L] = HWR_CMDOUT_ID_BYTE;
                         cmdinPort.din[COMPF_H:COMPF_L] = commands[cmd_idx].comp;
                         cmdinPort.din[NUM_ARGS_OFFSET +: 8] = commands[cmd_idx].nArgs;
                     end
                     EXEC_PERI_TASK_CODE: begin
-                        cmdinPort.din[DESTID_H:DESTID_L] = 8'h11;
+                        cmdinPort.din[DESTID_H:DESTID_L] = HWR_CMDOUT_ID_BYTE;
                         cmdinPort.din[COMPF_H:COMPF_L] = commands[cmd_idx].comp;
                         cmdinPort.din[NUM_ARGS_OFFSET +: 8] = commands[cmd_idx].nArgs;
                     end

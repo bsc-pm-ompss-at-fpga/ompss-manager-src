@@ -51,7 +51,7 @@ module cmdin_acc_check #(
                            cmdin.data[CMD_TYPE_H:CMD_TYPE_L] == SETUP_HW_INST_CODE) else begin
                         $error("Invalid command type in cmdin acc interconnection"); $fatal;
                     end
-                    assert(cmdin.data[CMD_TYPE_H:CMD_TYPE_L] == SETUP_HW_INST_CODE || cmdin.data[DESTID_H:DESTID_L] == 8'h11) else begin
+                    assert(cmdin.data[CMD_TYPE_H:CMD_TYPE_L] == SETUP_HW_INST_CODE || cmdin.data[DESTID_H:DESTID_L] == HWR_CMDOUT_ID_BYTE) else begin
                         $error("Invalid dest id in cmdin acc interconnection"); $fatal;
                     end
                     argIdx = 0;

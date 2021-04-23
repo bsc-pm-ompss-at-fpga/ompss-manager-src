@@ -272,7 +272,7 @@ module Scheduler #(
                 intCmdInQueue_en = 1;
                 intCmdInQueue_we = 1;
                 intCmdInQueue_din[ENTRY_VALID_OFFSET] = 1;
-                intCmdInQueue_din[DESTID_H:DESTID_L] = 8'h11;
+                intCmdInQueue_din[DESTID_H:DESTID_L] = HWR_CMDOUT_ID_BYTE;
                 intCmdInQueue_din[COMPF_H:COMPF_L] = 8'h01;
                 intCmdInQueue_din[NUM_ARGS_OFFSET +: 8] = {4'd0, num_args};
                 intCmdInQueue_din[CMD_TYPE_L+7:CMD_TYPE_L] = 8'h1;

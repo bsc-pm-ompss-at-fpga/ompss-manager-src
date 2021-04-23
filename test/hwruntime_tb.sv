@@ -149,11 +149,11 @@ module hwruntime_tb #(
     MemoryPort32 #(.WIDTH(64)) spawninPortA();
     MemoryPort32 #(.WIDTH(64)) spawnoutPortA();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) cmdin();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) cmdout();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) cmdout();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) spawn_out();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) spawn_in();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_in();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) taskwait_out();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(5)) taskwait_in();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) taskwait_in();
     int tasktype, numinstances;
 
     initial begin
@@ -358,7 +358,7 @@ module hwruntime_tb #(
     wire spawn_in_tvalid;
     wire spawn_in_tready;
     wire [ACC_BITS-1:0] spawn_in_tid;
-    wire [4:0] spawn_in_tdest;
+    wire [2:0] spawn_in_tdest;
     wire [63:0] spawn_in_tdata;
     wire spawn_in_tlast;
     wire spawn_out_tvalid;
