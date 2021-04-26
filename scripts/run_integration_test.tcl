@@ -108,30 +108,26 @@ for {set c 0} {$c < $num_confs} {incr c} {
    puts $fd $graph_str
    close $fd
 
-   set xtasks_str "type\t#ins\tname\tfreq\n"
+   set xtasks_bin_str ""
    set task_types {}
    set max_int [expr int(pow(2, 32))-1]
    for {set i 0} {$i < $ntypes} {incr i} {
       # FIXME: We should check that the task_type never repeats
       set task_type [expr int(rand()*$max_int)]
       lappend task_types $task_type
-      append xtasks_str [format "%019d\t%03d\t%32s%03d\n" $task_type [lindex $ninstances $i] "" 100]
+      set bin_word [expr [lindex $ninstances $i] | (($task_type & 0xFFFF) << 16)]
+      append xtasks_bin_str [format "%08X\n" $bin_word]
+      set bin_word [expr $task_type >> 16]
+      append xtasks_bin_str [format "%08X\n" $bin_word]
+      # 11 32-bit words per task type
+      append xtasks_bin_str [string repeat "00000000\n" 9]
+      puts [format "Acc type %d\tnum instances %d" $task_type [lindex $ninstances $i]]
    }
-   puts -nonewline $xtasks_str
 
    set bitInfo_coe "memory_initialization_radix=16;\nmemory_initialization_vector=\n"
-   append bitInfo_coe [format %08x 0]
-   append bitInfo_coe "\nFFFFFFFF\n"
-   append bitInfo_coe [format %08x $naccs]
-   append bitInfo_coe "\nFFFFFFFF\n"
-
-   for {set i 0} {$i < [string len $xtasks_str]} {incr i 4} {
-      foreach char [split [string reverse [string range $xtasks_str $i [expr $i+3]]] ""] {
-         append bitInfo_coe [format %02X [scan $char %c]]
-      }
-      append bitInfo_coe "\n"
-   }
-   append bitInfo_coe "FFFFFFFF\n;"
+   append bitInfo_coe [string repeat "00000000\n" 22]
+   append bitInfo_coe $xtasks_bin_str
+   append bitInfo_coe "FFFFFFFF;\n"
 
    set fd [open $prj_dir/bitinfo.coe w]
    puts $fd $bitInfo_coe
