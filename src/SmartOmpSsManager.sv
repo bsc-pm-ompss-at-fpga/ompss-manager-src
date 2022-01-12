@@ -23,7 +23,8 @@ module SmartOmpSsManager #(
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
     parameter EXTENDED_MODE = 0,
-    parameter LOCK_SUPPORT = 0
+    parameter LOCK_SUPPORT = 0,
+    parameter ENABLE_SPAWN_QUEUES = 1
 ) (
     //Clock and resets
     input  aclk,
@@ -252,7 +253,8 @@ module SmartOmpSsManager #(
             .MAX_ACCS(MAX_ACCS),
             .SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
             .MAX_ACC_TYPES(MAX_ACC_TYPES),
-            .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
+            .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+            .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
         ) Scheduler_I (
             .bitinfo_addr(bitinfo_addr),
             .bitinfo_clk(bitinfo_clk),
@@ -290,26 +292,38 @@ module SmartOmpSsManager #(
             .spawnout_queue_we(spawnout_queue_we)
         );
 
-        Spawn_In #(
-            .SPAWNIN_QUEUE_LEN(SPAWNIN_QUEUE_LEN)
-        ) Spawn_In_I (
-            .clk(aclk),
-            .outStream_TDATA(Spawn_In_outStream_tdata),
-            .outStream_TLAST(Spawn_In_outStream_tlast),
-            .outStream_TREADY(Spawn_In_outStream_tready),
-            .outStream_TVALID(Spawn_In_outStream_tvalid),
-            .picosFinishTask_TDATA(),
-            .picosFinishTask_TREADY(1'b0),
-            .picosFinishTask_TVALID(),
-            .rstn(managed_aresetn_sig),
-            .spawnin_queue_addr(spawnin_queue_addr),
-            .spawnin_queue_clk(spawnin_queue_clk),
-            .spawnin_queue_din(spawnin_queue_din),
-            .spawnin_queue_dout(spawnin_queue_dout),
-            .spawnin_queue_en(spawnin_queue_en),
-            .spawnin_queue_rst(spawnin_queue_rst),
-            .spawnin_queue_we(spawnin_queue_we)
-        );
+        if (ENABLE_SPAWN_QUEUES) begin
+            Spawn_In #(
+                .SPAWNIN_QUEUE_LEN(SPAWNIN_QUEUE_LEN)
+            ) Spawn_In_I (
+                .clk(aclk),
+                .outStream_TDATA(Spawn_In_outStream_tdata),
+                .outStream_TLAST(Spawn_In_outStream_tlast),
+                .outStream_TREADY(Spawn_In_outStream_tready),
+                .outStream_TVALID(Spawn_In_outStream_tvalid),
+                .picosFinishTask_TDATA(),
+                .picosFinishTask_TREADY(1'b0),
+                .picosFinishTask_TVALID(),
+                .rstn(managed_aresetn_sig),
+                .spawnin_queue_addr(spawnin_queue_addr),
+                .spawnin_queue_clk(spawnin_queue_clk),
+                .spawnin_queue_din(spawnin_queue_din),
+                .spawnin_queue_dout(spawnin_queue_dout),
+                .spawnin_queue_en(spawnin_queue_en),
+                .spawnin_queue_rst(spawnin_queue_rst),
+                .spawnin_queue_we(spawnin_queue_we)
+            );
+        end else begin
+            assign Spawn_In_outStream_tvalid = 1'b0;
+            assign Spawn_In_outStream_tdata = 64'd0;
+            assign Spawn_In_outStream_tlast = 1'b0;
+            assign spawnin_queue_addr = 32'd0;
+            assign spawnin_queue_clk = 1'b0;
+            assign spawnin_queue_din = 64'd0;
+            assign spawnin_queue_en = 1'b0;
+            assign spawnin_queue_rst = 1'b0;
+            assign spawnin_queue_we = 8'd0;
+        end
 
         Taskwait #(
             .ACC_BITS(ACC_BITS),
@@ -374,7 +388,7 @@ module SmartOmpSsManager #(
         );
 
         axis_switch_independent_interfaces #(
-            .NSLAVES(3),
+            .NSLAVES(ENABLE_SPAWN_QUEUES ? 3 : 2),
             .NMASTERS(1),
             .REG_PIPELINE_DEPTH(0),
             .SINGLE_ST(0),

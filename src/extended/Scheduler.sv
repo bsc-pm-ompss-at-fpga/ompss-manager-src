@@ -19,7 +19,8 @@ module Scheduler #(
     parameter SUBQUEUE_LEN = 64,
     parameter SUBQUEUE_BITS = $clog2(SUBQUEUE_LEN),
     parameter MAX_ACC_TYPES = 16,
-    parameter SPAWNOUT_QUEUE_LEN = 1024
+    parameter SPAWNOUT_QUEUE_LEN = 1024,
+    parameter ENABLE_SPAWN_QUEUES = 1
 ) (
     input  clk,
     input  rstn,
@@ -147,13 +148,28 @@ module Scheduler #(
     wire scheduleData_portB_en;
     wire [SCHED_DATA_BITS-1:0] scheduleData_portB_dout;
 
-    Scheduler_spawnout #(
-        .QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
-        .ARCHBITS_BITS(SCHED_ARCHBITS_BITS),
-        .TASKTYPE_BITS(SCHED_TASKTYPE_BITS)
-    ) sched_spawnout (
-        .*
-    );
+    assign spawnout_queue_rst = 1'b0;
+
+    if (ENABLE_SPAWN_QUEUES) begin
+        assign spawnout_queue_clk = clk;
+
+        Scheduler_spawnout #(
+            .QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+            .ARCHBITS_BITS(SCHED_ARCHBITS_BITS),
+            .TASKTYPE_BITS(SCHED_TASKTYPE_BITS)
+        ) sched_spawnout (
+            .*
+        );
+    end else begin
+        assign spawnout_queue_addr = 32'd0;
+        assign spawnout_queue_en = 1'b0;
+        assign spawnout_queue_we = 8'd0;
+        assign spawnout_queue_din = 64'd0;
+        assign spawnout_queue_clk = 1'b0;
+
+        assign inStream_spawnout_TREADY = 1'b0;
+        assign spawnout_ret = 2'd2;
+    end
 
     Scheduler_sched_info_mem #(
         .MAX_ACC_TYPES(MAX_ACC_TYPES),
@@ -176,9 +192,6 @@ module Scheduler #(
     assign intCmdInQueue_clk = clk;
 
     assign inStream_TREADY = inStream_main_TREADY | inStream_spawnout_TREADY;
-
-    assign spawnout_queue_rst = 0;
-    assign spawnout_queue_clk = clk;
 
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
     assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = accID;
@@ -351,7 +364,7 @@ module Scheduler #(
                 data_idx_d <= 0;
                 if (inStream_TVALID) begin
                     //If task is not an FPGA task or has deps forward to spawnOut queue
-                    if (inStream_TDATA[CMD_NEWTASK_ARCHBITS_FPGA_B] == 0 || num_deps != 0) begin
+                    if (ENABLE_SPAWN_QUEUES && (inStream_TDATA[CMD_NEWTASK_ARCHBITS_FPGA_B] == 0 || num_deps != 0)) begin
                         spawnout_state_start <= 1;
                         state <= SCHED_WAIT_SPAWNOUT;
                     end else begin
