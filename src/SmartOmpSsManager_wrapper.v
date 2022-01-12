@@ -22,7 +22,8 @@ module SmartOmpSsManager_wrapper #(
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
     parameter EXTENDED_MODE = 0,
-    parameter LOCK_SUPPORT = 0
+    parameter LOCK_SUPPORT = 0,
+    parameter ENABLE_SPAWN_QUEUES = 1
 ) (
     //Clock and resets
     input  aclk,
@@ -126,7 +127,8 @@ module SmartOmpSsManager_wrapper #(
         .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN),
         .MAX_ACC_TYPES(MAX_ACC_TYPES),
         .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
-        .MAX_ACCS(MAX_ACCS)
+        .MAX_ACCS(MAX_ACCS),
+        .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
     ) SmartOmpSsManager_I (
         .aclk(aclk),
         .bitinfo_addr(bitinfo_addr),

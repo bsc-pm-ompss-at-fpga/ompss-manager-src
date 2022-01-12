@@ -21,12 +21,18 @@ variable encrypt [lindex $argv 5]
 variable vivado_version [regsub -all {\.} [version -short] {_}]
 
 # Create project
-create_project -force [string tolower $name_IP]
+create_project -force [string tolower $name_IP] $prj_dir/Vivado
 
 import_files $root_dir/src
 
 if {$name_IP == "PicosOmpSsManager"} {
    import_files $root_dir/picos/src
+   remove_files {SmartOmpSsManager_wrapper.v SmartOmpSsManager.sv}
+} elseif {$name_IP == "SmartOmpSsManager"} {
+   remove_files {PicosOmpSsManager_wrapper.v PicosOmpSsManager.sv}
+} else {
+   puts "ERROR: name of the IP $name_IP unrecognized"
+   exit 1
 }
 
 if {$encrypt == 1} {
@@ -37,23 +43,12 @@ if {$encrypt == 1} {
     }
 }
 
-# NOTE: No zip IPs are used now, but they may be used again in the future
-#set_property ip_repo_paths "$root_dir/IPs" [current_project]
-#update_ip_catalog
-#
-#foreach {IP} [glob -nocomplain $root_dir/IPs/*.zip] {
-#    if { ![ file exists [ file rootname $IP ] ] } {
-#        update_ip_catalog -add_ip $IP -repo_path $root_dir/IPs
-#    }
-#    import_files [file rootname $IP]/src
-#}
-
 set_property top ${name_IP}_wrapper [current_fileset]
-update_compile_order -fileset sources_1
 
-ipx::package_project -root_dir $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP -vendor bsc -library ompss -taxonomy /BSC/OmpSs -generated_files -import_files -set_current false
-ipx::unload_core $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/component.xml
-ipx::edit_ip_in_project -upgrade true -name tmp_edit_project -directory $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/component.xml
+# Do not use . in the path because, at least in my computer, Vivado does not copy the sources when doing the package_project
+set packager_dir $prj_dir/IP_packager/${name_IP}_[string map {. _} $current_version]_${vivado_version}_IP
+
+ipx::package_project -root_dir $packager_dir -vendor bsc -library ompss -taxonomy /BSC/OmpSs -set_current true -force -force_update_compile_order -import_files
 
 set_property name [string tolower $name_IP] [ipx::current_core]
 set_property version $current_version [ipx::current_core]
@@ -75,12 +70,9 @@ if {$name_IP == "SmartOmpSsManager"} {
     set_property widget {textEdit} [ipgui::get_guiparamspec -name "PICOS_ARGS" -component [ipx::current_core] ]
     ipgui::move_param -component [ipx::current_core] -order 8 [ipgui::get_guiparamspec -name "PICOS_ARGS" -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core]]
 }
-file copy -force $root_dir/${hwruntime_short}_logo.png $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/
-ipx::add_file $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/src/${hwruntime_short}_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
-set_property type LOGO [ipx::get_files src/${hwruntime_short}_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
-
-update_compile_order -fileset sources_1
-ipx::merge_project_changes hdl_parameters [ipx::current_core]
+file copy -force $root_dir/${hwruntime_short}_logo.png $packager_dir
+ipx::add_file $packager_dir/${hwruntime_short}_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
+set_property type LOGO [ipx::get_files ${hwruntime_short}_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
 set_property widget {checkBox} [ipgui::get_guiparamspec -name "EXTENDED_MODE" -component [ipx::current_core] ]
 set_property value false [ipx::get_user_parameters EXTENDED_MODE -of_objects [ipx::current_core]]
@@ -93,6 +85,13 @@ set_property value false [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx
 set_property value false [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
+
+set_property widget {checkBox} [ipgui::get_guiparamspec -name "ENABLE_SPAWN_QUEUES" -component [ipx::current_core] ]
+set_property value true [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property value true [ipx::get_hdl_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_hdl_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "MAX_ACCS" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACCS -of_objects [ipx::current_core]]
@@ -130,14 +129,20 @@ set_property value_validation_type range_long [ipx::get_user_parameters SPAWNIN_
 set_property value_validation_range_minimum 4 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true && $ENABLE_SPAWN_QUEUES == true} [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "SPAWNOUT_QUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 4 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr {expr $EXTENDED_MODE == true} [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {expr $EXTENDED_MODE == true && $ENABLE_SPAWN_QUEUES == true} [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
+
+ipx::add_bus_parameter POLARITY [ipx::get_bus_interfaces managed_aresetn -of_objects [ipx::current_core]]
+set_property VALUE ACTIVE_LOW [ipx::get_bus_parameters POLARITY -of_objects [ipx::get_bus_interfaces managed_aresetn -of_objects [ipx::current_core]]]
+
+ipx::add_bus_parameter POLARITY [ipx::get_bus_interfaces ps_rst -of_objects [ipx::current_core]]
+set_property VALUE ACTIVE_HIGH [ipx::get_bus_parameters POLARITY -of_objects [ipx::get_bus_interfaces ps_rst -of_objects [ipx::current_core]]]
 
 ipx::associate_bus_interfaces -busif cmdin_out -clock aclk [ipx::current_core]
 ipx::associate_bus_interfaces -busif cmdout_in -clock aclk [ipx::current_core]
@@ -151,7 +156,6 @@ ipx::associate_bus_interfaces -clock aclk -reset managed_aresetn [ipx::current_c
 ipx::associate_bus_interfaces -clock aclk -reset interconnect_aresetn [ipx::current_core]
 ipx::associate_bus_interfaces -clock aclk -reset peripheral_aresetn [ipx::current_core]
 ipx::associate_bus_interfaces -clock aclk -reset ps_rst [ipx::current_core]
-ipx::add_bus_parameter POLARITY [ipx::get_bus_interfaces ps_rst -of_objects [ipx::current_core]]
 
 set bram_list {cmdin_queue cmdout_queue bitinfo spawnin_queue spawnout_queue}
 
@@ -174,22 +178,11 @@ set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces
 set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces taskwait_in -of_objects [ipx::current_core]]
 set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces taskwait_out -of_objects [ipx::current_core]]
 set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces bitinfo -of_objects [ipx::current_core]]
-set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces spawnin_queue -of_objects [ipx::current_core]]
-set_property enablement_dependency {$EXTENDED_MODE = 1} [ipx::get_bus_interfaces spawnout_queue -of_objects [ipx::current_core]]
+set_property enablement_dependency {$EXTENDED_MODE = 1 and $ENABLE_SPAWN_QUEUES = 1} [ipx::get_bus_interfaces spawnin_queue -of_objects [ipx::current_core]]
+set_property enablement_dependency {$EXTENDED_MODE = 1 and $ENABLE_SPAWN_QUEUES = 1} [ipx::get_bus_interfaces spawnout_queue -of_objects [ipx::current_core]]
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]
-ipx::create_xgui_files [ipx::current_core]
-ipx::update_checksums [ipx::current_core]
-ipx::save_core [ipx::current_core]
-ipx::check_integrity -quiet [ipx::current_core]
-ipx::archive_core $prj_dir/IP_packager/bsc_ompss_[string tolower $name_IP]_${current_version}.zip [ipx::current_core]
-
-set component_path $prj_dir/IP_packager/${name_IP}_${current_version}_${vivado_version}_IP/component.xml
-exec sed -i "s/<spirit:value spirit:id=\\\"BUSIFPARAM_VALUE.PS_RST.POLARITY\\\"\\\/>/<spirit:value spirit:id=\\\"BUSIFPARAM_VALUE.PS_RST.POLARITY\\\">ACTIVE_HIGH<\\\/spirit:value>/1" $component_path
-
-ipx::unload_core $component_path
-ipx::open_ipxact_file $component_path
 ipx::create_xgui_files [ipx::current_core]
 ipx::update_checksums [ipx::current_core]
 ipx::save_core [ipx::current_core]

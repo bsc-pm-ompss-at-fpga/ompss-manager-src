@@ -25,16 +25,16 @@ from distutils import spawn
 import xml.etree.cElementTree as cET
 
 SOM_MAJOR_VERSION = 4
-SOM_MINOR_VERSION = 5
+SOM_MINOR_VERSION = 6
 
 SOM_PREVIOUS_MAJOR_VERSION = 4
-SOM_PREVIOUS_MINOR_VERSION = 4
+SOM_PREVIOUS_MINOR_VERSION = 5
 
 POM_MAJOR_VERSION = 4
-POM_MINOR_VERSION = 7
+POM_MINOR_VERSION = 8
 
 POM_PREVIOUS_MAJOR_VERSION = 4
-POM_PREVIOUS_MINOR_VERSION = 6
+POM_PREVIOUS_MINOR_VERSION = 7
 
 class Logger(object):
     def __init__(self):
@@ -82,7 +82,6 @@ class ArgParser:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
         self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower)
-        self.parser.add_argument('-c', '--clock', help='FPGA clock frequency in MHz\n(def: \'100\')', type=int, default='100')
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('--skip_pom', help='skips the POM related parts', action='store_true', default=False)
         self.parser.add_argument('--skip_som', help='skips the SOM related parts', action='store_true', default=False)
