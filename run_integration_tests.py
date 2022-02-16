@@ -104,8 +104,8 @@ def exec_integration_test(num_confs, repeats, task_creation, max_commands, repro
         line = line.decode('utf-8')
         line_casefold = line.casefold()
         if line_casefold.find('error') != -1:
-            err = True                                       # timescale warning code                        module 'glbl' does not have a parameter named
-        elif line_casefold.find('warning') != -1 and line.find('XSIM 43-4099') == -1 and line_casefold.find("module 'glbl'") == -1:
+            err = True                               # timescale warning code            module 'glbl' does not have a parameter named
+        elif line_casefold.find('warning') != -1 and line.find('XSIM 43-4099') == -1 and line_casefold.find("module 'glbl'") == -1 and line.find("port 'clkB' is not connected on this instance") == -1:
            warn = True
         sys.stdout.writeVerbose(line)
 

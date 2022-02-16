@@ -159,8 +159,8 @@ for {set c 0} {$c < $num_confs} {incr c} {
       HWRUNTIME="$hwruntime" \
    ] [get_filesets sim_1]
 
-   launch_simulation -step Compile
-   launch_simulation -step Elaborate
+   launch_simulation -step compile
+   launch_simulation -step elaborate
 
    set seed 0
    for {set i 0} {$i < $repeat} {incr i} {
@@ -179,7 +179,7 @@ for {set c 0} {$c < $num_confs} {incr c} {
       puts "\[RUN TEST\]: Seed: $seed"
 
       set_property -name {xsim.simulate.xsim.more_options} -value [list -sv_seed $seed -testplusarg sim_seed=$seed] -objects [get_filesets sim_1]
-      launch_simulation -step Simulate
+      launch_simulation -step simulate
       run all
       close_sim
    }
