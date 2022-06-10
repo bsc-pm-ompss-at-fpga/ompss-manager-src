@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -167,7 +167,7 @@ module SmartOmpSsManager #(
     wire Taskwait_twInfo_we;
 
     assign managed_aresetn = managed_aresetn_sig;
-    assign managed_aresetn_sig = peripheral_aresetn & !ps_rst; 
+    assign managed_aresetn_sig = peripheral_aresetn & !ps_rst;
 
     Command_In #(
         .MAX_ACCS(MAX_ACCS),

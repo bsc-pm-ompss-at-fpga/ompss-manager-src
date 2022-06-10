@@ -42,10 +42,6 @@ set_property -name {xsim.compile.xvlog.more_options} -value [list \
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
-set_property source_mgmt_mode DisplayOnly [current_project]
-reorder_files -front [get_files hwruntime_tb.sv]
-reorder_files -front [get_files OmpSsManagerConfig.sv]
-
 for {set c 0} {$c < $num_confs} {incr c} {
    if {$reproduce_conf_seed == 0} {
       set seed [clock seconds]
@@ -61,6 +57,7 @@ for {set c 0} {$c < $num_confs} {incr c} {
    } else {
       set ncreators 0
    }
+
    set naccs [gen_ran_range [expr $ncreators+1] 32]
    set ntypes [gen_ran_range [expr $ncreators+1] $naccs]
 

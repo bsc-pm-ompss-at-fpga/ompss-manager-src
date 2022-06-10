@@ -9,11 +9,11 @@ module concurrent_id_creator #(
 );
 
     int idx;
-    
+
     initial begin
         idx = 0;
     end
-    
+
     always @(posedge clk) begin
         int i;
         for (i = 0; i < NUM_ACCS; i = i+1) begin
@@ -23,5 +23,5 @@ module concurrent_id_creator #(
             end
         end
     end
-    
+
 endmodule

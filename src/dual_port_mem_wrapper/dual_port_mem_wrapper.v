@@ -18,7 +18,7 @@ module dual_port_mem_wrapper #(
     input weA,
     input [WIDTH-1:0] dinA,
     output reg [WIDTH-1:0] doutA,
-    
+
     input clkB,
     input enB,
     input rstB,
@@ -27,11 +27,11 @@ module dual_port_mem_wrapper #(
     input [WIDTH-1:0] dinB,
     output reg [WIDTH-1:0] doutB
 );
-    
+
     reg[WIDTH-1:0] mem[0:SIZE-1];
-    
+
     integer j;
-    
+
     initial begin
         doutA = 0;
         doutB = 0;
@@ -43,9 +43,9 @@ module dual_port_mem_wrapper #(
             end
         end
     end
-    
+
     if (MODE_A == "READ_FIRST") begin
-    
+
         always @(posedge clkA) begin
             if (enA) begin
                 if (weA) begin
@@ -58,11 +58,11 @@ module dual_port_mem_wrapper #(
                 end
             end
         end
-        
+
     end
-    
+
     if (!SINGLE_PORT && MODE_B == "READ_FIRST") begin
-    
+
         always @(posedge clkB) begin
             if (enB) begin
                 if (weB) begin
@@ -75,11 +75,11 @@ module dual_port_mem_wrapper #(
                 end
             end
         end
-        
+
     end
-    
+
     if (MODE_A == "WRITE_FIRST") begin
-    
+
         always @(posedge clkA) begin
             if (enA) begin
                 if (weA) begin
@@ -94,11 +94,11 @@ module dual_port_mem_wrapper #(
                 end
             end
         end
-        
+
     end
-    
+
     if (!SINGLE_PORT && MODE_B == "WRITE_FIRST") begin
-        
+
         always @(posedge clkB) begin
             if (enB) begin
                 if (weB) begin
@@ -113,7 +113,7 @@ module dual_port_mem_wrapper #(
                 end
             end
         end
-        
+
     end
 
 endmodule

@@ -32,18 +32,18 @@ module cmdin_acc_check #(
     reg [63:0] ptid;
     int isAccTask;
     NewTask newTask;
-    
+
     initial begin
         int i, j;
         for (i = 0; i < NUM_ACCS; i = i+1) begin
             lastCmdIdx[i] = -1;
         end
     end
-    
+
     always @(posedge clk) begin
-    
+
         case (state)
-        
+
             HEADER: begin
                 if (cmdin.valid && cmdin.ready) begin
                     assert(cmdin.data[CMD_TYPE_H:CMD_TYPE_L] == EXEC_TASK_CODE ||
@@ -62,7 +62,7 @@ module cmdin_acc_check #(
                     state = TID;
                 end
             end
-            
+
             TID: begin
                 if (cmdin.valid && cmdin.ready) begin
                     tid = cmdin.data;
@@ -100,7 +100,7 @@ module cmdin_acc_check #(
                     end
                 end
             end
-            
+
             PTID: begin
                 if (cmdin.valid && cmdin.ready) begin
                     ptid = cmdin.data;
@@ -119,7 +119,7 @@ module cmdin_acc_check #(
                     end
                 end
             end
-            
+
             PERIOD_NREPETITIONS: begin
                 if (cmdin.valid && cmdin.ready) begin
                     assert(cmdin.data[63:32] == commands[idx].period) else begin
@@ -138,7 +138,7 @@ module cmdin_acc_check #(
                     end
                 end
             end
-            
+
             ARGFLAG: begin
                 if (cmdin.valid && cmdin.ready) begin
                     curFlag = cmdin.data[ARG_FLAG_H:ARG_FLAG_L];
@@ -148,7 +148,7 @@ module cmdin_acc_check #(
                     state = ARG;
                 end
             end
-            
+
             ARG: begin
                 reg [7:0] cmdFlag;
                 reg [7:0] lastFlag;
@@ -209,11 +209,11 @@ module cmdin_acc_check #(
                             lastFlag = 0;
                         end
                     end
-                    
+
                     assert(cmdin.data == cmdArg) else begin
                         $error("Invalid argument value"); $fatal;
                     end
-                    
+
                     if (argHasCopy) begin
                         //Copy out optimizations are applied with future commands, so if it is disabled it may be because of
                         //the original command or because it has been optimized
@@ -221,7 +221,7 @@ module cmdin_acc_check #(
                         assert(curFlag[5] == cmdFlag[5] || cmdFlag[5]) else begin
                             $error("Invalid output argument flags: curFlag %0d cmdFlag %0d", curFlag[5], cmdFlag[5]); $fatal;
                         end
-    
+
                         if (lastCmdIdx[cmdin.dest] != -1 && cmdin.data == lastArg) begin
                             assert(curFlag[4] == cmdFlag[4] || (!curFlag[4] && cmdFlag[4] && lastFlag[4])) else begin
                                 $error("Invalid in copy optimization, curFlag %d cmdFlag %d lastFlag %d", curFlag[4], cmdFlag[4], lastFlag[4]); $fatal;
@@ -253,13 +253,13 @@ module cmdin_acc_check #(
                     end
                 end
             end
-        
+
         endcase
-    
+
         if (rst) begin
             state = HEADER;
         end
-    
+
     end
 
 endmodule

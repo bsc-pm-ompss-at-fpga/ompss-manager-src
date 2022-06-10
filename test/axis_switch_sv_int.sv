@@ -31,7 +31,7 @@ module axis_switch_sv_int #(
     wire [NMASTERS*DEST_WIDTH-1:0] m_dest;
     wire [NMASTERS*ID_WIDTH-1:0] m_id;
     wire [NMASTERS-1:0] m_last;
-    
+
     genvar i;
     for (i = 0; i < NSLAVES; i = i+1) begin
         assign s_valid[i] = slaves[i].valid;
@@ -47,7 +47,7 @@ module axis_switch_sv_int #(
             assign s_last[i] = slaves[i].last;
         end
     end
-    
+
     for (i = 0; i < NMASTERS; i = i+1) begin
         assign masters[i].valid = m_valid[i];
         assign m_ready[i] = masters[i].ready;
@@ -62,7 +62,7 @@ module axis_switch_sv_int #(
             assign masters[i].last = m_last[i];
         end
     end
-    
+
     axis_switch_rrobin #(
         .NSLAVES(NSLAVES),
         .NMASTERS(NMASTERS),
@@ -79,5 +79,5 @@ module axis_switch_sv_int #(
     switch (
         .*
     );
-    
+
 endmodule

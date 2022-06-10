@@ -45,7 +45,7 @@ module acc_creator_sim #(
         SEND_PTID,
         READ_HWINS_ADDR
     } State_t;
-    
+
     State_t state;
     int count;
     reg [63:0] tid;
@@ -59,14 +59,14 @@ module acc_creator_sim #(
     int wait_time;
     int finalMode;
     NewTask newTask;
-    
+
     assign inStream.ready = state == IDLE || state == READ_HWINS_ADDR || state == READ_TID || state == READ_PTID || state == READ_ARGS;
     assign outStream.valid = state == SEND_COMMAND || state == SEND_TID || state == SEND_PTID;
     assign outStream.last = state == SEND_PTID;
     assign outStream.dest = HWR_CMDOUT_ID;
     assign outStream.data = outPort;
     assign outStream.id = ID;
-    
+
     assign spawn_in.ready = state == WAIT_ACK;
     assign spawn_out.id = ID;
     assign taskwait_out.valid = state == SEND_TASKWAIT_1 || state == SEND_TASKWAIT_2;
@@ -75,12 +75,12 @@ module acc_creator_sim #(
     assign taskwait_out.dest = HWR_TASKWAIT_ID;
     assign taskwait_out.last = state == SEND_TASKWAIT_2;
     assign taskwait_in.ready = state == WAIT_TASKWAIT;
-    
+
     assign create_id = state == CREATE_NTASK_IDX;
-    
+
     always_comb begin
         outPort = 64'hXXXXXXXXXXXXXXXX;
-        
+
         spawn_out.valid = 0;
         spawn_out.data = 64'hXXXXXXXXXXXXXXXX;
         spawn_out.dest = newTasks[new_task_idx].nDeps > 0 ? HWR_DEPS_ID : HWR_SCHED_ID;
@@ -89,19 +89,19 @@ module acc_creator_sim #(
         taskwait_out.data = 64'hXXXXXXXXXXXXXXXX;
 
         case (state)
-        
+
             SEND_COMMAND: begin
                 outPort[7:0] = 8'h03;
             end
-                    
+
             SEND_TID: begin
                 outPort = tid;
             end
-            
+
             SEND_PTID: begin
                 outPort = ptid;
             end
-            
+
             SEND_NTASK_HEADER: begin
                 spawn_out.valid = 1;
                 spawn_out.data[0] = 0;
@@ -110,12 +110,12 @@ module acc_creator_sim #(
                 spawn_out.data[NUM_COPS_OFFSET +: 8] = newTasks[new_task_idx].nCops;
                 spawn_out.data[TASK_SEQ_ID_H:TASK_SEQ_ID_L] = taskNum;
             end
-            
+
             SEND_NTASK_PTID: begin
                 spawn_out.valid = 1;
                 spawn_out.data = tid;
             end
-            
+
             SEND_NTASK_TTYPE: begin
                 spawn_out.valid = 1;
                 spawn_out.data[CMD_NEWTASK_TASKTYPE_H:CMD_NEWTASK_TASKTYPE_L] = newTasks[new_task_idx].taskType;
@@ -126,7 +126,7 @@ module acc_creator_sim #(
                     spawn_out.last = 1;
                 end
             end
-            
+
             SEND_NTASK_DEP: begin
                 spawn_out.valid = 1;
                 spawn_out.data = newTasks[new_task_idx].deps[idx];
@@ -134,19 +134,19 @@ module acc_creator_sim #(
                     spawn_out.last = 1;
                 end
             end
-            
+
             SEND_NTASK_COP1: begin
                 spawn_out.valid = 1;
                 spawn_out.data = newTasks[new_task_idx].copyAddr[idx];
             end
-            
+
             SEND_NTASK_COP2: begin
                 spawn_out.valid = 1;
                 spawn_out.data[7:0] = newTasks[new_task_idx].copyFlag[idx];
                 spawn_out.data[15:8] = newTasks[new_task_idx].copyArgIdx[idx];
                 spawn_out.data[63:32] = newTasks[new_task_idx].copySize[idx];
             end
-        
+
             SEND_NTASK_COP3: begin
                 spawn_out.valid = 1;
                 spawn_out.data[31:0] = newTasks[new_task_idx].copyOffset[idx];
@@ -155,7 +155,7 @@ module acc_creator_sim #(
                     spawn_out.last = 1;
                 end
             end
-            
+
             SEND_NTASK_ARG: begin
                 spawn_out.valid = 1;
                 spawn_out.data = newTasks[new_task_idx].args[idx];
@@ -163,25 +163,25 @@ module acc_creator_sim #(
                     spawn_out.last = 1;
                 end
             end
-            
+
             SEND_TASKWAIT_1: begin
                 taskwait_out.data[31:0] = taskNum;
                 taskwait_out.data[39:32] = 8'h01;
             end
-            
+
             SEND_TASKWAIT_2: begin
                 taskwait_out.data = tid;
             end
-                    
-            default: begin 
+
+            default: begin
             end
         endcase
     end
-    
+
     always_ff @(posedge clk) begin
-    
+
         case (state)
-        
+
             IDLE: begin
                 count <= 0;
                 if (inStream.valid) begin
@@ -195,13 +195,13 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             READ_HWINS_ADDR: begin
                 if (inStream.valid) begin
                     state <= IDLE;
                 end
             end
-            
+
             READ_TID: begin
                 int i;
                 for (i = 0; i < 64; i = i+1) begin
@@ -218,7 +218,7 @@ module acc_creator_sim #(
                     state <= READ_PTID;
                 end
             end
-            
+
             READ_PTID: begin
                 ptid <= inStream.data;
                 if (inStream.valid & inStream.last) begin
@@ -227,24 +227,24 @@ module acc_creator_sim #(
                     state <= READ_ARGS;
                 end
             end
-            
+
             READ_ARGS: begin
                 if (inStream.valid && inStream.last) begin
                     state <= WAIT_TIME;
                 end
             end
-            
+
             WAIT_TIME: begin
                 count <= count+1;
                 if (count == wait_time) begin
                     state <= CREATE_NTASK_IDX;
                 end
             end
-            
+
             CREATE_NTASK_IDX: begin
                 state <= CREATE_TASK;
             end
-            
+
             CREATE_TASK: begin
                 int accTypeIdx, i, j, dir;
                 if (new_task_idx >= maxNewTasks) begin
@@ -253,16 +253,16 @@ module acc_creator_sim #(
                     do begin
                         accTypeIdx = {$random(random_seed)}%accTypes.size();
                     end while (!creationGraph[ID*accTypes.size() + accTypeIdx]);
-                    
+
                     finalMode = 0;
-                    
+
                     newTasks[new_task_idx].nArgs = accTypes[accTypeIdx].nArgs;
                     newTasks[new_task_idx].nDeps = accTypes[accTypeIdx].nDeps;
                     newTasks[new_task_idx].nCops = accTypes[accTypeIdx].nCops;
                     newTasks[new_task_idx].taskType = accTypes[accTypeIdx].taskType;
                     newTasks[new_task_idx].pTid = tid;
                     newTasks[new_task_idx].smp = $urandom_range(100) <= 5;
-                    
+
                     // First argument is always the index of the newTasks array since there is no other place to save this information,
                     // which is needed to check correctness in the cmdin_out interface
                     newTasks[new_task_idx].args[0] = new_task_idx;
@@ -291,19 +291,19 @@ module acc_creator_sim #(
                     newTask = newTasks[new_task_idx];
                 end
             end
-            
+
             SEND_NTASK_HEADER: begin
                 if (spawn_out.ready) begin
                     state <= SEND_NTASK_PTID;
                 end
             end
-            
+
             SEND_NTASK_PTID: begin
                 if (spawn_out.ready) begin
                     state <= SEND_NTASK_TTYPE;
                 end
             end
-            
+
             SEND_NTASK_TTYPE: begin
                 if (spawn_out.ready) begin
                     idx <= 0;
@@ -321,7 +321,7 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             SEND_NTASK_DEP: begin
                 if (spawn_out.ready) begin
                     idx <= idx+1;
@@ -339,19 +339,19 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             SEND_NTASK_COP1: begin
                 if (spawn_out.ready) begin
                     state <= SEND_NTASK_COP2;
                 end
             end
-            
+
             SEND_NTASK_COP2: begin
                 if (spawn_out.ready) begin
                     state <= SEND_NTASK_COP3;
                 end
             end
-            
+
             SEND_NTASK_COP3: begin
                 if (spawn_out.ready) begin
                     idx <= idx+1;
@@ -368,7 +368,7 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             SEND_NTASK_ARG: begin
                 if (spawn_out.ready) begin
                     idx <= idx+1;
@@ -377,7 +377,7 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             WAIT_ACK: begin
                 if (spawn_in.valid) begin
                     if (spawn_in.data[7:0] == ACK_OK_CODE) begin //Accept
@@ -386,7 +386,7 @@ module acc_creator_sim #(
                         if (createdTasks < tasksToCreate && !finalMode) begin
                             state <= CREATE_NTASK_IDX;
                         end else begin
-                            state <= SEND_TASKWAIT_1;    
+                            state <= SEND_TASKWAIT_1;
                         end
                     end else if (spawn_in.data[7:0] == ACK_REJECT_CODE) begin
                         state <= SEND_NTASK_HEADER;
@@ -399,54 +399,54 @@ module acc_creator_sim #(
                     end
                 end
             end
-            
+
             SEND_TASKWAIT_1: begin
                 if (taskwait_out.ready) begin
                     state <= SEND_TASKWAIT_2;
                 end
             end
-            
+
             SEND_TASKWAIT_2: begin
                 if (taskwait_out.ready) begin
                     state <= WAIT_TASKWAIT;
                 end
             end
-            
+
             WAIT_TASKWAIT: begin
                 if (taskwait_in.valid) begin
                     taskNum = 0;
-                    if (new_task_idx < maxNewTasks && createdTasks < tasksToCreate) begin 
+                    if (new_task_idx < maxNewTasks && createdTasks < tasksToCreate) begin
                         state <= CREATE_NTASK_IDX;
                     end else begin
                         state <= SEND_COMMAND;
                     end
                 end
             end
-            
+
             SEND_COMMAND: begin
                 if (outStream.ready) begin
                     state <= SEND_TID;
                 end
             end
-            
+
             SEND_TID: begin
                 if (outStream.ready) begin
                     state <= SEND_PTID;
                 end
             end
-            
+
             SEND_PTID: begin
                 if (outStream.ready) begin
                     state <= IDLE;
                 end
             end
-            
+
         endcase
-    
+
         if (rst) begin
             state <= IDLE;
             taskNum = 0;
         end
     end
-    
+
 endmodule

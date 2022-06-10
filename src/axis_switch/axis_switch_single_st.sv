@@ -32,7 +32,7 @@ module axis_switch_single_st
 );
 
     if (NMASTERS == 1) begin
-    
+
         axis_switch_single_master #(
             .NSLAVES(NSLAVES),
             .HAS_ID(HAS_ID),
@@ -58,9 +58,9 @@ module axis_switch_single_st
             .m_id(m_id),
             .m_last(m_last[0])
         );
-    
+
     end else if (NSLAVES == 1) begin
-    
+
         axis_switch_single_slave #(
             .NMASTERS(NMASTERS),
             .HAS_ID(HAS_ID),
@@ -89,19 +89,19 @@ module axis_switch_single_st
             .m_id(m_id),
             .m_last(m_last)
         );
-    
+
     end else begin
-    
+
     typedef enum bit[0:0] {
         IDLE,
         TRANSACTION
     } State_t;
-    
+
     State_t state;
 
     localparam SEL_SLAVE_BITS = $clog2(NSLAVES);
     localparam SEL_MASTER_BITS = $clog2(NMASTERS);
-    
+
     wire in_transaction;
     reg [DATA_WIDTH-1:0] common_m_data;
     reg common_m_last;
@@ -109,9 +109,9 @@ module axis_switch_single_st
     reg [ID_WIDTH-1:0] common_m_id;
     reg [SEL_SLAVE_BITS-1:0] sel_slave;
     reg [SEL_MASTER_BITS-1:0] sel_master;
-    
+
     assign in_transaction = state == TRANSACTION;
-    
+
     genvar s;
     for (s = 0; s < NSLAVES; s = s+1) begin : SLAVES_READY_SIGNAL
         always_comb begin
@@ -124,13 +124,13 @@ module axis_switch_single_st
             end
         end
     end
-    
+
     genvar m;
     for (m = 0; m < NMASTERS; m = m+1) begin : MASTERS_DATA_SWITCH
         assign m_data[m*DATA_WIDTH +: DATA_WIDTH] = common_m_data;
         assign m_last[m] = common_m_last;
         assign m_id[m*ID_WIDTH +: ID_WIDTH] = common_m_id;
-        
+
         always_comb begin
             int j1;
             m_valid[m] = 0;
@@ -141,7 +141,7 @@ module axis_switch_single_st
             end
         end
     end
-    
+
     always_comb begin
         int j2;
         common_m_data = s_data[DATA_WIDTH-1 : 0];
@@ -170,16 +170,16 @@ module axis_switch_single_st
             end
         end
     end
-        
+
     always_ff @(posedge aclk) begin
-    
+
         case (state)
-        
+
             IDLE: begin
                 int i, j;
 
                 for (j = 0; j < NSLAVES; j = j+1) begin
-                
+
                     for (i = 0; i < NMASTERS; i = i+1) begin
                         if (DEST_RANGE == 0) begin
                             if (s_dest[j] == DEST_BASE + i*DEST_STRIDE) begin
@@ -192,7 +192,7 @@ module axis_switch_single_st
                             end
                         end
                     end
-                
+
                     if (s_valid[j]) begin
                         sel_slave <= j;
                         state <= TRANSACTION;
@@ -200,7 +200,7 @@ module axis_switch_single_st
                     end
                 end
             end
-            
+
             TRANSACTION: begin
                 if (!HAS_LAST) begin
                     if (m_ready) begin
@@ -217,14 +217,14 @@ module axis_switch_single_st
                     end
                 end
             end
-        
+
         endcase
-    
+
         if (!aresetn) begin
             state <= IDLE;
         end
     end
-    
+
     end
 
 endmodule

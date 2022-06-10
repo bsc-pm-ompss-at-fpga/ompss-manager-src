@@ -7,7 +7,7 @@ module bitinfo_mem #(
     input rst,
     input en,
     input [31:0] addr,
-    output logic [31:0] dout    
+    output logic [31:0] dout
 );
 
     reg [31:0] mem[512];
@@ -15,21 +15,21 @@ module bitinfo_mem #(
     initial begin
         int fd, i, aux;
         string auxs;
-        
+
         fd = $fopen(COE_PATH, "r");
         if (!fd) begin
-            $error("Could not open file %s", COE_PATH); $fatal;
+            $error("Could not open file \"%s\"", COE_PATH); $fatal;
         end
-        
+
         aux = $fscanf(fd, "%s", auxs); //memory_initialization_radix=16;
         aux = $fscanf(fd, "%s", auxs); //memory_initialization_vector=
-        
+
         i = 0;
         while ($fscanf(fd, "%x", mem[i]) > 0) begin
             i = i+1;
         end
         $fclose(fd);
-        
+
     end
 
     always_ff @(posedge clk) begin

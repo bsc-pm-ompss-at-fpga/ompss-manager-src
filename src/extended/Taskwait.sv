@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -51,7 +51,7 @@ module Taskwait #(
         CHECK_RESULTS,
         WAKEUP_ACC
     } State_t;
-    
+
     State_t state;
 
     reg [TW_MEM_BITS-1:0] not_valid_idx;

@@ -29,15 +29,15 @@ module axis_switch_rrobin#(
     output logic [NMASTERS*ID_WIDTH-1:0] m_id,
     output logic [NMASTERS-1:0] m_last
 );
-    
-        
+
+
     wire [NMASTERS*NSLAVES-1:0] s_fil_ready;
-    
+
     genvar i;
     for (i = 0; i < NMASTERS; i = i+1) begin : MASTER_LOOP
-    
+
         logic [NSLAVES-1:0] s_fil_valid; //fil --> filtered
-        
+
         genvar j;
         for (j = 0; j < NSLAVES; j = j+1) begin : SLAVE_LOOP
             wire [DEST_WIDTH-1:0] dest_val;
@@ -53,7 +53,7 @@ module axis_switch_rrobin#(
                         dest_val <= DEST_BASE + i*DEST_STRIDE + DEST_RANGE;
             end
         end
-    
+
         axis_switch_single_master_rrobin #(
             .NSLAVES(NSLAVES),
             .HAS_ID(HAS_ID),
@@ -79,17 +79,17 @@ module axis_switch_rrobin#(
             .m_id(m_id[i*ID_WIDTH +: ID_WIDTH]),
             .m_last(m_last[i])
         );
-        
+
     end
-        
+
     for (i = 0; i < NSLAVES; i = i+1) begin : READY_GEN
-    
+
         if (NSLAVES == 1) begin
-        
+
             if (NMASTERS == 1) begin
                 assign s_ready[0] = s_fil_ready[0];
             end else begin
-            
+
             int k;
             always_comb begin
                 s_ready[i] = 0;
@@ -106,22 +106,22 @@ module axis_switch_rrobin#(
                     end
                 end
             end
-            
+
             end
-            
+
         end else begin
-            
+
             wire [NMASTERS-1:0] s_fil_ready_serial;
-            
+
             genvar j;
             for (j = 0; j < NMASTERS; j = j+1) begin
                 assign s_fil_ready_serial[j] = s_fil_ready[j*NSLAVES + i];
             end
-            
+
             assign s_ready[i] = |s_fil_ready_serial;
-             
+
         end
-    
+
     end
-    
+
 endmodule

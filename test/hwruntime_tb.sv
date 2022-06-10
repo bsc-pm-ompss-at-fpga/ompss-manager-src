@@ -1,101 +1,5 @@
 `timescale 1ns / 1ps
 
-interface GenAxis #(
-    parameter DATA_WIDTH = 32,
-    parameter ID_WIDTH = 8,
-    parameter DEST_WIDTH = 8
-);
-
-    logic valid;
-    logic ready;
-    logic [DATA_WIDTH-1:0] data;
-    logic [ID_WIDTH-1:0] id;
-    logic [DEST_WIDTH-1:0] dest;
-    logic last;
-
-    modport slave(input valid, output ready, input data, input id, input dest, input last);
-    modport master(output valid, input ready, output data, output id, output dest, output last);
-    modport observer(input valid, input ready, input data, input id, input dest, input last);
-    
-endinterface
-
-interface MemoryPort32 #(parameter WIDTH = 32);
-    logic en;
-    logic [WIDTH/8 - 1: 0] wr;
-    logic [31:0] addr;
-    logic [WIDTH-1:0] din;
-    logic [WIDTH-1:0] dout;
-
-    modport master (output en, output wr, output addr, output din, input dout);
-endinterface
-
-package Glb;
-
-    typedef struct {
-        reg [7:0] code;
-        reg [63:0] tid;
-        reg [7:0] comp;
-        reg [7:0] nArgs;
-        reg [7:0] argFlags[15];
-        reg [63:0] args[15];
-        reg finished;
-        int acc_id;
-        int period;
-        int repetitions;
-    } Command;
-    Command commands[];
-    
-    reg[63:0] argPool[];
-
-    int creationGraph[];
-    
-    typedef struct {
-        reg [31:0] taskType;
-        reg [7:0] nArgs;
-        reg [7:0] nDeps;
-        reg [7:0] nCops;
-        reg [7:0] depDirs[15];
-        reg [7:0] copDirs[15];
-        reg [7:0] copArgIdx[15];
-        reg [7:0] argCopIdx[15];
-        int numInstances;
-    } AccType;
-    
-    AccType accTypes[];
-    int accId2accType[];
-    
-    typedef struct {
-        reg [7:0] nArgs;
-        reg [7:0] nDeps;
-        reg [7:0] nCops;
-        reg [63:0] pTid;
-        reg [7:0] insNum;
-        reg [31:0] taskType;
-        reg [63:0] deps[15];
-        reg [63:0] args[15];
-        reg [63:0] copyAddr[15];
-        reg [31:0] copySize[15];
-        reg [7:0] copyFlag[15];
-        reg [7:0] copyArgIdx[15];
-        reg [31:0] copyAccessLenght[15];
-        reg [31:0] copyOffset[15];
-        reg smp;
-        enum {
-            NTASK_CREATED,
-            NTASK_READY
-        } state;
-    } NewTask;
-    
-    NewTask newTasks[];
-    int maxNewTasks;
-    int newTaskIdx;
-    
-    longint random_seed;
-    
-    int pom;
-
-endpackage
-
 module connect_gen_axis (
     GenAxis.master m,
     GenAxis.slave s
@@ -143,7 +47,7 @@ module hwruntime_tb #(
     int totalTasks;
     int finished_cmds;
     int cycleCount;
-    
+
     MemoryPort32 #(.WIDTH(64)) cmdinPortA();
     MemoryPort32 #(.WIDTH(64)) cmdoutPortA();
     MemoryPort32 #(.WIDTH(64)) spawninPortA();
@@ -170,13 +74,13 @@ module hwruntime_tb #(
             $display("Found seed %0d", random_seed);
         end
         pom = HWRUNTIME == "POM";
-        
+
         if (NUM_CREATORS > 0) begin
             newTasks = new[MAX_NEW_TASKS+NUM_CREATORS+2];
             newTaskIdx = 0;
             maxNewTasks = MAX_NEW_TASKS;
         end
-        
+
         // This graph represents the levels of nesting of the application, all accelerators at the top level are managed by the
         // simulator, the others receive tasks created by its parents
         if (NUM_CREATORS > 0) begin
@@ -192,7 +96,7 @@ module hwruntime_tb #(
             end
         end
         $fclose(fd);
-        
+
         accTypes = new[NUM_ACC_TYPES];
         accId2accType = new[NUM_ACCS];
         fd = $fopen(TASKTYPE_FILE_PATH, "r");
@@ -250,7 +154,7 @@ module hwruntime_tb #(
             end
         end
         $fclose(fd);
-        
+
         for (i = 0; i < NUM_ACCS; i = i+1) begin
             accPeriodic[i] = 0;
         end
@@ -321,25 +225,25 @@ module hwruntime_tb #(
         #200
         rst = 0;
     end
-    
+
     always begin
         #1
         clk = !clk;
     end
-    
+
     always @(posedge clk) begin
         cycleCount = cycleCount+1;
         if (cycleCount == 1e6) begin
             $error("Reached cycle limit"); $fatal;
         end
     end
-    
+
     always @(finished_cmds) begin
         if (finished_cmds == totalTasks) begin
             $finish;
         end
     end
-    
+
     wire aclk;
     wire ps_rst;
     wire interconnect_aresetn;
@@ -417,7 +321,7 @@ module hwruntime_tb #(
     wire bitinfo_en;
     wire [31:0] bitinfo_addr;
     wire [31:0] bitinfo_dout;
-    
+
     assign aclk = clk;
     assign ps_rst = rst;
     assign interconnect_aresetn = !rst;
@@ -454,7 +358,7 @@ module hwruntime_tb #(
     assign spawn_out.dest = spawn_out_tdest;
     assign spawn_out.data = spawn_out_tdata;
     assign spawn_out.last = spawn_out_tlast;
-    
+
     if (HWRUNTIME == "POM") begin
         PicosOmpSsManager_wrapper #(
             .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
@@ -478,7 +382,7 @@ module hwruntime_tb #(
             .*
         );
     end
-    
+
     cmdin_sim #(
         .NUM_ACCS(NUM_ACCS),
         .NUM_CMDS(NUM_CMDS)
@@ -486,7 +390,7 @@ module hwruntime_tb #(
         .clk(clk),
         .cmdinPort(cmdinPortA)
     );
-    
+
     cmdout_sim #(
         .NUM_ACCS(NUM_ACCS)
     ) cmdout_sim_I (
@@ -495,14 +399,14 @@ module hwruntime_tb #(
         .cmdoutPort(cmdoutPortA),
         .finished_cmds(finished_cmds)
     );
-    
+
     spawn_sim SPAWN_SIM_I (
         .clk(clk),
         .rst(rst),
         .spawnin(spawninPortA),
         .spawnout(spawnoutPortA)
     );
-    
+
     cmdin_acc_check #(
         .NUM_ACCS(NUM_ACCS)
     ) cmdin_acc_check_I (
@@ -510,7 +414,7 @@ module hwruntime_tb #(
         .rst(rst),
         .cmdin(cmdin)
     );
-    
+
     acc_inter #(
         .NUM_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
         .NUM_CREATORS(NUM_CREATORS)
@@ -524,7 +428,7 @@ module hwruntime_tb #(
         .taskwait_in(taskwait_out),
         .taskwait_out(taskwait_in)
     );
-    
+
     bitinfo_mem #(
         .COE_PATH(COE_PATH)
     ) BITINFO_MEM_I (
@@ -534,7 +438,7 @@ module hwruntime_tb #(
         .addr(bitinfo_addr),
         .dout(bitinfo_dout)
     );
-    
+
     dual_port_32_bit_mem_wrapper #(
         .WIDTH(64),
         .SIZE((NUM_ACCS == 1 ? 2 : NUM_ACCS)*CMDIN_SUBQUEUE_LEN),
@@ -556,7 +460,7 @@ module hwruntime_tb #(
         .enB(cmdin_queue_en),
         .weB(cmdin_queue_we)
     );
-    
+
     dual_port_32_bit_mem_wrapper #(
         .WIDTH(64),
         .SIZE((NUM_ACCS == 1 ? 2 : NUM_ACCS)*CMDOUT_SUBQUEUE_LEN),
@@ -578,7 +482,7 @@ module hwruntime_tb #(
         .enB(cmdout_queue_en),
         .weB(cmdout_queue_we)
     );
-    
+
     dual_port_32_bit_mem_wrapper #(
         .WIDTH(64),
         .SIZE(1024),
@@ -600,7 +504,7 @@ module hwruntime_tb #(
         .enB(spawnin_queue_en),
         .weB(spawnin_queue_we)
     );
-    
+
     dual_port_32_bit_mem_wrapper #(
         .WIDTH(64),
         .SIZE(1024),

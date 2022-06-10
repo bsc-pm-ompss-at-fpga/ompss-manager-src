@@ -29,14 +29,14 @@ module acc_inter #(
     GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_out_inter[1]();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) spawn_in_accel[NUM_INTF]();
     GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_out_accel[NUM_INTF]();
-    
+
     // This is used to support concurrent new task id creation. This id is the index of the newTasks array.
     wire [NUM_ACCS-1:0] create_id;
     int id[NUM_ACCS];
-    
+
     connect_gen_axis C1(.m(cmdin_inter[0]), .s(cmdin));
     connect_gen_axis C2(.m(cmdout), .s(cmdout_inter[0]));
-    
+
     axis_switch_sv_int #(
         .NSLAVES(1),
         .NMASTERS(NUM_ACCS),
@@ -51,7 +51,7 @@ module acc_inter #(
         .slaves(cmdin_inter),
         .masters(accInStream)
     );
-    
+
     axis_switch_sv_int #(
         .NSLAVES(NUM_ACCS),
         .NMASTERS(1),
@@ -69,12 +69,12 @@ module acc_inter #(
     );
 
     if (NUM_CREATORS > 0) begin : CREATORS_INTER
-    
+
         connect_gen_axis C3(.m(taskwait_in_inter[0]), .s(taskwait_in));
         connect_gen_axis C4(.m(taskwait_out), .s(taskwait_out_inter[0]));
         connect_gen_axis C5(.m(spawn_in_inter[0]), .s(spawn_in));
         connect_gen_axis C6(.m(spawn_out), .s(spawn_out_inter[0]));
-            
+
         concurrent_id_creator #(
             .NUM_ACCS(NUM_ACCS)
         ) CONCURRENT_ID_CREATOR_I (
@@ -82,7 +82,7 @@ module acc_inter #(
             .create_id(create_id),
             .id(id)
         );
-    
+
         axis_switch_sv_int #(
             .NSLAVES(1),
             .NMASTERS(NUM_CREATORS),
@@ -97,7 +97,7 @@ module acc_inter #(
             .slaves(taskwait_in_inter),
             .masters(taskwait_in_accel)
         );
-    
+
         axis_switch_sv_int #(
             .NSLAVES(1),
             .NMASTERS(NUM_CREATORS),
@@ -112,7 +112,7 @@ module acc_inter #(
             .slaves(spawn_in_inter),
             .masters(spawn_in_accel)
         );
-        
+
         axis_switch_sv_int #(
             .NSLAVES(NUM_CREATORS),
             .NMASTERS(1),
@@ -128,7 +128,7 @@ module acc_inter #(
             .slaves(taskwait_out_accel),
             .masters(taskwait_out_inter)
         );
-        
+
         axis_switch_sv_int #(
             .NSLAVES(NUM_CREATORS),
             .NMASTERS(1),
@@ -145,9 +145,9 @@ module acc_inter #(
             .masters(spawn_out_inter)
         );
     end
-    
+
     genvar i;
-    
+
     for (i = 0; i < NUM_CREATORS; i = i+1) begin : CREATOR_INST
         acc_creator_sim #(
             .ID(i),
@@ -165,7 +165,7 @@ module acc_inter #(
             .taskwait_out(taskwait_out_accel[i])
         );
     end
-    
+
     for (i = NUM_CREATORS; i < NUM_ACCS; i = i+1) begin : ACC_INST
         assign create_id[i] = 0;
         acc_sim #(

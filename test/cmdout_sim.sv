@@ -10,7 +10,7 @@ module cmdout_sim#(
 );
 
     import Glb::*;
-    
+
     localparam ACC_BITS = $clog2(NUM_ACCS) == 0 ? 1 : $clog2(NUM_ACCS);
 
     typedef enum {
@@ -18,15 +18,15 @@ module cmdout_sim#(
         READ_VALID,
         READ_TID
     } State;
-    
+
     State state;
     int acc_id;
     reg [5:0] slot_idx[NUM_ACCS];
-    
+
     assign cmdoutPort.en = 1;
     assign cmdoutPort.wr = state == READ_TID ? 8'h80 : 8'h00;
     assign cmdoutPort.din = 64'd0;
-    
+
     initial begin
         int i;
         acc_id = 0;
@@ -35,7 +35,7 @@ module cmdout_sim#(
         end
         finished_cmds = 0;
     end
-    
+
     always_comb begin
         cmdoutPort.addr = 0;
         cmdoutPort.addr[8:3] = slot_idx[acc_id];
@@ -44,15 +44,15 @@ module cmdout_sim#(
             cmdoutPort.addr[8:3] = slot_idx[acc_id]+1;
         end
     end
-    
+
     always @(posedge clk) begin
-        
+
         case (state)
-        
+
             ISSUE_READ: begin
                 state <= READ_VALID;
             end
-        
+
             READ_VALID: begin
                 if (cmdoutPort.dout[63:56] == 8'h80) begin
                     state <= READ_TID;
@@ -61,7 +61,7 @@ module cmdout_sim#(
                     state <= ISSUE_READ;
                 end
             end
-            
+
             READ_TID: begin
                 int idx;
                 state <= ISSUE_READ;
@@ -78,9 +78,9 @@ module cmdout_sim#(
                 commands[idx].finished = 1;
                 finished_cmds = finished_cmds+1;
             end
-        
+
         endcase
-        
+
         if (rst) begin
             state <= ISSUE_READ;
         end
