@@ -31,7 +31,7 @@ module axis_switch_single_slave
 );
 
     if (NMASTERS == 1) begin
-    
+
         assign m_valid[0] = s_valid;
         assign s_ready = m_ready[0];
         assign m_data = s_data;
@@ -44,23 +44,23 @@ module axis_switch_single_slave
         if (HAS_ID) begin
             assign m_id = s_id;
         end
-    
+
     end else begin
-    
+
     typedef enum bit [0:0] {
         IDLE,
         TRANSACTION
     } State_t;
-    
+
     State_t state;
 
     localparam SEL_MASTER_BITS = $clog2(NMASTERS);
-    
+
     wire in_transaction;
     reg [SEL_MASTER_BITS-1:0] sel_master;
-    
+
     assign in_transaction = state == TRANSACTION;
-    
+
     always_comb begin
         int j;
         s_ready = 0;
@@ -70,10 +70,10 @@ module axis_switch_single_slave
             end
         end
     end
-    
+
     genvar m;
     for (m = 0; m < NMASTERS; m = m+1) begin : MASTERS_DATA_ASSIGN
-    
+
         always_comb begin
             int j1, j2;
             m_data[m*DATA_WIDTH +: DATA_WIDTH] = s_data;
@@ -91,13 +91,13 @@ module axis_switch_single_slave
                 m_valid[m] = s_valid;
             end
         end
-    
+
     end
-    
+
     always_ff @(posedge aclk) begin
-    
+
         case (state)
-        
+
             IDLE: begin
                 int i;
 
@@ -113,12 +113,12 @@ module axis_switch_single_slave
                         end
                     end
                 end
-            
+
                 if (s_valid) begin
                     state <= TRANSACTION;
                 end
             end
-            
+
             TRANSACTION: begin
                 if (!HAS_LAST) begin
                     if (m_ready) begin
@@ -133,14 +133,14 @@ module axis_switch_single_slave
                     end
                 end
             end
-        
+
         endcase
-    
+
         if (!aresetn) begin
             state <= IDLE;
         end
     end
-    
+
     end
 
 endmodule

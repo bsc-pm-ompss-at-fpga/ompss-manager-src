@@ -2,7 +2,7 @@
   Copyright (C) Barcelona Supercomputing Center
                 Centro Nacional de Supercomputacion (BSC-CNS)
 
-  All Rights Reserved. 
+  All Rights Reserved.
   This file is part of OmpSs@FPGA toolchain.
 
   Unauthorized copying and/or distribution of this file,
@@ -70,7 +70,7 @@ package OmpSsManager;
 
     //Scheduler data mem struct
     localparam SCHED_DATA_BITS = 48;
-    localparam SCHED_DATA_ACCID_L = 0; 
+    localparam SCHED_DATA_ACCID_L = 0;
     localparam SCHED_DATA_COUNT_L = 8;
     localparam SCHED_DATA_TASK_TYPE_L = 16;
     localparam SCHED_DATA_TASK_TYPE_H = 47;

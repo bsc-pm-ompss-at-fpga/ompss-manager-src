@@ -26,7 +26,7 @@ module axis_switch_single_master_rrobin #(
 );
 
     if (NSLAVES == 1) begin
-        
+
         assign m_valid = s_valid[0];
         assign s_ready[0] = m_ready;
         assign m_data = s_data;
@@ -39,24 +39,24 @@ module axis_switch_single_master_rrobin #(
         if (HAS_ID) begin
             assign m_id = s_id;
         end
-        
+
     end else begin
 
     typedef enum bit [0:0] {
         IDLE,
         TRANSACTION
     } State_t;
-    
+
     State_t state;
 
     localparam SEL_SLAVE_BITS = $clog2(NSLAVES+1);
     localparam NONE_SEL_VAL = {SEL_SLAVE_BITS{1'b1}};
-    
+
     reg[SEL_SLAVE_BITS-1:0] sel_slave;
     int slave_priority;
-    
+
     genvar i;
-    
+
     for (i = 0; i < NSLAVES; i = i+1) begin : SLAVES_READY_SIGNAL
         always_comb begin
             if (sel_slave == i) begin
@@ -66,7 +66,7 @@ module axis_switch_single_master_rrobin #(
             end
         end
     end
-    
+
     always_comb begin
         int j1, j2;
         m_data = s_data[DATA_WIDTH-1 : 0];
@@ -100,11 +100,11 @@ module axis_switch_single_master_rrobin #(
             end
         end
     end
-        
+
     always_ff @(posedge aclk) begin
-    
+
         case (state)
-        
+
             IDLE: begin
                 int j;
                 for (j = 0; j < NSLAVES; j = j+1) begin
@@ -116,7 +116,7 @@ module axis_switch_single_master_rrobin #(
                     end
                 end
             end
-            
+
             TRANSACTION: begin
                 if (!HAS_LAST) begin
                     if (m_ready) begin
@@ -133,9 +133,9 @@ module axis_switch_single_master_rrobin #(
                     end
                 end
             end
-        
+
         endcase
-    
+
         if (!aresetn) begin
             int i;
             slave_priority[i] <= 0;
@@ -143,7 +143,7 @@ module axis_switch_single_master_rrobin #(
             sel_slave <= NONE_SEL_VAL;
         end
     end
-    
+
     end
 
 endmodule

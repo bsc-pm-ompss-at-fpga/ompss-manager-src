@@ -23,11 +23,11 @@ module dual_port_32_bit_mem_wrapper #(
     input [WIDTH-1:0] dinB,
     output reg [WIDTH-1:0] doutB
 );
-    
+
     reg[WIDTH-1:0] mem[0:SIZE-1];
-    
+
     integer j;
-    
+
     initial begin
         doutA = 0;
         doutB = 0;
@@ -35,9 +35,9 @@ module dual_port_32_bit_mem_wrapper #(
             mem[j] = 0;
         end
     end
-    
+
     genvar i;
-        
+
     always @(posedge clkA) begin
         if (enA) begin
             if (EN_RST_A && rstA) begin
@@ -50,7 +50,7 @@ module dual_port_32_bit_mem_wrapper #(
             end
         end
     end
-    
+
     for (i = 0; i < WIDTH/8; i = i+1) begin
         always @(posedge clkA) begin
             if (enA && weA[i]) begin
@@ -58,7 +58,7 @@ module dual_port_32_bit_mem_wrapper #(
             end
         end
     end
-    
+
 
 
     always @(posedge clkB) begin
@@ -81,6 +81,6 @@ module dual_port_32_bit_mem_wrapper #(
             end
         end
     end
-        
+
 
 endmodule

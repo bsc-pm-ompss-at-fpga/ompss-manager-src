@@ -15,7 +15,7 @@ module spawn_sim #(
 
     localparam SPAWNIN_BITS = $clog2(SPAWNIN_SIZE);
     localparam SPAWNOUT_BITS = $clog2(SPAWNOUT_SIZE);
-    
+
     localparam VALID = 8'h80;
 
     typedef enum {
@@ -38,7 +38,7 @@ module spawn_sim #(
     } State_t;
 
     State_t state;
-    
+
     int num_slots;
     int count;
     int wait_time;
@@ -63,24 +63,24 @@ module spawn_sim #(
     reg [SPAWNOUT_BITS-1:0] spawnout_idx;
     reg [SPAWNOUT_BITS-1:0] header_spawnout_idx;
     NewTask newTask;
-    
+
     assign spawnin.addr[2:0] = 0;
     assign spawnin.addr[3+SPAWNIN_BITS-1:3] = spawnin_idx;
     assign spawnin.addr[31:3+SPAWNIN_BITS] = 0;
     assign spawnin.en = 1;
     assign spawnin.wr = state == WRITE_TID || state == WRITE_PTID || state == WRITE_HEADER ? 8'hFF: 8'h00;
-    
+
     assign spawnout.addr[2:0] = 0;
     assign spawnout.addr[3+SPAWNOUT_BITS-1:3] = spawnout_idx;
     assign spawnout.addr[31:3+SPAWNOUT_BITS] = 0;
     assign spawnout.en = 1;
-    assign spawnout.wr = state == CLEAR_HEADER | reading ? 8'h80 : 8'h00; 
+    assign spawnout.wr = state == CLEAR_HEADER | reading ? 8'h80 : 8'h00;
     assign spawnout.din = 64'd0;
-    
+
     always_comb begin
         spawnin.din = tid;
         case (state)
-        
+
             WRITE_PTID: begin
                 spawnin.din = ptid;
             end
@@ -93,7 +93,7 @@ module spawn_sim #(
     end
 
     always_ff @(posedge clk) begin
-        
+
         case (state)
             IDLE: begin
                 if (spawnout.dout[ENTRY_VALID_BYTE_OFFSET +: 8] == VALID) begin
@@ -115,24 +115,24 @@ module spawn_sim #(
                     spawnout_idx = spawnout_idx + 1;
                 end
             end
-            
+
             ISSUE_READ_TID: begin
                 spawnout_idx = spawnout_idx+1;
                 state <= READ_TID;
             end
-            
+
             READ_TID: begin
                 spawnout_idx = spawnout_idx+1;
                 tid = spawnout.dout;
                 state <= READ_PTID;
             end
-            
+
             READ_PTID: begin
                 spawnout_idx = spawnout_idx+1;
                 ptid = spawnout.dout;
                 state <= READ_TASKTYPE;
             end
-            
+
             READ_TASKTYPE: begin
                 spawnout_idx = spawnout_idx+1;
                 task_type = spawnout.dout[31:0];
@@ -151,7 +151,7 @@ module spawn_sim #(
                     state <= READ_ARG;
                 end
             end
-            
+
             READ_DEP: begin
                 spawnout_idx = spawnout_idx+1;
                 deps[idx] = spawnout.dout;
@@ -171,13 +171,13 @@ module spawn_sim #(
                     idx = idx + 1;
                 end
             end
-            
+
             READ_COP1: begin
                 spawnout_idx = spawnout_idx+1;
                 copies[idx] = spawnout.dout;
                 state <= READ_COP2;
             end
-            
+
             READ_COP2: begin
                 spawnout_idx = spawnout_idx+1;
                 copFlags[idx] = spawnout.dout[7:0];
@@ -185,7 +185,7 @@ module spawn_sim #(
                 copSize[idx] = spawnout.dout[63:32];
                 state <= READ_COP3;
             end
-            
+
             READ_COP3: begin
                 spawnout_idx = spawnout_idx+1;
                 copOffset[idx] = spawnout.dout[31:0];
@@ -202,7 +202,7 @@ module spawn_sim #(
                     state <= READ_COP1;
                 end
             end
-            
+
             READ_ARG: begin
                 if (idx == 0) begin
                     int i;
@@ -260,43 +260,43 @@ module spawn_sim #(
                     spawnout_idx = spawnout_idx+1;
                 end
             end
-            
+
             CLEAR_HEADER: begin
                 spawnout_idx = spawnout_idx+num_slots;
                 state <= WAIT_S;
             end
-            
+
             WAIT_S: begin
                 count = count+1;
                 if (count >= wait_time) begin
                     state <= CHECK_SPAWNOUT;
                 end
             end
-            
+
             CHECK_SPAWNOUT: begin
                 if (spawnin.dout[ENTRY_VALID_BYTE_OFFSET +: 8] != VALID) begin
                     spawnin_idx = spawnin_idx+1;
                     state <= WRITE_TID;
                 end
             end
-            
+
             WRITE_TID: begin
                 spawnin_idx = spawnin_idx+1;
                 state <= WRITE_PTID;
             end
-            
+
             WRITE_PTID: begin
                 spawnin_idx = spawnin_idx-2;
                 state <= WRITE_HEADER;
             end
-            
+
             WRITE_HEADER: begin
                 spawnin_idx = spawnin_idx+3;
                 state <= IDLE;
             end
-        
+
         endcase
-        
+
         if (rst) begin
             reading = 0;
             state <= IDLE;

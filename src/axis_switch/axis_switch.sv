@@ -32,21 +32,21 @@ module axis_switch
     output logic [NMASTERS*ID_WIDTH-1:0] m_id,
     output logic [NMASTERS-1:0] m_last
 );
-    
+
     logic [NSLAVES-1:0] s_reg_valid;
     logic [NSLAVES-1:0] s_reg_ready;
     logic [NSLAVES*DATA_WIDTH-1:0] s_reg_data;
     logic [NSLAVES*DEST_WIDTH-1:0] s_reg_dest;
     logic [NSLAVES*ID_WIDTH-1:0] s_reg_id;
     logic [NSLAVES-1:0] s_reg_last;
-    
+
     logic [NMASTERS-1:0] m_reg_valid;
     logic [NMASTERS-1:0] m_reg_ready;
     logic [NMASTERS*DATA_WIDTH-1:0] m_reg_data;
     logic [NMASTERS*DEST_WIDTH-1:0] m_reg_dest;
     logic [NMASTERS*ID_WIDTH-1:0] m_reg_id;
     logic [NMASTERS-1:0] m_reg_last;
-    
+
     genvar i;
     generate
     for (i = 0; i < NSLAVES; i = i+1) begin : SLAVE_REGISTERS
@@ -77,7 +77,7 @@ module axis_switch
         );
     end
     endgenerate
-    
+
     generate
     for (i = 0; i < NMASTERS; i = i+1) begin : MASTER_REGISTERS
         axis_register_pipeline #(
@@ -107,9 +107,9 @@ module axis_switch
         );
     end
     endgenerate
-    
+
     if (SINGLE_ST) begin
-    
+
         axis_switch_single_st #(
             .NSLAVES(NSLAVES),
             .NMASTERS(NMASTERS),
@@ -139,16 +139,16 @@ module axis_switch
             .m_id(m_reg_id),
             .m_last(m_reg_last)
         );
-    
+
     end
     else begin
-        
+
     wire [NMASTERS*NSLAVES-1:0] s_fil_ready;
-    
+
     for (i = 0; i < NMASTERS; i = i+1) begin : MASTER_LOOP
-    
+
         logic [NSLAVES-1:0] s_fil_valid; //fil --> filtered
-        
+
         genvar j;
         for (j = 0; j < NSLAVES; j = j+1) begin : SLAVE_LOOP
             wire [DEST_WIDTH-1:0] dest_val;
@@ -164,7 +164,7 @@ module axis_switch
                         dest_val <= DEST_BASE + i*DEST_STRIDE + DEST_RANGE;
             end
         end
-    
+
         axis_switch_single_master #(
             .NSLAVES(NSLAVES),
             .HAS_ID(HAS_ID),
@@ -190,17 +190,17 @@ module axis_switch
             .m_id(m_reg_id[i*ID_WIDTH +: ID_WIDTH]),
             .m_last(m_reg_last[i])
         );
-        
+
     end
-        
+
     for (i = 0; i < NSLAVES; i = i+1) begin : READY_GEN
-    
+
         if (NSLAVES == 1) begin
-        
+
             if (NMASTERS == 1) begin
                 assign s_reg_ready[0] = s_fil_ready[0];
             end else begin
-            
+
             int k;
             always_comb begin
                 s_reg_ready[i] = 0;
@@ -217,23 +217,23 @@ module axis_switch
                     end
                 end
             end
-            
+
             end
-            
+
         end else begin
-            
+
             wire [NMASTERS-1:0] s_fil_ready_serial;
-            
+
             genvar j;
             for (j = 0; j < NMASTERS; j = j+1) begin
                 assign s_fil_ready_serial[j] = s_fil_ready[j*NSLAVES + i];
             end
-            
+
             assign s_reg_ready[i] = |s_fil_ready_serial;
-             
+
         end
-    
+
     end
     end
-    
+
 endmodule
