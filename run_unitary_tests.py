@@ -72,7 +72,7 @@ class ArgParser:
 
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('-w', '--no_warn', help='treat warnings as errors', action='store_true', default=False)
-        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run (if none, all IPs are assumed)', default=['extended/Lock', 'extended/Scheduler', 'extended/Scheduler_spawnout'])
+        self.parser.add_argument('ip', nargs='*', help='IP which testbench will be run (if none, all IPs are assumed)', default=['advanced/Lock', 'advanced/Scheduler', 'advanced/Scheduler_spawnout'])
 
     def parse_args(self):
         args = self.parser.parse_args()
@@ -137,7 +137,7 @@ for full_ip_name in args.ip:
     warn = False
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                          + os.getcwd() + '/scripts/run_test.tcl -tclargs '
-                         + ip_name + ' ' 
+                         + ip_name + ' '
                          + full_ip_name + ' '
                          + os.path.abspath(os.getcwd()),
                          cwd=prj_path,
@@ -162,4 +162,3 @@ for full_ip_name in args.ip:
         msg.success('Test ok (but there are some warnings)')
     else:
         msg.success('Test ok')
-

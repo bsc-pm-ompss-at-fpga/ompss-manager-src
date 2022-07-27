@@ -359,15 +359,13 @@ module hwruntime_tb #(
     assign spawn_out.data = spawn_out_tdata;
     assign spawn_out.last = spawn_out_tlast;
 
-    if (HWRUNTIME == "POM") begin
-        PicosOmpSsManager_wrapper #(
+    if (HWRUNTIME == "FOM") begin
+        FastOmpSsManager_wrapper #(
             .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
-            .MAX_ACC_CREATORS(NUM_CREATORS == 1 ? 2:NUM_CREATORS),
             .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
-            .EXTENDED_MODE(NUM_CREATORS > 0),
             .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
             .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
-        ) POM_I (
+        ) FOM_I (
             .*
         );
     end else if (HWRUNTIME == "SOM") begin
@@ -375,10 +373,19 @@ module hwruntime_tb #(
             .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
             .MAX_ACC_CREATORS(NUM_CREATORS == 1 ? 2:NUM_CREATORS),
             .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
-            .EXTENDED_MODE(NUM_CREATORS > 0),
             .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
             .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
         ) SOM_I (
+            .*
+        );
+	end else if (HWRUNTIME == "POM") begin
+        PicosOmpSsManager_wrapper #(
+            .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
+            .MAX_ACC_CREATORS(NUM_CREATORS == 1 ? 2:NUM_CREATORS),
+            .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
+            .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
+            .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
+        ) POM_I (
             .*
         );
     end

@@ -21,7 +21,6 @@ module PicosOmpSsManager_wrapper #(
     parameter CMDOUT_SUBQUEUE_LEN = 64,
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
-    parameter EXTENDED_MODE = 0,
     parameter LOCK_SUPPORT = 0,
     parameter ENABLE_SPAWN_QUEUES = 1
 ) (
@@ -121,7 +120,6 @@ module PicosOmpSsManager_wrapper #(
     PicosOmpSsManager #(
         .LOCK_SUPPORT(LOCK_SUPPORT),
         .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
-        .EXTENDED_MODE(EXTENDED_MODE),
         .SPAWNIN_QUEUE_LEN(SPAWNIN_QUEUE_LEN),
         .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
         .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN),

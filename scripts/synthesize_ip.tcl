@@ -13,10 +13,9 @@
 
 variable project_path [lindex $argv 0]
 variable name_IP [lindex $argv 1]
-variable extended_mode [lindex $argv 2]
-variable part [lindex $argv 3]
-variable ip_repo_path [lindex $argv 4]
-variable max_accs [lindex $argv 5]
+variable part [lindex $argv 2]
+variable ip_repo_path [lindex $argv 3]
+variable max_accs [lindex $argv 4]
 
 set name_IP_lower [ string tolower $name_IP ]
 set mod_name ${name_IP_lower}_0
@@ -34,7 +33,7 @@ if { [ glob -nocomplain $project_path/synth_project.xpr ] == "" } {
     open_project $project_path/synth_project.xpr
 }
 
-set_property -dict [list CONFIG.extended_mode $extended_mode CONFIG.MAX_ACCS $max_accs] [get_ips $mod_name]
+set_property -dict [list CONFIG.MAX_ACCS $max_accs] [get_ips $mod_name]
 
 reset_run synth_1
 

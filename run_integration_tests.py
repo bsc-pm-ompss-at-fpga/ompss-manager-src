@@ -75,7 +75,7 @@ class ArgParser:
         self.parser.add_argument('--conf_seed', help='Configuration seed used to reproduce a test', type=int, default=0)
         self.parser.add_argument('--repeat_seed', help='Repetition seed used to reproduce a test', type=int, default=0)
         self.parser.add_argument('--task_creation', help='Use task creation for the test that is going to be reproduced', type=int)
-        self.parser.add_argument('--hwruntime', help='Hwruntime for the test that is going to be reproduced', choices=['POM', 'SOM'])
+        self.parser.add_argument('--hwruntime', help='Hwruntime for the test that is going to be reproduced', choices=['POM', 'SOM', 'FOM'])
 
     def parse_args(self):
         args = self.parser.parse_args()
@@ -136,9 +136,10 @@ if args.conf_seed != 0:
     exec_integration_test(1, 1, args.task_creation, 1000, args.conf_seed, args.repeat_seed, args.hwruntime)
 else:
     # No task creation POM
-    exec_integration_test(10, 5, 0, 1000, 0, 0, 'POM')
+    #exec_integration_test(10, 5, 0, 1000, 0, 0, 'POM')
     # Task creation with multiple levels of nesting POM
     exec_integration_test(10, 10, 1, 1000, 0, 0, 'POM')
     # Task creation with multiple levels of nesting SOM
     exec_integration_test(5, 5, 1, 1000, 0, 0, 'SOM')
-
+    # No task creation FOM
+    exec_integration_test(10, 5, 0, 1000, 0, 0, 'FOM')
