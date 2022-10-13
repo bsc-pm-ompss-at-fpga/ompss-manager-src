@@ -22,7 +22,6 @@ module PicosOmpSsManager #(
     parameter CMDOUT_SUBQUEUE_LEN = 64,
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
-    parameter EXTENDED_MODE = 0,
     parameter LOCK_SUPPORT = 0,
     parameter ENABLE_SPAWN_QUEUES = 1
 ) (
@@ -295,343 +294,321 @@ module PicosOmpSsManager #(
         assign lock_out_tvalid = 1'b0;
     end
 
-    if (EXTENDED_MODE) begin
-        Cutoff_Manager #(
-            .ACC_BITS(ACC_BITS),
-            .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
-            .TW_MEM_WIDTH(TW_MEM_WIDTH)
-        ) Cutoff_Manager_I (
-            .ack_tdata(Cutoff_ack_tdata),
-            .ack_tdest(Cutoff_ack_tdest),
-            .ack_tlast(Cutoff_ack_tlast),
-            .ack_tready(Cutoff_ack_tready),
-            .ack_tvalid(Cutoff_ack_tvalid),
+    Cutoff_Manager #(
+        .ACC_BITS(ACC_BITS),
+        .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
+        .TW_MEM_WIDTH(TW_MEM_WIDTH)
+    ) Cutoff_Manager_I (
+        .ack_tdata(Cutoff_ack_tdata),
+        .ack_tdest(Cutoff_ack_tdest),
+        .ack_tlast(Cutoff_ack_tlast),
+        .ack_tready(Cutoff_ack_tready),
+        .ack_tvalid(Cutoff_ack_tvalid),
+        .clk(aclk),
+        .deps_new_task_tdata(new_task_tdata),
+        .deps_new_task_tready(new_task_tready),
+        .deps_new_task_tvalid(new_task_tvalid),
+        .inStream_tdata(spawn_in_tdata),
+        .inStream_tdest(spawn_in_tdest),
+        .inStream_tid(spawn_in_tid),
+        .inStream_tlast(spawn_in_tlast),
+        .inStream_tready(spawn_in_tready),
+        .inStream_tvalid(spawn_in_tvalid),
+        .picos_full(Picos_picos_full),
+        .rstn(managed_aresetn_sig),
+        .sched_inStream_tdata(Cutoff_Sched_inStream_tdata),
+        .sched_inStream_tid(Cutoff_Sched_inStream_tid),
+        .sched_inStream_tlast(Cutoff_Sched_inStream_tlast),
+        .sched_inStream_tready(Cutoff_Sched_inStream_tready),
+        .sched_inStream_tvalid(Cutoff_Sched_inStream_tvalid),
+        .tw_info_addr(Cutoff_tw_info_addr),
+        .tw_info_clk(Cutoff_tw_info_clk),
+        .tw_info_din(Cutoff_tw_info_din),
+        .tw_info_dout(Cutoff_tw_info_dout),
+        .tw_info_en(Cutoff_tw_info_en),
+        .tw_info_we(Cutoff_tw_info_we)
+    );
+
+    picos_wrapper Picos_I (
+        .clk(aclk),
+        .finish_task_tdata(Picos_finish_task_tdata),
+        .finish_task_tready(Picos_finish_task_tready),
+        .finish_task_tvalid(Picos_finish_task_tvalid),
+        .new_task_tdata(new_task_tdata),
+        .new_task_tready(new_task_tready),
+        .new_task_tvalid(new_task_tvalid),
+        .picos_full(Picos_picos_full),
+        .ready_task_tdata(Picos_ready_task_tdata),
+        .ready_task_tlast(Picos_ready_task_tlast),
+        .ready_task_tready(Picos_ready_task_tready),
+        .ready_task_tvalid(Picos_ready_task_tvalid),
+        .retry_id(Scheduler_picosRejectTask_id),
+        .retry_valid(Scheduler_picosRejectTask_valid),
+        .rstn(managed_aresetn_sig)
+    );
+
+    Scheduler #(
+        .MAX_ACCS(MAX_ACCS),
+        .SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
+        .MAX_ACC_TYPES(MAX_ACC_TYPES),
+        .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+        .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
+    ) Scheduler_I (
+        .bitinfo_addr(bitinfo_addr),
+        .bitinfo_clk(bitinfo_clk),
+        .bitinfo_dout(bitinfo_dout),
+        .bitinfo_en(bitinfo_en),
+        .bitinfo_rst(bitinfo_rst),
+        .clk(aclk),
+        .inStream_TDATA(Scheduler_inStream_tdata),
+        .inStream_TID(Scheduler_inStream_tid),
+        .inStream_TLAST(Scheduler_inStream_tlast),
+        .inStream_TREADY(Scheduler_inStream_tready),
+        .inStream_TVALID(Scheduler_inStream_tvalid),
+        .intCmdInQueue_addr(Scheduler_intCmdInQueue_addr),
+        .intCmdInQueue_clk(Scheduler_intCmdInQueue_clk),
+        .intCmdInQueue_din(Scheduler_intCmdInQueue_din),
+        .intCmdInQueue_dout(Scheduler_intCmdInQueue_dout),
+        .intCmdInQueue_en(Scheduler_intCmdInQueue_en),
+        .intCmdInQueue_we(Scheduler_intCmdInQueue_we),
+        .outStream_TDATA(Scheduler_outStream_tdata),
+        .outStream_TDEST(Scheduler_outStream_tdest),
+        .outStream_TLAST(Scheduler_outStream_tlast),
+        .outStream_TREADY(Scheduler_outStream_tready),
+        .outStream_TVALID(Scheduler_outStream_tvalid),
+        .picosRejectTask_id(Scheduler_picosRejectTask_id),
+        .picosRejectTask_valid(Scheduler_picosRejectTask_valid),
+        .rstn(managed_aresetn_sig),
+        .sched_queue_nempty_address(Scheduler_sched_queue_nempty_address),
+        .sched_queue_nempty_write(Scheduler_sched_queue_nempty_write),
+        .spawnout_queue_addr(spawnout_queue_addr),
+        .spawnout_queue_clk(spawnout_queue_clk),
+        .spawnout_queue_din(spawnout_queue_din),
+        .spawnout_queue_dout(spawnout_queue_dout),
+        .spawnout_queue_en(spawnout_queue_en),
+        .spawnout_queue_rst(spawnout_queue_rst),
+        .spawnout_queue_we(spawnout_queue_we)
+    );
+
+    if (ENABLE_SPAWN_QUEUES) begin
+        Spawn_In #(
+            .SPAWNIN_QUEUE_LEN(SPAWNIN_QUEUE_LEN)
+        ) Spawn_In_I (
             .clk(aclk),
-            .deps_new_task_tdata(new_task_tdata),
-            .deps_new_task_tready(new_task_tready),
-            .deps_new_task_tvalid(new_task_tvalid),
-            .inStream_tdata(spawn_in_tdata),
-            .inStream_tdest(spawn_in_tdest),
-            .inStream_tid(spawn_in_tid),
-            .inStream_tlast(spawn_in_tlast),
-            .inStream_tready(spawn_in_tready),
-            .inStream_tvalid(spawn_in_tvalid),
-            .picos_full(Picos_picos_full),
+            .outStream_TDATA(Spawn_In_outStream_tdata),
+            .outStream_TLAST(Spawn_In_outStream_tlast),
+            .outStream_TREADY(Spawn_In_outStream_tready),
+            .outStream_TVALID(Spawn_In_outStream_tvalid),
+            .picosFinishTask_TDATA(Spawn_in_Picos_finish_task_tdata),
+            .picosFinishTask_TREADY(Spawn_in_Picos_finish_task_tready),
+            .picosFinishTask_TVALID(Spawn_in_Picos_finish_task_tvalid),
             .rstn(managed_aresetn_sig),
-            .sched_inStream_tdata(Cutoff_Sched_inStream_tdata),
-            .sched_inStream_tid(Cutoff_Sched_inStream_tid),
-            .sched_inStream_tlast(Cutoff_Sched_inStream_tlast),
-            .sched_inStream_tready(Cutoff_Sched_inStream_tready),
-            .sched_inStream_tvalid(Cutoff_Sched_inStream_tvalid),
-            .tw_info_addr(Cutoff_tw_info_addr),
-            .tw_info_clk(Cutoff_tw_info_clk),
-            .tw_info_din(Cutoff_tw_info_din),
-            .tw_info_dout(Cutoff_tw_info_dout),
-            .tw_info_en(Cutoff_tw_info_en),
-            .tw_info_we(Cutoff_tw_info_we)
-        );
-
-        picos_wrapper Picos_I (
-            .clk(aclk),
-            .finish_task_tdata(Picos_finish_task_tdata),
-            .finish_task_tready(Picos_finish_task_tready),
-            .finish_task_tvalid(Picos_finish_task_tvalid),
-            .new_task_tdata(new_task_tdata),
-            .new_task_tready(new_task_tready),
-            .new_task_tvalid(new_task_tvalid),
-            .picos_full(Picos_picos_full),
-            .ready_task_tdata(Picos_ready_task_tdata),
-            .ready_task_tlast(Picos_ready_task_tlast),
-            .ready_task_tready(Picos_ready_task_tready),
-            .ready_task_tvalid(Picos_ready_task_tvalid),
-            .retry_id(Scheduler_picosRejectTask_id),
-            .retry_valid(Scheduler_picosRejectTask_valid),
-            .rstn(managed_aresetn_sig)
-        );
-
-        Scheduler #(
-            .MAX_ACCS(MAX_ACCS),
-            .SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
-            .MAX_ACC_TYPES(MAX_ACC_TYPES),
-            .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
-            .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
-        ) Scheduler_I (
-            .bitinfo_addr(bitinfo_addr),
-            .bitinfo_clk(bitinfo_clk),
-            .bitinfo_dout(bitinfo_dout),
-            .bitinfo_en(bitinfo_en),
-            .bitinfo_rst(bitinfo_rst),
-            .clk(aclk),
-            .inStream_TDATA(Scheduler_inStream_tdata),
-            .inStream_TID(Scheduler_inStream_tid),
-            .inStream_TLAST(Scheduler_inStream_tlast),
-            .inStream_TREADY(Scheduler_inStream_tready),
-            .inStream_TVALID(Scheduler_inStream_tvalid),
-            .intCmdInQueue_addr(Scheduler_intCmdInQueue_addr),
-            .intCmdInQueue_clk(Scheduler_intCmdInQueue_clk),
-            .intCmdInQueue_din(Scheduler_intCmdInQueue_din),
-            .intCmdInQueue_dout(Scheduler_intCmdInQueue_dout),
-            .intCmdInQueue_en(Scheduler_intCmdInQueue_en),
-            .intCmdInQueue_we(Scheduler_intCmdInQueue_we),
-            .outStream_TDATA(Scheduler_outStream_tdata),
-            .outStream_TDEST(Scheduler_outStream_tdest),
-            .outStream_TLAST(Scheduler_outStream_tlast),
-            .outStream_TREADY(Scheduler_outStream_tready),
-            .outStream_TVALID(Scheduler_outStream_tvalid),
-            .picosRejectTask_id(Scheduler_picosRejectTask_id),
-            .picosRejectTask_valid(Scheduler_picosRejectTask_valid),
-            .rstn(managed_aresetn_sig),
-            .sched_queue_nempty_address(Scheduler_sched_queue_nempty_address),
-            .sched_queue_nempty_write(Scheduler_sched_queue_nempty_write),
-            .spawnout_queue_addr(spawnout_queue_addr),
-            .spawnout_queue_clk(spawnout_queue_clk),
-            .spawnout_queue_din(spawnout_queue_din),
-            .spawnout_queue_dout(spawnout_queue_dout),
-            .spawnout_queue_en(spawnout_queue_en),
-            .spawnout_queue_rst(spawnout_queue_rst),
-            .spawnout_queue_we(spawnout_queue_we)
-        );
-
-        if (ENABLE_SPAWN_QUEUES) begin
-            Spawn_In #(
-                .SPAWNIN_QUEUE_LEN(SPAWNIN_QUEUE_LEN)
-            ) Spawn_In_I (
-                .clk(aclk),
-                .outStream_TDATA(Spawn_In_outStream_tdata),
-                .outStream_TLAST(Spawn_In_outStream_tlast),
-                .outStream_TREADY(Spawn_In_outStream_tready),
-                .outStream_TVALID(Spawn_In_outStream_tvalid),
-                .picosFinishTask_TDATA(Spawn_in_Picos_finish_task_tdata),
-                .picosFinishTask_TREADY(Spawn_in_Picos_finish_task_tready),
-                .picosFinishTask_TVALID(Spawn_in_Picos_finish_task_tvalid),
-                .rstn(managed_aresetn_sig),
-                .spawnin_queue_addr(spawnin_queue_addr),
-                .spawnin_queue_clk(spawnin_queue_clk),
-                .spawnin_queue_din(spawnin_queue_din),
-                .spawnin_queue_dout(spawnin_queue_dout),
-                .spawnin_queue_en(spawnin_queue_en),
-                .spawnin_queue_rst(spawnin_queue_rst),
-                .spawnin_queue_we(spawnin_queue_we)
-            );
-        end else begin
-            assign Spawn_In_outStream_tvalid = 1'b0;
-            assign Spawn_In_outStream_tdata = 64'd0;
-            assign Spawn_In_outStream_tlast = 1'b0;
-            assign Spawn_in_Picos_finish_task_tvalid = 1'b0;
-            assign Spawn_in_Picos_finish_task_tdata = 32'd0;
-            assign spawnin_queue_addr = 32'd0;
-            assign spawnin_queue_clk = 1'b0;
-            assign spawnin_queue_din = 64'd0;
-            assign spawnin_queue_en = 1'b0;
-            assign spawnin_queue_rst = 1'b0;
-            assign spawnin_queue_we = 8'd0;
-        end
-
-        Taskwait #(
-            .ACC_BITS(ACC_BITS),
-            .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
-            .TW_MEM_WIDTH(TW_MEM_WIDTH)
-        ) Taskwait_I (
-            .clk(aclk),
-            .inStream_TDATA(Taskwait_inStream_tdata),
-            .inStream_TID(Taskwait_inStream_tid),
-            .inStream_TREADY(Taskwait_inStream_tready),
-            .inStream_TVALID(Taskwait_inStream_tvalid),
-            .outStream_TDATA(taskwait_out_tdata),
-            .outStream_TDEST(taskwait_out_tdest),
-            .outStream_TLAST(taskwait_out_tlast),
-            .outStream_TREADY(taskwait_out_tready),
-            .outStream_TVALID(taskwait_out_tvalid),
-            .rstn(managed_aresetn_sig),
-            .twInfo_addr(Taskwait_twInfo_addr),
-            .twInfo_clk(Taskwait_twInfo_clk),
-            .twInfo_din(Taskwait_twInfo_din),
-            .twInfo_dout(Taskwait_twInfo_dout),
-            .twInfo_en(Taskwait_twInfo_en),
-            .twInfo_we(Taskwait_twInfo_we)
-        );
-
-        dual_port_mem_wrapper #(
-            .SIZE(CMDIN_SUBQUEUE_LEN*MAX_ACCS),
-            .WIDTH(64),
-            .MODE_A("READ_FIRST"),
-            .MODE_B("READ_FIRST"),
-            .EN_RST_A(0),
-            .EN_RST_B(0),
-            .SINGLE_PORT(0)
-        ) intCmdInQueue (
-            .addrA(Command_In_intCmdInQueue_addr),
-            .addrB(Scheduler_intCmdInQueue_addr),
-            .clkA(Command_In_intCmdInQueue_clk),
-            .clkB(Scheduler_intCmdInQueue_clk),
-            .dinA(Command_In_intCmdInQueue_din),
-            .dinB(Scheduler_intCmdInQueue_din),
-            .doutA(Command_In_intCmdInQueue_dout),
-            .doutB(Scheduler_intCmdInQueue_dout),
-            .enA(Command_In_intCmdInQueue_en),
-            .enB(Scheduler_intCmdInQueue_en),
-            .weA(Command_In_intCmdInQueue_we),
-            .weB(Scheduler_intCmdInQueue_we)
-        );
-
-        dual_port_mem_wrapper #(
-            .SIZE(MAX_ACC_CREATORS),
-            .WIDTH(TW_MEM_WIDTH),
-            .MODE_A("READ_FIRST"),
-            .MODE_B("READ_FIRST"),
-            .EN_RST_A(0),
-            .EN_RST_B(0),
-            .SINGLE_PORT(0)
-        ) tw_info (
-            .addrA(Taskwait_twInfo_addr),
-            .addrB(Cutoff_tw_info_addr),
-            .clkA(Taskwait_twInfo_clk),
-            .clkB(Cutoff_tw_info_clk),
-            .dinA(Taskwait_twInfo_din),
-            .dinB(Cutoff_tw_info_din),
-            .doutA(Taskwait_twInfo_dout),
-            .doutB(Cutoff_tw_info_dout),
-            .enA(Taskwait_twInfo_en),
-            .enB(Cutoff_tw_info_en),
-            .weA(Taskwait_twInfo_we),
-            .weB(Cutoff_tw_info_we)
-        );
-
-        axis_switch_independent_interfaces #(
-            .NSLAVES(ENABLE_SPAWN_QUEUES ? 2 : 1),
-            .NMASTERS(1),
-            .REG_PIPELINE_DEPTH(0),
-            .SINGLE_ST(0),
-            .DATA_WIDTH(32),
-            .HAS_ID(0),
-            .HAS_LAST(0),
-            .HAS_DEST(0)
-        ) Picos_finish_task_Inter (
-            .aclk(aclk),
-            .aresetn(interconnect_aresetn),
-            .S00_AXIS_tvalid(Command_out_Picos_finish_task_tvalid),
-            .S00_AXIS_tready(Command_out_Picos_finish_task_tready),
-            .S00_AXIS_tdata(Command_out_Picos_finish_task_tdata),
-            .S01_AXIS_tvalid(Spawn_in_Picos_finish_task_tvalid),
-            .S01_AXIS_tready(Spawn_in_Picos_finish_task_tready),
-            .S01_AXIS_tdata(Spawn_in_Picos_finish_task_tdata),
-            .M00_AXIS_tvalid(Picos_finish_task_tvalid),
-            .M00_AXIS_tready(Picos_finish_task_tready),
-            .M00_AXIS_tdata(Picos_finish_task_tdata)
-        );
-
-        axis_switch_independent_interfaces #(
-            .NSLAVES(2),
-            .NMASTERS(1),
-            .REG_PIPELINE_DEPTH(0),
-            .SINGLE_ST(0),
-            .DATA_WIDTH(64),
-            .HAS_ID(1),
-            .ID_WIDTH(ACC_BITS),
-            .HAS_LAST(1),
-            .HAS_DEST(0)
-        ) Sched_inStream_Inter (
-            .aclk(aclk),
-            .aresetn(interconnect_aresetn),
-            .S00_AXIS_tvalid(Cutoff_Sched_inStream_tvalid),
-            .S00_AXIS_tready(Cutoff_Sched_inStream_tready),
-            .S00_AXIS_tdata(Cutoff_Sched_inStream_tdata),
-            .S00_AXIS_tid(Cutoff_Sched_inStream_tid),
-            .S00_AXIS_tlast(Cutoff_Sched_inStream_tlast),
-            .S01_AXIS_tvalid(Picos_ready_task_tvalid),
-            .S01_AXIS_tready(Picos_ready_task_tready),
-            .S01_AXIS_tdata(Picos_ready_task_tdata),
-            .S01_AXIS_tid(Cutoff_Sched_inStream_tid), //This is done on purpose to optimize the design
-            .S01_AXIS_tlast(Picos_ready_task_tlast),
-            .M00_AXIS_tvalid(Scheduler_inStream_tvalid),
-            .M00_AXIS_tready(Scheduler_inStream_tready),
-            .M00_AXIS_tdata(Scheduler_inStream_tdata),
-            .M00_AXIS_tid(Scheduler_inStream_tid),
-            .M00_AXIS_tlast(Scheduler_inStream_tlast)
-        );
-
-        axis_switch_independent_interfaces #(
-            .NSLAVES(ENABLE_SPAWN_QUEUES ? 3 : 2),
-            .NMASTERS(1),
-            .REG_PIPELINE_DEPTH(0),
-            .SINGLE_ST(0),
-            .DATA_WIDTH(64),
-            .HAS_ID(1),
-            .ID_WIDTH(ACC_BITS),
-            .HAS_LAST(1),
-            .HAS_DEST(0)
-        ) Taskwait_inStream_Inter (
-            .aclk(aclk),
-            .aresetn(interconnect_aresetn),
-            .S00_AXIS_tvalid(taskwait_in_tvalid),
-            .S00_AXIS_tready(taskwait_in_tready),
-            .S00_AXIS_tdata(taskwait_in_tdata),
-            .S00_AXIS_tid(taskwait_in_tid),
-            .S00_AXIS_tlast(taskwait_in_tlast),
-            .S01_AXIS_tvalid(Command_Out_outStream_tvalid),
-            .S01_AXIS_tready(Command_Out_outStream_tready),
-            .S01_AXIS_tdata(Command_Out_outStream_tdata),
-            .S01_AXIS_tid(taskwait_in_tid), //Again, this is done on purpose
-            .S01_AXIS_tlast(Command_Out_outStream_tlast),
-            .S02_AXIS_tvalid(Spawn_In_outStream_tvalid),
-            .S02_AXIS_tready(Spawn_In_outStream_tready),
-            .S02_AXIS_tdata(Spawn_In_outStream_tdata),
-            .S02_AXIS_tid(taskwait_in_tid), //Same reason as S01_AXIS_tid
-            .S02_AXIS_tlast(Spawn_In_outStream_tlast),
-            .M00_AXIS_tvalid(Taskwait_inStream_tvalid),
-            .M00_AXIS_tready(Taskwait_inStream_tready),
-            .M00_AXIS_tdata(Taskwait_inStream_tdata),
-            .M00_AXIS_tid(Taskwait_inStream_tid),
-            .M00_AXIS_tlast()
-        );
-
-        axis_switch_independent_interfaces #(
-            .NSLAVES(2),
-            .NMASTERS(1),
-            .REG_PIPELINE_DEPTH(0),
-            .SINGLE_ST(0),
-            .DATA_WIDTH(64),
-            .HAS_ID(0),
-            .HAS_LAST(0), //This is a small optimization since ack transaction only last 1 transfer
-            .HAS_DEST(1),
-            .DEST_WIDTH(ACC_BITS)
-        ) Task_create_ack_Inter (
-            .aclk(aclk),
-            .aresetn(interconnect_aresetn),
-            .S00_AXIS_tvalid(Scheduler_outStream_tvalid),
-            .S00_AXIS_tready(Scheduler_outStream_tready),
-            .S00_AXIS_tdata(Scheduler_outStream_tdata),
-            .S00_AXIS_tdest(Scheduler_outStream_tdest),
-            .S01_AXIS_tvalid(Cutoff_ack_tvalid),
-            .S01_AXIS_tready(Cutoff_ack_tready),
-            .S01_AXIS_tdata(Cutoff_ack_tdata),
-            .S01_AXIS_tdest(Cutoff_ack_tdest),
-            .M00_AXIS_tvalid(spawn_out_tvalid),
-            .M00_AXIS_tready(spawn_out_tready),
-            .M00_AXIS_tdata(spawn_out_tdata),
-            .M00_AXIS_tdest(spawn_out_tdest)
+            .spawnin_queue_addr(spawnin_queue_addr),
+            .spawnin_queue_clk(spawnin_queue_clk),
+            .spawnin_queue_din(spawnin_queue_din),
+            .spawnin_queue_dout(spawnin_queue_dout),
+            .spawnin_queue_en(spawnin_queue_en),
+            .spawnin_queue_rst(spawnin_queue_rst),
+            .spawnin_queue_we(spawnin_queue_we)
         );
     end else begin
-        assign taskwait_in_tready = 1'b0;
-        assign taskwait_out_tvalid = 1'b0;
-        assign spawn_in_tready = 1'b0;
-        assign taskwait_out_tvalid = 1'b0;
-        assign Command_out_Picos_finish_task_tready = 1'b1;
-
-        assign spawnin_queue_clk = aclk;
-        assign spawnin_queue_rst = 1;
-        assign spawnin_queue_en = 0;
-        assign spawnin_queue_we = 0;
-
-        assign spawnout_queue_clk = aclk;
-        assign spawnout_queue_rst = 1;
-        assign spawnout_queue_en = 0;
-        assign spawnout_queue_we = 0;
-
-        assign bitinfo_clk = aclk;
-        assign bitinfo_rst = 1;
-        assign bitinfo_en = 0;
+        assign Spawn_In_outStream_tvalid = 1'b0;
+        assign Spawn_In_outStream_tdata = 64'd0;
+        assign Spawn_In_outStream_tlast = 1'b0;
+        assign Spawn_in_Picos_finish_task_tvalid = 1'b0;
+        assign Spawn_in_Picos_finish_task_tdata = 32'd0;
+        assign spawnin_queue_addr = 32'd0;
+        assign spawnin_queue_clk = 1'b0;
+        assign spawnin_queue_din = 64'd0;
+        assign spawnin_queue_en = 1'b0;
+        assign spawnin_queue_rst = 1'b0;
+        assign spawnin_queue_we = 8'd0;
     end
+
+    Taskwait #(
+        .ACC_BITS(ACC_BITS),
+        .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
+        .TW_MEM_WIDTH(TW_MEM_WIDTH)
+    ) Taskwait_I (
+        .clk(aclk),
+        .inStream_TDATA(Taskwait_inStream_tdata),
+        .inStream_TID(Taskwait_inStream_tid),
+        .inStream_TREADY(Taskwait_inStream_tready),
+        .inStream_TVALID(Taskwait_inStream_tvalid),
+        .outStream_TDATA(taskwait_out_tdata),
+        .outStream_TDEST(taskwait_out_tdest),
+        .outStream_TLAST(taskwait_out_tlast),
+        .outStream_TREADY(taskwait_out_tready),
+        .outStream_TVALID(taskwait_out_tvalid),
+        .rstn(managed_aresetn_sig),
+        .twInfo_addr(Taskwait_twInfo_addr),
+        .twInfo_clk(Taskwait_twInfo_clk),
+        .twInfo_din(Taskwait_twInfo_din),
+        .twInfo_dout(Taskwait_twInfo_dout),
+        .twInfo_en(Taskwait_twInfo_en),
+        .twInfo_we(Taskwait_twInfo_we)
+    );
+
+    dual_port_mem_wrapper #(
+        .SIZE(CMDIN_SUBQUEUE_LEN*MAX_ACCS),
+        .WIDTH(64),
+        .MODE_A("READ_FIRST"),
+        .MODE_B("READ_FIRST"),
+        .EN_RST_A(0),
+        .EN_RST_B(0),
+        .SINGLE_PORT(0)
+    ) intCmdInQueue (
+        .addrA(Command_In_intCmdInQueue_addr),
+        .addrB(Scheduler_intCmdInQueue_addr),
+        .clkA(Command_In_intCmdInQueue_clk),
+        .clkB(Scheduler_intCmdInQueue_clk),
+        .dinA(Command_In_intCmdInQueue_din),
+        .dinB(Scheduler_intCmdInQueue_din),
+        .doutA(Command_In_intCmdInQueue_dout),
+        .doutB(Scheduler_intCmdInQueue_dout),
+        .enA(Command_In_intCmdInQueue_en),
+        .enB(Scheduler_intCmdInQueue_en),
+        .weA(Command_In_intCmdInQueue_we),
+        .weB(Scheduler_intCmdInQueue_we)
+    );
+
+    dual_port_mem_wrapper #(
+        .SIZE(MAX_ACC_CREATORS),
+        .WIDTH(TW_MEM_WIDTH),
+        .MODE_A("READ_FIRST"),
+        .MODE_B("READ_FIRST"),
+        .EN_RST_A(0),
+        .EN_RST_B(0),
+        .SINGLE_PORT(0)
+    ) tw_info (
+        .addrA(Taskwait_twInfo_addr),
+        .addrB(Cutoff_tw_info_addr),
+        .clkA(Taskwait_twInfo_clk),
+        .clkB(Cutoff_tw_info_clk),
+        .dinA(Taskwait_twInfo_din),
+        .dinB(Cutoff_tw_info_din),
+        .doutA(Taskwait_twInfo_dout),
+        .doutB(Cutoff_tw_info_dout),
+        .enA(Taskwait_twInfo_en),
+        .enB(Cutoff_tw_info_en),
+        .weA(Taskwait_twInfo_we),
+        .weB(Cutoff_tw_info_we)
+    );
+
+    axis_switch_independent_interfaces #(
+        .NSLAVES(ENABLE_SPAWN_QUEUES ? 2 : 1),
+        .NMASTERS(1),
+        .REG_PIPELINE_DEPTH(0),
+        .SINGLE_ST(0),
+        .DATA_WIDTH(32),
+        .HAS_ID(0),
+        .HAS_LAST(0),
+        .HAS_DEST(0)
+    ) Picos_finish_task_Inter (
+        .aclk(aclk),
+        .aresetn(interconnect_aresetn),
+        .S00_AXIS_tvalid(Command_out_Picos_finish_task_tvalid),
+        .S00_AXIS_tready(Command_out_Picos_finish_task_tready),
+        .S00_AXIS_tdata(Command_out_Picos_finish_task_tdata),
+        .S01_AXIS_tvalid(Spawn_in_Picos_finish_task_tvalid),
+        .S01_AXIS_tready(Spawn_in_Picos_finish_task_tready),
+        .S01_AXIS_tdata(Spawn_in_Picos_finish_task_tdata),
+        .M00_AXIS_tvalid(Picos_finish_task_tvalid),
+        .M00_AXIS_tready(Picos_finish_task_tready),
+        .M00_AXIS_tdata(Picos_finish_task_tdata)
+    );
+
+    axis_switch_independent_interfaces #(
+        .NSLAVES(2),
+        .NMASTERS(1),
+        .REG_PIPELINE_DEPTH(0),
+        .SINGLE_ST(0),
+        .DATA_WIDTH(64),
+        .HAS_ID(1),
+        .ID_WIDTH(ACC_BITS),
+        .HAS_LAST(1),
+        .HAS_DEST(0)
+    ) Sched_inStream_Inter (
+        .aclk(aclk),
+        .aresetn(interconnect_aresetn),
+        .S00_AXIS_tvalid(Cutoff_Sched_inStream_tvalid),
+        .S00_AXIS_tready(Cutoff_Sched_inStream_tready),
+        .S00_AXIS_tdata(Cutoff_Sched_inStream_tdata),
+        .S00_AXIS_tid(Cutoff_Sched_inStream_tid),
+        .S00_AXIS_tlast(Cutoff_Sched_inStream_tlast),
+        .S01_AXIS_tvalid(Picos_ready_task_tvalid),
+        .S01_AXIS_tready(Picos_ready_task_tready),
+        .S01_AXIS_tdata(Picos_ready_task_tdata),
+        .S01_AXIS_tid(Cutoff_Sched_inStream_tid), //This is done on purpose to optimize the design
+        .S01_AXIS_tlast(Picos_ready_task_tlast),
+        .M00_AXIS_tvalid(Scheduler_inStream_tvalid),
+        .M00_AXIS_tready(Scheduler_inStream_tready),
+        .M00_AXIS_tdata(Scheduler_inStream_tdata),
+        .M00_AXIS_tid(Scheduler_inStream_tid),
+        .M00_AXIS_tlast(Scheduler_inStream_tlast)
+    );
+
+    axis_switch_independent_interfaces #(
+        .NSLAVES(ENABLE_SPAWN_QUEUES ? 3 : 2),
+        .NMASTERS(1),
+        .REG_PIPELINE_DEPTH(0),
+        .SINGLE_ST(0),
+        .DATA_WIDTH(64),
+        .HAS_ID(1),
+        .ID_WIDTH(ACC_BITS),
+        .HAS_LAST(1),
+        .HAS_DEST(0)
+    ) Taskwait_inStream_Inter (
+        .aclk(aclk),
+        .aresetn(interconnect_aresetn),
+        .S00_AXIS_tvalid(taskwait_in_tvalid),
+        .S00_AXIS_tready(taskwait_in_tready),
+        .S00_AXIS_tdata(taskwait_in_tdata),
+        .S00_AXIS_tid(taskwait_in_tid),
+        .S00_AXIS_tlast(taskwait_in_tlast),
+        .S01_AXIS_tvalid(Command_Out_outStream_tvalid),
+        .S01_AXIS_tready(Command_Out_outStream_tready),
+        .S01_AXIS_tdata(Command_Out_outStream_tdata),
+        .S01_AXIS_tid(taskwait_in_tid), //Again, this is done on purpose
+        .S01_AXIS_tlast(Command_Out_outStream_tlast),
+        .S02_AXIS_tvalid(Spawn_In_outStream_tvalid),
+        .S02_AXIS_tready(Spawn_In_outStream_tready),
+        .S02_AXIS_tdata(Spawn_In_outStream_tdata),
+        .S02_AXIS_tid(taskwait_in_tid), //Same reason as S01_AXIS_tid
+        .S02_AXIS_tlast(Spawn_In_outStream_tlast),
+        .M00_AXIS_tvalid(Taskwait_inStream_tvalid),
+        .M00_AXIS_tready(Taskwait_inStream_tready),
+        .M00_AXIS_tdata(Taskwait_inStream_tdata),
+        .M00_AXIS_tid(Taskwait_inStream_tid),
+        .M00_AXIS_tlast()
+    );
+
+    axis_switch_independent_interfaces #(
+        .NSLAVES(2),
+        .NMASTERS(1),
+        .REG_PIPELINE_DEPTH(0),
+        .SINGLE_ST(0),
+        .DATA_WIDTH(64),
+        .HAS_ID(0),
+        .HAS_LAST(0), //This is a small optimization since ack transaction only last 1 transfer
+        .HAS_DEST(1),
+        .DEST_WIDTH(ACC_BITS)
+    ) Task_create_ack_Inter (
+        .aclk(aclk),
+        .aresetn(interconnect_aresetn),
+        .S00_AXIS_tvalid(Scheduler_outStream_tvalid),
+        .S00_AXIS_tready(Scheduler_outStream_tready),
+        .S00_AXIS_tdata(Scheduler_outStream_tdata),
+        .S00_AXIS_tdest(Scheduler_outStream_tdest),
+        .S01_AXIS_tvalid(Cutoff_ack_tvalid),
+        .S01_AXIS_tready(Cutoff_ack_tready),
+        .S01_AXIS_tdata(Cutoff_ack_tdata),
+        .S01_AXIS_tdest(Cutoff_ack_tdest),
+        .M00_AXIS_tvalid(spawn_out_tvalid),
+        .M00_AXIS_tready(spawn_out_tready),
+        .M00_AXIS_tdata(spawn_out_tdata),
+        .M00_AXIS_tdest(spawn_out_tdest)
+    );
 
     assign spawn_out_tlast = 1;
 
