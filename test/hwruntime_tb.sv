@@ -55,7 +55,7 @@ module hwruntime_tb #(
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) cmdin();
     GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) cmdout();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) spawn_out();
-    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) spawn_in();
+    GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(2)) spawn_in();
     GenAxis #(.DATA_WIDTH(64), .DEST_WIDTH(ACC_BITS)) taskwait_out();
     GenAxis #(.DATA_WIDTH(64), .ID_WIDTH(ACC_BITS), .DEST_WIDTH(3)) taskwait_in();
     int tasktype, numinstances;
@@ -262,7 +262,6 @@ module hwruntime_tb #(
     wire spawn_in_tvalid;
     wire spawn_in_tready;
     wire [ACC_BITS-1:0] spawn_in_tid;
-    wire [2:0] spawn_in_tdest;
     wire [63:0] spawn_in_tdata;
     wire spawn_in_tlast;
     wire spawn_out_tvalid;
@@ -350,7 +349,6 @@ module hwruntime_tb #(
     assign spawn_in_tvalid = spawn_in.valid;
     assign spawn_in.ready = spawn_in_tready;
     assign spawn_in_tid = spawn_in.id;
-    assign spawn_in_tdest = spawn_in.dest;
     assign spawn_in_tdata = spawn_in.data;
     assign spawn_in_tlast = spawn_in.last;
     assign spawn_out.valid = spawn_out_tvalid;

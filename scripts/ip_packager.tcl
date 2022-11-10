@@ -31,9 +31,13 @@ if {$name_IP == "PicosOmpSsManager"} {
    remove_files {SmartOmpSsManager_wrapper.v SmartOmpSsManager.sv}
    remove_files {FastOmpSsManager_wrapper.v FastOmpSsManager.sv}
 } elseif {$name_IP == "SmartOmpSsManager"} {
+   import_files $root_dir/picos/src/config.sv
+   import_files $root_dir/picos/src/packages.sv
    remove_files {PicosOmpSsManager_wrapper.v PicosOmpSsManager.sv}
    remove_files {FastOmpSsManager_wrapper.v FastOmpSsManager.sv}
 } elseif {$name_IP == "FastOmpSsManager"} {
+   import_files $root_dir/picos/src/config.sv
+   import_files $root_dir/picos/src/packages.sv
    remove_files {SmartOmpSsManager_wrapper.v SmartOmpSsManager.sv}
    remove_files {PicosOmpSsManager_wrapper.v PicosOmpSsManager.sv}
 } else {

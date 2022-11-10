@@ -33,7 +33,6 @@ module acc_creator_sim #(
         SEND_NTASK_DEP,
         SEND_NTASK_COP1,
         SEND_NTASK_COP2,
-        SEND_NTASK_COP3,
         SEND_NTASK_ARG,
         WAIT_ACK,
         DECIDE_NEXT_TASK,
@@ -83,7 +82,7 @@ module acc_creator_sim #(
 
         spawn_out.valid = 0;
         spawn_out.data = 64'hXXXXXXXXXXXXXXXX;
-        spawn_out.dest = newTasks[new_task_idx].nDeps > 0 ? HWR_DEPS_ID : HWR_SCHED_ID;
+        spawn_out.dest = HWR_NEWTASK_ID;
         spawn_out.last = 0;
 
         taskwait_out.data = 64'hXXXXXXXXXXXXXXXX;
@@ -145,12 +144,6 @@ module acc_creator_sim #(
                 spawn_out.data[7:0] = newTasks[new_task_idx].copyFlag[idx];
                 spawn_out.data[15:8] = newTasks[new_task_idx].copyArgIdx[idx];
                 spawn_out.data[63:32] = newTasks[new_task_idx].copySize[idx];
-            end
-
-            SEND_NTASK_COP3: begin
-                spawn_out.valid = 1;
-                spawn_out.data[31:0] = newTasks[new_task_idx].copyOffset[idx];
-                spawn_out.data[63:32] = newTasks[new_task_idx].copyAccessLenght[idx];
                 if (idx == limit-1 && newTasks[new_task_idx].nArgs == 0) begin
                     spawn_out.last = 1;
                 end
@@ -283,8 +276,6 @@ module acc_creator_sim #(
                         newTasks[new_task_idx].copySize[i] = $urandom;
                         newTasks[new_task_idx].copyFlag[i] = accTypes[accTypeIdx].copDirs[i];
                         newTasks[new_task_idx].copyArgIdx[i] = accTypes[accTypeIdx].copArgIdx[i];
-                        newTasks[new_task_idx].copyAccessLenght[i] = $urandom;
-                        newTasks[new_task_idx].copyOffset[i] = $urandom;
                     end
                     newTasks[new_task_idx].state = NTASK_CREATED;
                     state <= SEND_NTASK_HEADER;
@@ -347,12 +338,6 @@ module acc_creator_sim #(
             end
 
             SEND_NTASK_COP2: begin
-                if (spawn_out.ready) begin
-                    state <= SEND_NTASK_COP3;
-                end
-            end
-
-            SEND_NTASK_COP3: begin
                 if (spawn_out.ready) begin
                     idx <= idx+1;
                     if (idx == limit-1) begin

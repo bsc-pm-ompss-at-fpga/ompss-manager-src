@@ -47,7 +47,6 @@ module SmartOmpSsManager #(
     input  spawn_in_tvalid,
     output spawn_in_tready,
     input  [ACC_BITS-1:0] spawn_in_tid,
-    input  [2:0] spawn_in_tdest,
     input  [63:0] spawn_in_tdata,
     input  spawn_in_tlast,
     //Task creation ack
