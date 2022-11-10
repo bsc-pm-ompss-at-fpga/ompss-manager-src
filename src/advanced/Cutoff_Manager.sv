@@ -28,7 +28,6 @@ module Cutoff_Manager #(
     input [63:0] inStream_tdata,
     input inStream_tlast,
     input [ACC_BITS-1:0] inStream_tid,
-    input [2:0] inStream_tdest,
     //Scheduler interface
     output sched_inStream_tvalid,
     input sched_inStream_tready,
@@ -57,6 +56,7 @@ module Cutoff_Manager #(
     import OmpSsManager::*;
 
     localparam MAX_ADDR = MAX_ACC_CREATORS-1;
+    localparam DEPS_BITS = $clog2(PicosConfig::MAX_DEPS_PER_TASK+1);
 
     typedef enum bit [3:0] {
         IDLE,
@@ -87,6 +87,9 @@ module Cutoff_Manager #(
     reg selected_slave_tvalid;
     reg empty_entry_found;
     reg [TW_MEM_BITS-1:0] empty_entry;
+    wire has_deps;
+
+    assign has_deps = inStream_tdata[NUM_DEPS_OFFSET +: DEPS_BITS] != {DEPS_BITS{1'b0}};
 
     assign tw_info_clk = clk;
 
@@ -105,7 +108,7 @@ module Cutoff_Manager #(
     assign deps_new_task_tvalid = selected_slave_tvalid && deps_selected;
     assign deps_new_task_tdata = buf_tdata;
 
-    always @(*) begin
+    always_comb begin
 
         tw_info_en = 0;
         tw_info_we = 0;
@@ -168,7 +171,7 @@ module Cutoff_Manager #(
         endcase
     end
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
 
         tw_info_addr_delay <= tw_info_addr;
 
@@ -178,7 +181,7 @@ module Cutoff_Manager #(
                 tw_info_addr <= 0;
                 empty_entry_found <= 0;
                 acc_id <= inStream_tid;
-                deps_selected <= inStream_tdest == HWR_DEPS_ID;
+                deps_selected <= has_deps;
                 buf_tdata <= inStream_tdata;
                 buf_tlast <= 0;
                 if (inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
@@ -189,11 +192,11 @@ module Cutoff_Manager #(
                 if (inStream_tvalid) begin
                     if (inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
                         state <= READ_PTID;
-                    end else if (inStream_tdest == HWR_DEPS_ID && !picos_full && deps_new_task_tready) begin
+                    end else if (has_deps && !picos_full && deps_new_task_tready) begin
                         state <= BUF_FULL;
-                    end else if (inStream_tdest == HWR_DEPS_ID && !deps_new_task_tready) begin
+                    end else if (has_deps && !deps_new_task_tready) begin
                         state <= WAIT_PICOS;
-                    end else if (inStream_tdest == HWR_DEPS_ID && picos_full) begin
+                    end else if (has_deps && picos_full) begin
                         state <= READ_PTID;
                     end else begin
                         state <= BUF_FULL;

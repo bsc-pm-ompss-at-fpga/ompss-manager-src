@@ -26,7 +26,6 @@ module spawn_sim #(
         READ_TASKTYPE,
         READ_COP1,
         READ_COP2,
-        READ_COP3,
         READ_DEP,
         READ_ARG,
         CLEAR_HEADER,
@@ -55,8 +54,6 @@ module spawn_sim #(
     reg [7:0] copFlags[15];
     reg [7:0] copArgIdx[15];
     reg [31:0] copSize[15];
-    reg [31:0] copOffset[15];
-    reg [31:0] copAccessedLength[15];
     reg [63:0] tid;
     reg [63:0] ptid;
     reg [SPAWNIN_BITS-1:0] spawnin_idx;
@@ -110,7 +107,7 @@ module spawn_sim #(
                     wait_time = $urandom_range(100);
                     reading <= 1;
                     state <= ISSUE_READ_TID;
-                    num_slots = 4 + spawnout.dout[NUM_ARGS_OFFSET +: 8] + spawnout.dout[NUM_DEPS_OFFSET +: 8] + spawnout.dout[NUM_COPS_OFFSET +: 8]*3;
+                    num_slots = 4 + spawnout.dout[NUM_ARGS_OFFSET +: 8] + spawnout.dout[NUM_DEPS_OFFSET +: 8] + spawnout.dout[NUM_COPS_OFFSET +: 8]*IOInterface::COPY_WORDS;
                     header_spawnout_idx = spawnout_idx;
                     spawnout_idx = spawnout_idx + 1;
                 end
@@ -183,13 +180,6 @@ module spawn_sim #(
                 copFlags[idx] = spawnout.dout[7:0];
                 copArgIdx[idx] = spawnout.dout[15:8];
                 copSize[idx] = spawnout.dout[63:32];
-                state <= READ_COP3;
-            end
-
-            READ_COP3: begin
-                spawnout_idx = spawnout_idx+1;
-                copOffset[idx] = spawnout.dout[31:0];
-                copAccessedLength[idx] = spawnout.dout[63:32];
                 if (idx == limit-1) begin
                     idx = 0;
                     limit = nArgs;
@@ -234,9 +224,7 @@ module spawn_sim #(
                         assert(newTasks[task_array_idx].copyAddr[i] == copies[i] &&
                                newTasks[task_array_idx].copySize[i] == copSize[i] &&
                                newTasks[task_array_idx].copyFlag[i] == copFlags[i] &&
-                               newTasks[task_array_idx].copyArgIdx[i] == copArgIdx[i] &&
-                               newTasks[task_array_idx].copyAccessLenght[i] == copAccessedLength[i] &&
-                               newTasks[task_array_idx].copyOffset[i] == copOffset[i]) else begin
+                               newTasks[task_array_idx].copyArgIdx[i] == copArgIdx[i]) else begin
                             $error("Invalid copy data"); $fatal;
                         end
                     end

@@ -75,8 +75,6 @@ package Glb;
         reg [31:0] copySize[15];
         reg [7:0] copyFlag[15];
         reg [7:0] copyArgIdx[15];
-        reg [31:0] copyAccessLenght[15];
-        reg [31:0] copyOffset[15];
         reg smp;
         enum {
             NTASK_CREATED,

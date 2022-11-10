@@ -25,6 +25,7 @@ set_property simulator_language Verilog [current_project]
 
 import_files -norecurse $root_dir/src/$full_name_IP.sv $root_dir/test/${full_name_IP}_tb.sv
 import_files -norecurse $root_dir/src/OmpSsManagerConfig.sv
+import_files -norecurse $root_dir/picos/src/packages.sv $root_dir/picos/src/config.sv
 
 # Set top
 set_property top ${name_IP}_tb [get_filesets sim_1]

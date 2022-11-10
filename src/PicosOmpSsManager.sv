@@ -47,7 +47,6 @@ module PicosOmpSsManager #(
     input  spawn_in_tvalid,
     output spawn_in_tready,
     input  [ACC_BITS-1:0] spawn_in_tid,
-    input  [2:0] spawn_in_tdest,
     input  [63:0] spawn_in_tdata,
     input  spawn_in_tlast,
     //Task creation ack
@@ -309,7 +308,6 @@ module PicosOmpSsManager #(
         .deps_new_task_tready(new_task_tready),
         .deps_new_task_tvalid(new_task_tvalid),
         .inStream_tdata(spawn_in_tdata),
-        .inStream_tdest(spawn_in_tdest),
         .inStream_tid(spawn_in_tid),
         .inStream_tlast(spawn_in_tlast),
         .inStream_tready(spawn_in_tready),

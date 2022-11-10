@@ -139,7 +139,7 @@ module Scheduler_spawnout #(
 
     always_ff @(posedge clk) begin
 
-        num_slots_1 <= spawnout_num_cops*4'd3;
+        num_slots_1 <= spawnout_num_cops*IOInterface::COPY_WORDS[3:0];
         num_slots_2 <= {2'd0, spawnout_num_args} + {2'd0, spawnout_num_deps};
 
         spawnout_ret <= 0;
@@ -147,7 +147,7 @@ module Scheduler_spawnout #(
         case (spawnout_state)
 
             SPAWNOUT_IDLE: begin
-                needed_slots <= 7'd4 + {3'd0, num_deps} + {3'd0, num_args} + num_cops*4'd3;
+                needed_slots <= 7'd4 + {3'd0, num_deps} + {3'd0, num_args} + num_cops*IOInterface::COPY_WORDS[3:0];
                 if (spawnout_state_start) begin
                     spawnout_state <= SPAWNOUT_CHECK;
                 end

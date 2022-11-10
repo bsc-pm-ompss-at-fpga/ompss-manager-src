@@ -46,7 +46,6 @@ module SmartOmpSsManager_wrapper #(
     input  spawn_in_tvalid,
     output spawn_in_tready,
     input  [$clog2(MAX_ACCS)-1:0] spawn_in_tid,
-    input  [2:0] spawn_in_tdest,
     input  [63:0] spawn_in_tdata,
     input  spawn_in_tlast,
     //Task creation ack
@@ -153,7 +152,6 @@ module SmartOmpSsManager_wrapper #(
         .cmdout_in_tready(cmdout_in_tready),
         .cmdout_in_tvalid(cmdout_in_tvalid),
         .spawn_in_tdata(spawn_in_tdata),
-        .spawn_in_tdest(spawn_in_tdest),
         .spawn_in_tid(spawn_in_tid),
         .spawn_in_tlast(spawn_in_tlast),
         .spawn_in_tready(spawn_in_tready),

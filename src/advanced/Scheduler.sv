@@ -103,7 +103,6 @@ module Scheduler #(
 
     reg [1:0] bufferArgFlags[15];
     reg [1:0] cur_flag;
-    reg [3:0] arg_flag_idx;
 
     reg spawnout_state_start;
     wire [1:0] spawnout_ret; //0 wait, 1 ok, 2 reject
@@ -259,10 +258,6 @@ module Scheduler #(
             end
 
             SCHED_READ_COPS_2: begin
-                inStream_main_TREADY = 1;
-            end
-
-            SCHED_READ_COPS_3: begin
                 inStream_main_TREADY = 1;
             end
 
@@ -494,22 +489,15 @@ module Scheduler #(
 
             //[ size | padding | arg_idx | flags ]
             SCHED_READ_COPS_2: begin
-                cur_flag <= inStream_TDATA[1:0];
-                arg_flag_idx <= inStream_TDATA[11:8];
-                if (inStream_TVALID) begin
-                    count_cops <= count_cops + 1;
-                    state <= SCHED_READ_COPS_3;
+                bufferArgFlags[inStream_TDATA[11:8]] <= inStream_TDATA[1:0];
+                if (inStream_TDATA[11:8] == 4'd0) begin
+                    cur_flag <= inStream_TDATA[1:0];
+                end else begin
+                    cur_flag <= bufferArgFlags[0];
                 end
-            end
-
-            //[ accessed length | offset ]
-            SCHED_READ_COPS_3: begin
-                bufferArgFlags[arg_flag_idx] <= cur_flag;
                 if (inStream_TVALID) begin
-                    if (arg_flag_idx != 0) begin
-                        cur_flag <= bufferArgFlags[0];
-                    end
-                    if (count_cops == num_cops) begin
+                    count_cops <= count_cops + 4'd1;
+                    if (count_cops+4'd1 == num_cops) begin
                         if (num_args != 0) begin
                             state <= SCHED_CMDIN_WRITE_FLAGS;
                         end else begin
