@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module bitinfo_mem #(
     parameter COE_PATH = ""

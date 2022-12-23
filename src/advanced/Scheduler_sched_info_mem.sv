@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Scheduler_sched_info_mem #(
     parameter MAX_ACC_TYPES = 16,

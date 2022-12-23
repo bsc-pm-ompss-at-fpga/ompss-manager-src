@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module connect_gen_axis (
     GenAxis.master m,
@@ -29,8 +28,7 @@ module hwruntime_tb #(
     parameter NUM_CMDS = 1,
     parameter MAX_NEW_TASKS = 100,
     parameter NUM_CREATORS = 0,
-    parameter NUM_ACC_TYPES = 4,
-    parameter HWRUNTIME = "POM"
+    parameter NUM_ACC_TYPES = 4
 ) ();
 
     import Glb::*;
@@ -73,7 +71,6 @@ module hwruntime_tb #(
         if ($value$plusargs("sim_seed=%d", random_seed)) begin
             $display("Found seed %0d", random_seed);
         end
-        pom = HWRUNTIME == "POM";
 
         if (NUM_CREATORS > 0) begin
             newTasks = new[MAX_NEW_TASKS+NUM_CREATORS+2];
@@ -244,11 +241,7 @@ module hwruntime_tb #(
         end
     end
 
-    wire aclk;
-    wire ps_rst;
-    wire interconnect_aresetn;
-    wire peripheral_aresetn;
-    wire managed_aresetn;
+    wire rstn;
     wire taskwait_in_tvalid;
     wire taskwait_in_tready;
     wire [ACC_BITS-1:0] taskwait_in_tid;
@@ -320,11 +313,39 @@ module hwruntime_tb #(
     wire bitinfo_en;
     wire [31:0] bitinfo_addr;
     wire [31:0] bitinfo_dout;
+    wire axilite_arvalid;
+    wire axilite_arready;
+    wire [13:0] axilite_araddr;
+    wire [2:0] axilite_arprot;
+    wire axilite_rvalid;
+    wire axilite_rready;
+    wire [31:0] axilite_rdata;
+    wire [1:0] axilite_rresp;
+    wire axilite_awvalid;
+    wire axilite_awready;
+    wire [13:0] axilite_awaddr;
+    wire [2:0] axilite_awprot;
+    wire axilite_wvalid;
+    wire axilite_wready;
+    wire [31:0] axilite_wdata;
+    wire [3:0] axilite_wstrb;
+    wire axilite_bvalid;
+    wire axilite_bready;
+    wire [1:0] axilite_bresp;
 
-    assign aclk = clk;
-    assign ps_rst = rst;
-    assign interconnect_aresetn = !rst;
-    assign peripheral_aresetn = !rst;
+    assign axilite_arvalid = 1'b0;
+    assign axilite_araddr = 14'd0;
+    assign axilite_arprot = 3'd0;
+    assign axilite_rready = 1'b0;
+    assign axilite_awvalid = 1'b0;
+    assign axilite_awaddr = 14'd0;
+    assign axilite_awprot = 3'd0;
+    assign axilite_wvalid = 1'b0;
+    assign axilite_wdata = 32'd0;
+    assign axilite_wstrb = 4'd0;
+    assign axilite_bready = 1'b0;
+
+    assign rstn = !rst;
     assign lock_in_tvalid = 0;
     assign lock_out_tready = 1;
     assign cmdin.valid = cmdin_out_tvalid;
@@ -357,36 +378,18 @@ module hwruntime_tb #(
     assign spawn_out.data = spawn_out_tdata;
     assign spawn_out.last = spawn_out_tlast;
 
-    if (HWRUNTIME == "FOM") begin
-        FastOmpSsManager_wrapper #(
-            .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
-            .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
-            .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
-            .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
-        ) FOM_I (
-            .*
-        );
-    end else if (HWRUNTIME == "SOM") begin
-        SmartOmpSsManager_wrapper #(
-            .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
-            .MAX_ACC_CREATORS(NUM_CREATORS == 1 ? 2:NUM_CREATORS),
-            .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
-            .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
-            .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
-        ) SOM_I (
-            .*
-        );
-	end else if (HWRUNTIME == "POM") begin
-        PicosOmpSsManager_wrapper #(
-            .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
-            .MAX_ACC_CREATORS(NUM_CREATORS == 1 ? 2:NUM_CREATORS),
-            .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
-            .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
-            .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN)
-        ) POM_I (
-            .*
-        );
-    end
+    PicosOmpSsManager_wrapper #(
+        .MAX_ACCS(NUM_ACCS == 1 ? 2:NUM_ACCS),
+        .MAX_ACC_CREATORS(NUM_CREATORS <= 1 ? 2:NUM_CREATORS),
+        .MAX_ACC_TYPES(NUM_ACC_TYPES == 1 ? 2:NUM_ACC_TYPES),
+        .CMDIN_SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
+        .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN),
+        .ENABLE_SPAWN_QUEUES(NUM_CREATORS != 0),
+        .ENABLE_TASK_CREATION(NUM_CREATORS != 0),
+        .ENABLE_DEPS(NUM_CREATORS != 0)
+    ) POM_I (
+        .*
+    );
 
     cmdin_sim #(
         .NUM_ACCS(NUM_ACCS),
@@ -405,7 +408,9 @@ module hwruntime_tb #(
         .finished_cmds(finished_cmds)
     );
 
-    spawn_sim SPAWN_SIM_I (
+    spawn_sim #(
+        .MAX_ACC_CREATORS(NUM_CREATORS <= 1 ? 2 : NUM_CREATORS)
+    ) SPAWN_SIM_I (
         .clk(clk),
         .rst(rst),
         .spawnin(spawninPortA),
@@ -413,7 +418,8 @@ module hwruntime_tb #(
     );
 
     cmdin_acc_check #(
-        .NUM_ACCS(NUM_ACCS)
+        .NUM_ACCS(NUM_ACCS),
+        .MAX_ACC_CREATORS(NUM_CREATORS <= 1 ? 2:NUM_CREATORS)
     ) cmdin_acc_check_I (
         .clk(clk),
         .rst(rst),

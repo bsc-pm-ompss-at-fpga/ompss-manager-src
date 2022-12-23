@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module dual_port_32_bit_mem_wrapper #(
     parameter SIZE = 256,

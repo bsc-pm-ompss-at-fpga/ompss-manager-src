@@ -18,7 +18,6 @@ variable task_creation [lindex $argv 3]
 variable max_commands [lindex $argv 4]
 variable reproduce_conf_seed [lindex $argv 5]
 variable reproduce_repeat_seed [lindex $argv 6]
-variable hwruntime [lindex $argv 7]
 variable prj_dir "$root_dir/test_projects"
 
 proc gen_ran_range {min max} {
@@ -153,7 +152,6 @@ for {set c 0} {$c < $num_confs} {incr c} {
       MAX_NEW_TASKS="$MAX_NEW_TASKS" \
       NUM_CREATORS="$ncreators" \
       NUM_ACC_TYPES="$ntypes" \
-      HWRUNTIME="$hwruntime" \
    ] [get_filesets sim_1]
 
    launch_simulation -step compile

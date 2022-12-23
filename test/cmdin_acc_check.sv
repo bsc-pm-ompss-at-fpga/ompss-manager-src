@@ -1,7 +1,7 @@
-`timescale 1ns / 1ps
 
 module cmdin_acc_check #(
-    parameter NUM_ACCS = 16
+    parameter NUM_ACCS = 16,
+    parameter MAX_ACC_CREATORS= 0
 ) (
     input clk,
     input rst,
@@ -176,8 +176,8 @@ module cmdin_acc_check #(
                                 $error("accTypeIdx %d accID %d", accTypeIdx, cmdin.dest);
                                 $error("Task sent to an accelerator with incompatible task type, task type originally was %x but destination acc has type %x", newTasks[idx].taskType, accTypes[accTypeIdx].taskType); $fatal;
                             end
-                            assert(newTasks[idx].pTid == ptid) else begin
-                                $error("Invalid ptid"); $fatal;
+                            assert (ptid[$clog2(MAX_ACC_CREATORS)-1:0] == newTasks[idx].acc_id) else begin
+                                $error("Invalid ptid acc id"); $fatal;
                             end
                             assert(!newTasks[idx].smp) else begin
                                 $error("Found SMP task in spawnout queue"); $fatal;

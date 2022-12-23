@@ -30,32 +30,32 @@ endinterface
 package Glb;
 
     typedef struct {
-        reg [7:0] code;
-        reg [63:0] tid;
-        reg [7:0] comp;
-        reg [7:0] nArgs;
-        reg [7:0] argFlags[15];
-        reg [63:0] args[15];
-        reg finished;
+        bit [7:0] code;
+        bit [63:0] tid;
+        bit [7:0] comp;
+        bit [7:0] nArgs;
+        bit [7:0] argFlags[15];
+        bit [63:0] args[15];
+        bit finished;
         int acc_id;
         int period;
         int repetitions;
     } Command;
     Command commands[];
 
-    reg[63:0] argPool[];
+    bit [63:0] argPool[];
 
     int creationGraph[];
 
     typedef struct {
-        reg [31:0] taskType;
-        reg [7:0] nArgs;
-        reg [7:0] nDeps;
-        reg [7:0] nCops;
-        reg [7:0] depDirs[15];
-        reg [7:0] copDirs[15];
-        reg [7:0] copArgIdx[15];
-        reg [7:0] argCopIdx[15];
+        bit [31:0] taskType;
+        bit [7:0] nArgs;
+        bit [7:0] nDeps;
+        bit [7:0] nCops;
+        bit [7:0] depDirs[15];
+        bit [7:0] copDirs[15];
+        bit [7:0] copArgIdx[15];
+        bit [7:0] argCopIdx[15];
         int numInstances;
     } AccType;
 
@@ -63,19 +63,20 @@ package Glb;
     int accId2accType[];
 
     typedef struct {
-        reg [7:0] nArgs;
-        reg [7:0] nDeps;
-        reg [7:0] nCops;
-        reg [63:0] pTid;
-        reg [7:0] insNum;
-        reg [31:0] taskType;
-        reg [63:0] deps[15];
-        reg [63:0] args[15];
-        reg [63:0] copyAddr[15];
-        reg [31:0] copySize[15];
-        reg [7:0] copyFlag[15];
-        reg [7:0] copyArgIdx[15];
-        reg smp;
+        int acc_id;
+        bit [7:0] nArgs;
+        bit [7:0] nDeps;
+        bit [7:0] nCops;
+        bit [63:0] pTid;
+        bit [7:0] insNum;
+        bit [31:0] taskType;
+        bit [63:0] deps[15];
+        bit [63:0] args[15];
+        bit [63:0] copyAddr[15];
+        bit [31:0] copySize[15];
+        bit [7:0] copyFlag[15];
+        bit [7:0] copyArgIdx[15];
+        bit smp;
         enum {
             NTASK_CREATED,
             NTASK_READY

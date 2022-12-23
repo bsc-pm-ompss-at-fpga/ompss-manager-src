@@ -75,17 +75,16 @@ class ArgParser:
         self.parser.add_argument('--conf_seed', help='Configuration seed used to reproduce a test', type=int, default=0)
         self.parser.add_argument('--repeat_seed', help='Repetition seed used to reproduce a test', type=int, default=0)
         self.parser.add_argument('--task_creation', help='Use task creation for the test that is going to be reproduced', type=int)
-        self.parser.add_argument('--hwruntime', help='Hwruntime for the test that is going to be reproduced', choices=['POM', 'SOM', 'FOM'])
 
     def parse_args(self):
         args = self.parser.parse_args()
         return args
 
 
-def exec_integration_test(num_confs, repeats, task_creation, max_commands, reproduce_conf_seed, reproduce_repeat_seed, hwruntime):
+def exec_integration_test(num_confs, repeats, task_creation, max_commands, reproduce_conf_seed, reproduce_repeat_seed):
     err = False
     warn = False
-    msg.info('Running integration test with {} configurations, {} repetitions, {}, {} max commands, {}'.format(num_confs, repeats, 'task creation' if task_creation else 'no task creation', max_commands, hwruntime))
+    msg.info('Running integration test with {} configurations, {} repetitions, {}, {} max commands'.format(num_confs, repeats, 'task creation' if task_creation else 'no task creation', max_commands))
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
                              + os.getcwd() + '/scripts/run_integration_test.tcl -tclargs '
                              + os.path.abspath(os.getcwd()) + ' ' 
@@ -94,18 +93,16 @@ def exec_integration_test(num_confs, repeats, task_creation, max_commands, repro
                              + str(task_creation) + ' '
                              + str(max_commands) + ' '
                              + str(reproduce_conf_seed) + ' '
-                             + str(reproduce_repeat_seed) + ' '
-                             + hwruntime,
+                             + str(reproduce_repeat_seed) + ' ',
                              cwd=prj_path,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, shell=True)
 
     for line in iter(p.stdout.readline, b''):
         line = line.decode('utf-8')
-        line_casefold = line.casefold()
-        if line_casefold.find('error') != -1:
+        if line.find('Fatal:') != -1:
             err = True                               # timescale warning code            module 'glbl' does not have a parameter named
-        elif line_casefold.find('warning') != -1 and line.find('XSIM 43-4099') == -1 and line_casefold.find("module 'glbl'") == -1 and line.find("port 'clkB' is not connected on this instance") == -1:
+        elif line.find('WARNING:') != -1 and line.find('XSIM 43-4100') == -1 and line.find('VRFC 10-3532') == -1:
            warn = True
         sys.stdout.writeVerbose(line)
 
@@ -133,13 +130,9 @@ if not os.path.exists(prj_path):
     os.makedirs(prj_path)
 
 if args.conf_seed != 0:
-    exec_integration_test(1, 1, args.task_creation, 1000, args.conf_seed, args.repeat_seed, args.hwruntime)
+    exec_integration_test(1, 1, args.task_creation, 1000, args.conf_seed, args.repeat_seed)
 else:
-    # No task creation POM
-    #exec_integration_test(10, 5, 0, 1000, 0, 0, 'POM')
-    # Task creation with multiple levels of nesting POM
-    exec_integration_test(10, 10, 1, 1000, 0, 0, 'POM')
-    # Task creation with multiple levels of nesting SOM
-    exec_integration_test(5, 5, 1, 1000, 0, 0, 'SOM')
-    # No task creation FOM
-    exec_integration_test(10, 5, 0, 1000, 0, 0, 'FOM')
+    # No task creation
+    exec_integration_test(10, 5, 0, 1000, 0, 0)
+    # Task creation with multiple levels of nesting
+    exec_integration_test(10, 10, 1, 1000, 0, 0)

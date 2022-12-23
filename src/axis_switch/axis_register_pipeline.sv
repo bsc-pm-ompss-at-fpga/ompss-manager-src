@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module axis_register_pipeline
 #(
@@ -34,12 +33,18 @@ module axis_register_pipeline
         assign m_data = s_data;
         if (HAS_DEST) begin
             assign m_dest = s_dest;
+        end else begin
+            assign m_dest = '0;
         end
         if (HAS_LAST) begin
             assign m_last = s_last;
+        end else begin
+            assign m_last = '0;
         end
         if (HAS_ID) begin
             assign m_id = s_id;
+        end else begin
+            assign m_id = '0;
         end
 
     end else begin
@@ -108,6 +113,8 @@ module axis_register_pipeline
                 end
             end
         end
+    end else begin
+        assign m_dest = '0;
     end
     if (HAS_LAST) begin
         reg [DEPTH-1:0] last_buf;
@@ -126,6 +133,8 @@ module axis_register_pipeline
                 end
             end
         end
+    end else begin
+        assign m_last = '0;
     end
     if (HAS_ID) begin
         reg [ID_WIDTH-1:0] id_buf[DEPTH];
@@ -144,6 +153,8 @@ module axis_register_pipeline
                 end
             end
         end
+    end else begin
+        assign m_id = '0;
     end
 
     end

@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module axis_switch_single_master
 #(
@@ -34,12 +33,18 @@ module axis_switch_single_master
         assign m_data = s_data;
         if (HAS_DEST) begin
             assign m_dest = s_dest;
+        end else begin
+            assign m_dest = '0;
         end
         if (HAS_LAST) begin
             assign m_last = s_last;
+        end else begin
+            assign m_last = '0;
         end
         if (HAS_ID) begin
             assign m_id = s_id;
+        end else begin
+            assign m_id = '0;
         end
 
     end else begin
@@ -54,11 +59,9 @@ module axis_switch_single_master
     localparam SEL_SLAVE_BITS = $clog2(NSLAVES+1);
     localparam NONE_SEL_VAL = {SEL_SLAVE_BITS{1'b1}};
 
-    reg[SEL_SLAVE_BITS-1:0] sel_slave;
+    reg [SEL_SLAVE_BITS-1:0] sel_slave;
 
-    genvar i;
-
-    for (i = 0; i < NSLAVES; i = i+1) begin : SLAVES_READY_SIGNAL
+    for (genvar i = 0; i < NSLAVES; ++i) begin : SLAVES_READY_SIGNAL
         always_comb begin
             if (sel_slave == i) begin
                 s_ready[i] = m_ready;
@@ -69,34 +72,39 @@ module axis_switch_single_master
     end
 
     always_comb begin
-        int j1, j2;
         m_data = s_data[DATA_WIDTH-1 : 0];
         if (HAS_DEST) begin
             m_dest = s_dest[DEST_WIDTH-1 : 0];
+        end else begin
+            m_dest = '0;
         end
         if (HAS_LAST) begin
             m_last = s_last[0];
+        end else begin
+            m_last = '0;
         end
         if (HAS_ID) begin
             m_id = s_id[ID_WIDTH-1:0];
+        end else begin
+            m_id = '0;
         end
         m_valid = 0;
-        for (j1 = 0; j1 < NSLAVES; j1 = j1+1) begin
-            if (sel_slave == j1) begin
-                m_valid = s_valid[j1];
+        for (int j = 0; j < NSLAVES; ++j) begin
+            if (sel_slave == j) begin
+                m_valid = s_valid[j];
             end
         end
-        for (j2 = 1; j2 < NSLAVES; j2 = j2+1) begin
-            if (sel_slave == j2) begin
-                m_data = s_data[j2*DATA_WIDTH +: DATA_WIDTH];
+        for (int j = 1; j < NSLAVES; ++j) begin
+            if (sel_slave == j) begin
+                m_data = s_data[j*DATA_WIDTH +: DATA_WIDTH];
                 if (HAS_DEST) begin
-                    m_dest = s_dest[j2*DEST_WIDTH +: DEST_WIDTH];
+                    m_dest = s_dest[j*DEST_WIDTH +: DEST_WIDTH];
                 end
                 if (HAS_LAST) begin
-                    m_last = s_last[j2];
+                    m_last = s_last[j];
                 end
                 if (HAS_ID) begin
-                    m_id = s_id[j2*ID_WIDTH +: ID_WIDTH];
+                    m_id = s_id[j*ID_WIDTH +: ID_WIDTH];
                 end
             end
         end
@@ -107,8 +115,7 @@ module axis_switch_single_master
         case (state)
 
             IDLE: begin
-                int j;
-                for (j = 0; j < NSLAVES; j = j+1) begin
+                for (int j = 0; j < NSLAVES; ++j) begin
                     if (s_valid[j]) begin
                         sel_slave <= j;
                         state <= TRANSACTION;
@@ -124,8 +131,7 @@ module axis_switch_single_master
                         sel_slave <= NONE_SEL_VAL;
                     end
                 end else begin
-                    int j;
-                    for (j = 0; j < NSLAVES; j = j+1) begin
+                    for (int j = 0; j < NSLAVES; ++j) begin
                         if (sel_slave == j && s_last[j] && s_valid[j] && m_ready) begin
                             state <= IDLE;
                             sel_slave <= NONE_SEL_VAL;

@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Spawn_In #(
     parameter SPAWNIN_QUEUE_LEN = 1024

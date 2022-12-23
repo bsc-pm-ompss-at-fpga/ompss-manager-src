@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module axis_switch_single_st
 #(

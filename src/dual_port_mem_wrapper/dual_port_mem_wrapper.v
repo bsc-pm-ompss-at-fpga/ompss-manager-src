@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module dual_port_mem_wrapper #(
     parameter SIZE = 16,
@@ -11,7 +10,8 @@ module dual_port_mem_wrapper #(
     parameter INIT_CONTENT_FILE = ""
 )
 (
-    input clkA,
+    input clk,
+
     input enA,
     input rstA,
     input [$clog2(SIZE)-1:0] addrA,
@@ -19,7 +19,6 @@ module dual_port_mem_wrapper #(
     input [WIDTH-1:0] dinA,
     output reg [WIDTH-1:0] doutA,
 
-    input clkB,
     input enB,
     input rstB,
     input [$clog2(SIZE)-1:0] addrB,
@@ -46,7 +45,7 @@ module dual_port_mem_wrapper #(
 
     if (MODE_A == "READ_FIRST") begin
 
-        always @(posedge clkA) begin
+        always @(posedge clk) begin
             if (enA) begin
                 if (weA) begin
                     mem[addrA] <= dinA;
@@ -63,7 +62,7 @@ module dual_port_mem_wrapper #(
 
     if (!SINGLE_PORT && MODE_B == "READ_FIRST") begin
 
-        always @(posedge clkB) begin
+        always @(posedge clk) begin
             if (enB) begin
                 if (weB) begin
                     mem[addrB] <= dinB;
@@ -80,7 +79,7 @@ module dual_port_mem_wrapper #(
 
     if (MODE_A == "WRITE_FIRST") begin
 
-        always @(posedge clkA) begin
+        always @(posedge clk) begin
             if (enA) begin
                 if (weA) begin
                     mem[addrA] <= dinA;
@@ -99,7 +98,7 @@ module dual_port_mem_wrapper #(
 
     if (!SINGLE_PORT && MODE_B == "WRITE_FIRST") begin
 
-        always @(posedge clkB) begin
+        always @(posedge clk) begin
             if (enB) begin
                 if (weB) begin
                     mem[addrB] <= dinB;

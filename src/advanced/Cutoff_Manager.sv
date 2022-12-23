@@ -11,13 +11,13 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Cutoff_Manager #(
     parameter ACC_BITS = 4,
     parameter MAX_ACC_CREATORS = 16,
-    parameter TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
-    parameter TW_MEM_WIDTH = 101
+    parameter MAX_DEPS_PER_TASK = 0,
+    localparam TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
+    localparam TW_MEM_WIDTH = 32
 ) (
     input clk,
     input rstn,
@@ -42,28 +42,25 @@ module Cutoff_Manager #(
     output ack_tvalid,
     input ack_tready,
     output logic [63:0] ack_tdata,
-    output ack_tlast,
     output [ACC_BITS-1:0] ack_tdest,
     //Taskwait memory
     output reg [TW_MEM_BITS-1:0] tw_info_addr,
     output logic tw_info_en,
     output logic tw_info_we,
     output logic [TW_MEM_WIDTH-1:0] tw_info_din,
-    input [TW_MEM_WIDTH-1:0] tw_info_dout,
-    output tw_info_clk
+    input [TW_MEM_WIDTH-1:0] tw_info_dout
 );
 
     import OmpSsManager::*;
 
     localparam MAX_ADDR = MAX_ACC_CREATORS-1;
-    localparam DEPS_BITS = $clog2(PicosConfig::MAX_DEPS_PER_TASK+1);
+    localparam DEPS_BITS = $clog2(MAX_DEPS_PER_TASK+1);
 
     typedef enum bit [3:0] {
         IDLE,
-        SEARCH_ENTRY,
-        SEARCH_FREE_ENTRY,
-        CREATE_ENTRY,
-        READ_PTID,
+        WRITE_TW_INFO,
+        ISSUE_READ_TW_INFO,
+        READ_TW_INFO,
         READ_REST,
         BUF_FULL,
         BUF_EMPTY,
@@ -73,217 +70,102 @@ module Cutoff_Manager #(
 
     State_t state;
 
-    wire [TW_MEM_BITS-1:0] next_tw_info_addr;
-    reg[TW_MEM_BITS-1:0] tw_info_addr_delay;
-    reg[ACC_BITS-1:0] acc_id;
-    reg[63:0] buf_tdata;
+    reg [ACC_BITS-1:0] acc_id;
+    reg [63:0] buf_tdata;
     reg buf_tlast;
-    reg[63:0] tid;
-    reg first_task;
     reg accept;
     reg final_mode;
     reg deps_selected;
+    reg buf_header;
     wire selected_slave_tready;
-    reg selected_slave_tvalid;
-    reg empty_entry_found;
-    reg [TW_MEM_BITS-1:0] empty_entry;
     wire has_deps;
 
     assign has_deps = inStream_tdata[NUM_DEPS_OFFSET +: DEPS_BITS] != {DEPS_BITS{1'b0}};
 
-    assign tw_info_clk = clk;
-
-    assign next_tw_info_addr = tw_info_addr+1;
+    assign tw_info_addr = acc_id[TW_MEM_BITS-1:0];
+    assign tw_info_din = 32'd0;
+    assign tw_info_en = state == WRITE_TW_INFO || state == ISSUE_READ_TW_INFO;
+    assign tw_info_we = state == WRITE_TW_INFO;
 
     assign ack_tvalid = state == ACK;
     assign ack_tdest = acc_id;
-    assign ack_tlast = 1'b1;
+    assign ack_tdata = accept ? ACK_OK_CODE : (final_mode ? ACK_FINAL_CODE : ACK_REJECT_CODE);
 
     assign selected_slave_tready = deps_selected ? deps_new_task_tready : sched_inStream_tready;
 
-    assign sched_inStream_tvalid = selected_slave_tvalid && !deps_selected;
+    assign sched_inStream_tvalid = state == BUF_FULL && !deps_selected;
     assign sched_inStream_tdata = buf_tdata;
     assign sched_inStream_tlast = buf_tlast;
     assign sched_inStream_tid = acc_id;
-    assign deps_new_task_tvalid = selected_slave_tvalid && deps_selected;
+    assign deps_new_task_tvalid = state == BUF_FULL && deps_selected;
     assign deps_new_task_tdata = buf_tdata;
 
-    always_comb begin
-
-        tw_info_en = 0;
-        tw_info_we = 0;
-
-        tw_info_din = 0;
-        tw_info_din[TW_INFO_VALID_ENTRY_B] = 1;
-        tw_info_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
-        tw_info_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = 0;
-        tw_info_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = tid;
-
-        ack_tdata = {56'd0, ACK_REJECT_CODE};
-        if (accept) begin
-            ack_tdata = {56'd0, ACK_OK_CODE};
-        end else if (final_mode) begin
-            ack_tdata = {56'd0, ACK_FINAL_CODE};
-        end
-
-        inStream_tready = 0;
-        selected_slave_tvalid = 0;
-        case (state)
-
-            IDLE: begin
-                inStream_tready = 1;
-            end
-
-            READ_PTID: begin
-                tw_info_en = 1;
-            end
-
-            SEARCH_FREE_ENTRY: begin
-                tw_info_en = 1;
-            end
-
-            SEARCH_ENTRY: begin
-                tw_info_en = 1;
-            end
-
-            CREATE_ENTRY: begin
-                tw_info_en = 1;
-                tw_info_we = 1;
-            end
-
-            READ_REST: begin
-                inStream_tready = 1;
-            end
-
-            BUF_FULL: begin
-                selected_slave_tvalid = 1;
-                if (selected_slave_tready && !buf_tlast) begin
-                    inStream_tready = 1;
-                end else begin
-                    inStream_tready = 0;
-                end
-            end
-
-            BUF_EMPTY: begin
-                inStream_tready = 1;
-            end
-
-        endcase
-    end
+    assign inStream_tready = state == IDLE || state == BUF_EMPTY || state == READ_REST || (state == BUF_FULL && selected_slave_tready && !buf_tlast);
 
     always_ff @(posedge clk) begin
 
-        tw_info_addr_delay <= tw_info_addr;
-
         case (state)
 
             IDLE: begin
-                tw_info_addr <= 0;
-                empty_entry_found <= 0;
                 acc_id <= inStream_tid;
                 deps_selected <= has_deps;
                 buf_tdata <= inStream_tdata;
-                buf_tlast <= 0;
-                if (inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
-                    first_task <= 1;
-                end else begin
-                    first_task <= 0;
-                end
+                buf_tlast <= 1'b0;
+                buf_header <= 1'b1;
                 if (inStream_tvalid) begin
-                    if (inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 0) begin
-                        state <= READ_PTID;
+                    if (inStream_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L] == 32'd0) begin
+                        state <= WRITE_TW_INFO;
                     end else if (has_deps && !picos_full && deps_new_task_tready) begin
                         state <= BUF_FULL;
                     end else if (has_deps && !deps_new_task_tready) begin
                         state <= WAIT_PICOS;
                     end else if (has_deps && picos_full) begin
-                        state <= READ_PTID;
+                        state <= ISSUE_READ_TW_INFO;
                     end else begin
                         state <= BUF_FULL;
                     end
                 end
             end
 
-            READ_PTID: begin
-                tid <= inStream_tdata;
-                if (inStream_tvalid) begin
-                    tw_info_addr <= 1;
-                    if (first_task) begin
-                        state <= SEARCH_FREE_ENTRY;
-                    end else begin
-                        state <= SEARCH_ENTRY;
-                    end
-                end
-            end
-
-            SEARCH_FREE_ENTRY: begin
-                final_mode <= 0;
-                if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
-                    empty_entry <= tw_info_addr_delay;
-                    empty_entry_found <= 1;
-                end
-                if (tw_info_addr_delay == MAX_ADDR[TW_MEM_BITS-1:0]) begin
-                    if (!tw_info_dout[TW_INFO_VALID_ENTRY_B] && !empty_entry_found) begin
-                        tw_info_addr <= MAX_ADDR[TW_MEM_BITS-1:0];
-                        state <= CREATE_ENTRY;
-                    end else if (empty_entry_found) begin
-                        tw_info_addr <= empty_entry;
-                        state <= CREATE_ENTRY;
-                    end else begin
-                        state <= READ_REST;
-                    end
+            WRITE_TW_INFO: begin
+                final_mode <= 1'b1;
+                if (deps_selected && deps_new_task_tready && picos_full) begin
+                    state <= READ_REST;
+                end else if (!deps_selected || deps_new_task_tready) begin
+                    state <= BUF_FULL;
                 end else begin
-                    tw_info_addr <= next_tw_info_addr;
-                end
-                if (tw_info_dout[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
-                    if (deps_selected) begin
-                        state <= WAIT_PICOS;
-                    end else begin
-                        state <= BUF_FULL;
-                    end
+                    state <= WAIT_PICOS;
                 end
             end
 
             WAIT_PICOS: begin
-                final_mode <= 1;
                 if (deps_new_task_tready) begin
                     if (picos_full) begin
-                        if (first_task) begin
-                            state <= READ_REST;
-                        end else begin
-                            state <= READ_PTID;
-                        end
+                        state <= ISSUE_READ_TW_INFO;
                     end else begin
                         state <= BUF_FULL;
                     end
                 end
             end
 
-            CREATE_ENTRY: begin
-                if (deps_selected) begin
-                   state <= WAIT_PICOS;
-                end else begin
-                    state <= BUF_FULL;
-                end
+            ISSUE_READ_TW_INFO: begin
+                state <= READ_TW_INFO;
             end
 
-            SEARCH_ENTRY: begin
-                final_mode <= tw_info_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] == buf_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L];
-                if (tw_info_din[TW_INFO_VALID_ENTRY_B] && tw_info_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L] == tid) begin
-                    state <= READ_REST;
-                end
-                tw_info_addr <= next_tw_info_addr;
+            READ_TW_INFO: begin
+                final_mode <= tw_info_dout == buf_tdata[TASK_SEQ_ID_H:TASK_SEQ_ID_L];
+                state <= READ_REST;
             end
 
             READ_REST: begin
-                accept <= 0;
+                accept <= 1'b0;
                 if (inStream_tvalid && inStream_tlast) begin
                     state <= ACK;
                 end
             end
 
             BUF_FULL: begin
-                accept <= 1;
+                accept <= 1'b1;
                 if (!inStream_tvalid && selected_slave_tready && !buf_tlast) begin
                     state <= BUF_EMPTY;
                 end else if (selected_slave_tready && buf_tlast) begin
@@ -294,15 +176,20 @@ module Cutoff_Manager #(
                     end
                 end
                 if (inStream_tvalid && selected_slave_tready) begin
-                    buf_tdata <= inStream_tdata;
+                    // Overwrite the ptid with the acc id
+                    buf_tdata[TW_MEM_BITS-1:0] <= buf_header ? acc_id[TW_MEM_BITS-1:0] : inStream_tdata[TW_MEM_BITS-1:0];
+                    buf_tdata[63:TW_MEM_BITS] <= inStream_tdata[63:TW_MEM_BITS];
                     buf_tlast <= inStream_tlast;
+                    buf_header <= 1'b0;
                 end
             end
 
             BUF_EMPTY: begin
-                buf_tdata <= inStream_tdata;
+                buf_tdata[TW_MEM_BITS-1:0] <= buf_header ? acc_id[TW_MEM_BITS-1:0] : inStream_tdata[TW_MEM_BITS-1:0];
+                buf_tdata[63:TW_MEM_BITS] <= inStream_tdata[63:TW_MEM_BITS];
                 buf_tlast <= inStream_tlast;
                 if (inStream_tvalid) begin
+                    buf_header <= 1'b0;
                     state <= BUF_FULL;
                 end
             end

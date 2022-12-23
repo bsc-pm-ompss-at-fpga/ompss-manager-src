@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module concurrent_id_creator #(
     parameter NUM_ACCS = 16

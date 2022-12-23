@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module acc_inter #(
     parameter NUM_ACCS = 16,

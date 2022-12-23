@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module PicosOmpSsManager_wrapper #(
     parameter MAX_ACCS = 16,
@@ -22,14 +21,25 @@ module PicosOmpSsManager_wrapper #(
     parameter SPAWNIN_QUEUE_LEN = 1024,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
     parameter LOCK_SUPPORT = 0,
-    parameter ENABLE_SPAWN_QUEUES = 1
+    parameter ENABLE_SPAWN_QUEUES = 0,
+    parameter AXILITE_INTF = 0,
+    parameter ENABLE_TASK_CREATION = 0,
+    parameter ENABLE_DEPS = 0,
+    //Picos parameters
+    parameter MAX_ARGS_PER_TASK = 15,
+    parameter MAX_DEPS_PER_TASK = 8,
+    parameter MAX_COPS_PER_TASK = 15,
+    parameter NUM_DCTS = 1,
+    parameter TM_SIZE = 128,
+    parameter DM_SIZE = 512,
+    parameter VM_SIZE = 512,
+    parameter DM_DS = "BINTREE",
+    parameter DM_HASH = "P_PEARSON",
+    parameter HASH_T_SIZE = 64
 ) (
     //Clock and resets
-    input  aclk,
-    input  ps_rst,
-    input  interconnect_aresetn,
-    input  peripheral_aresetn,
-    output managed_aresetn,
+    input  clk,
+    input  rstn,
     //Taskwait request
     input  taskwait_in_tvalid,
     output taskwait_in_tready,
@@ -113,7 +123,27 @@ module PicosOmpSsManager_wrapper #(
     output bitinfo_rst,
     output bitinfo_en,
     output [31:0] bitinfo_addr,
-    input  [31:0] bitinfo_dout
+    input  [31:0] bitinfo_dout,
+    //AXI Lite interface
+    input axilite_arvalid,
+    output axilite_arready,
+    input [13:0] axilite_araddr,
+    input [2:0] axilite_arprot,
+    output axilite_rvalid,
+    input axilite_rready,
+    output [31:0] axilite_rdata,
+    output [1:0] axilite_rresp,
+    input axilite_awvalid,
+    output axilite_awready,
+    input [13:0] axilite_awaddr,
+    input [2:0] axilite_awprot,
+    input axilite_wvalid,
+    output axilite_wready,
+    input [31:0] axilite_wdata,
+    input [3:0] axilite_wstrb,
+    output axilite_bvalid,
+    input axilite_bready,
+    output [1:0] axilite_bresp
 );
 
     PicosOmpSsManager #(
@@ -125,9 +155,23 @@ module PicosOmpSsManager_wrapper #(
         .MAX_ACC_TYPES(MAX_ACC_TYPES),
         .MAX_ACC_CREATORS(MAX_ACC_CREATORS),
         .MAX_ACCS(MAX_ACCS),
-        .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
+        .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES),
+        .AXILITE_INTF(AXILITE_INTF),
+        .ENABLE_TASK_CREATION(ENABLE_TASK_CREATION),
+        .ENABLE_DEPS(ENABLE_DEPS),
+        .MAX_ARGS_PER_TASK(MAX_ARGS_PER_TASK),
+        .MAX_DEPS_PER_TASK(MAX_DEPS_PER_TASK),
+        .MAX_COPS_PER_TASK(MAX_COPS_PER_TASK),
+        .NUM_DCTS(NUM_DCTS),
+        .TM_SIZE(TM_SIZE),
+        .DM_SIZE(DM_SIZE),
+        .VM_SIZE(VM_SIZE),
+        .DM_DS(DM_DS),
+        .DM_HASH(DM_HASH),
+        .HASH_T_SIZE(HASH_T_SIZE)
     ) PicosOmpSsManager_I (
-        .aclk(aclk),
+        .clk(clk),
+        .rstn(rstn),
         .bitinfo_addr(bitinfo_addr),
         .bitinfo_clk(bitinfo_clk),
         .bitinfo_dout(bitinfo_dout),
@@ -156,7 +200,6 @@ module PicosOmpSsManager_wrapper #(
         .spawn_in_tlast(spawn_in_tlast),
         .spawn_in_tready(spawn_in_tready),
         .spawn_in_tvalid(spawn_in_tvalid),
-        .interconnect_aresetn(interconnect_aresetn),
         .lock_out_tdata(lock_out_tdata),
         .lock_out_tdest(lock_out_tdest),
         .lock_out_tlast(lock_out_tlast),
@@ -166,14 +209,11 @@ module PicosOmpSsManager_wrapper #(
         .lock_in_tid(lock_in_tid),
         .lock_in_tready(lock_in_tready),
         .lock_in_tvalid(lock_in_tvalid),
-        .managed_aresetn(managed_aresetn),
         .cmdin_out_tdata(cmdin_out_tdata),
         .cmdin_out_tdest(cmdin_out_tdest),
         .cmdin_out_tlast(cmdin_out_tlast),
         .cmdin_out_tready(cmdin_out_tready),
         .cmdin_out_tvalid(cmdin_out_tvalid),
-        .peripheral_aresetn(peripheral_aresetn),
-        .ps_rst(ps_rst),
         .spawnin_queue_addr(spawnin_queue_addr),
         .spawnin_queue_clk(spawnin_queue_clk),
         .spawnin_queue_din(spawnin_queue_din),
@@ -202,7 +242,26 @@ module PicosOmpSsManager_wrapper #(
         .spawn_out_tdest(spawn_out_tdest),
         .spawn_out_tlast(spawn_out_tlast),
         .spawn_out_tready(spawn_out_tready),
-        .spawn_out_tvalid(spawn_out_tvalid)
+        .spawn_out_tvalid(spawn_out_tvalid),
+        .axilite_arvalid(axilite_arvalid),
+        .axilite_arready(axilite_arready),
+        .axilite_araddr(axilite_araddr),
+        .axilite_arprot(axilite_arprot),
+        .axilite_rvalid(axilite_rvalid),
+        .axilite_rready(axilite_rready),
+        .axilite_rdata(axilite_rdata),
+        .axilite_rresp(axilite_rresp),
+        .axilite_awvalid(axilite_awvalid),
+        .axilite_awready(axilite_awready),
+        .axilite_awaddr(axilite_awaddr),
+        .axilite_awprot(axilite_awprot),
+        .axilite_wvalid(axilite_wvalid),
+        .axilite_wready(axilite_wready),
+        .axilite_wdata(axilite_wdata),
+        .axilite_wstrb(axilite_wstrb),
+        .axilite_bvalid(axilite_bvalid),
+        .axilite_bready(axilite_bready),
+        .axilite_bresp(axilite_bresp)
     );
 
 endmodule

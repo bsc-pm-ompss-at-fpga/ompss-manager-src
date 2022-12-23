@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module acc_sim #(
     parameter ID = 0

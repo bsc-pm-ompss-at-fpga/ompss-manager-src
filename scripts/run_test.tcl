@@ -24,8 +24,8 @@ create_project -force [string tolower $name_IP]_tb $prj_dir/[string tolower $nam
 set_property simulator_language Verilog [current_project]
 
 import_files -norecurse $root_dir/src/$full_name_IP.sv $root_dir/test/${full_name_IP}_tb.sv
-import_files -norecurse $root_dir/src/OmpSsManagerConfig.sv
-import_files -norecurse $root_dir/picos/src/packages.sv $root_dir/picos/src/config.sv
+import_files -norecurse $root_dir/src/pom_pkg.sv
+import_files -norecurse $root_dir/picos/src/picos_pkg.sv
 
 # Set top
 set_property top ${name_IP}_tb [get_filesets sim_1]
