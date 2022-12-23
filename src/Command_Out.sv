@@ -11,12 +11,13 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Command_Out #(
     parameter MAX_ACCS = 16,
     parameter ACC_BITS = $clog2(MAX_ACCS),
-    parameter SUBQUEUE_BITS = 6
+    parameter SUBQUEUE_BITS = 6,
+    parameter DBG_REGS = 0,
+    parameter PTID_WIDTH = 0
 ) (
     input clk,
     input rstn,
@@ -39,7 +40,9 @@ module Command_Out #(
     output logic picosFinishTask_TVALID,
     input  picosFinishTask_TREADY,
     output reg [ACC_BITS-1:0] acc_avail_wr_address,
-    output reg acc_avail_wr
+    output reg acc_avail_wr,
+    //Debug regs
+    output reg [31:0] num_cmds[MAX_ACCS]
 );
 
     import OmpSsManager::*;
@@ -60,8 +63,7 @@ module Command_Out #(
     wire [SUBQUEUE_BITS-1:0] next_wIdx;
     reg [ACC_BITS-1:0] acc_id;
     reg [63:0] task_id;
-    reg [63:0] parent_task_id;
-    reg notify_tw;
+    reg [PTID_WIDTH-1:0] parent_task_id;
 
     assign cmdout_queue_clk = clk;
     assign cmdout_queue_rst = 0;
@@ -84,7 +86,7 @@ module Command_Out #(
         cmdout_queue_din = task_id;
 
         inStream_TREADY = r_READ_HEADER | r_READ_TID | r_READ_PTID;
-        outStream_TVALID = notify_tw & (r_NOTIFY_TW_1 | r_NOTIFY_TW_2);
+        outStream_TVALID = r_NOTIFY_TW_1 | r_NOTIFY_TW_2;
         picosFinishTask_TVALID = r_NOTIFY_PICOS && !task_id[62];
 
         outStream_TDATA = 64'h8000001000000001;
@@ -94,7 +96,7 @@ module Command_Out #(
             cmdout_queue_din[7:0] = 8'h03;
         end
         if (r_NOTIFY_TW_2) begin
-            outStream_TDATA = parent_task_id;
+            outStream_TDATA[PTID_WIDTH-1:0] = parent_task_id;
         end
 
     end
@@ -113,12 +115,15 @@ module Command_Out #(
         if (r_READ_TID) begin
             wIdx <= wIdx_mem[acc_id];
             task_id <= inStream_TDATA;
+            if (DBG_REGS && inStream_TVALID) begin
+                num_cmds[acc_id] <= num_cmds[acc_id] + 32'd1;
+            end
             r_READ_PTID <= inStream_TVALID;
             r_READ_TID <= !inStream_TVALID;
         end
         if (r_READ_PTID) begin
             wIdx_first <= wIdx;
-            parent_task_id <= inStream_TDATA;
+            parent_task_id <= inStream_TDATA[PTID_WIDTH-1:0];
             if (inStream_TVALID) begin
                 if (!task_id[63]) begin
                     r_CMD_OUT_WAIT <= 1;
@@ -147,29 +152,30 @@ module Command_Out #(
             wIdx_mem[acc_id] <= wIdx_first;
         end
         if (r_NOTIFY_PICOS) begin
-            notify_tw <= parent_task_id != 0;
             if (task_id[62] || picosFinishTask_TREADY) begin
                 r_NOTIFY_TW_1 <= 1;
                 r_NOTIFY_PICOS <= 0;
             end
         end
         if (r_NOTIFY_TW_1) begin
-            if (!notify_tw || outStream_TREADY) begin
+            if (outStream_TREADY) begin
                 r_NOTIFY_TW_2 <= 1;
                 r_NOTIFY_TW_1 <= 0;
             end
         end
         if (r_NOTIFY_TW_2) begin
-            if (!notify_tw || outStream_TREADY) begin
+            if (outStream_TREADY) begin
                 r_READ_HEADER <= 1;
                 r_NOTIFY_TW_2 <= 0;
             end
         end
 
         if (!rstn) begin
-            int i;
-            for (i = 0; i < MAX_ACCS; i = i+1) begin
+            for (int i = 0; i < MAX_ACCS; ++i) begin
                 wIdx_mem[i] <= 0;
+                if (DBG_REGS) begin
+                    num_cmds[i] <= 32'd0;
+                end
             end
             r_READ_HEADER <= 1;
             r_READ_TID <= 0;

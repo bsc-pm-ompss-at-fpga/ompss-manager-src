@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module cmdout_sim#(
     parameter NUM_ACCS = 16

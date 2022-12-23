@@ -48,15 +48,6 @@ package OmpSsManager;
     localparam INSTREAM_COMPONENTS_H = 31;
     localparam TYPE_B = 32;
 
-    //TW mem struct
-    localparam TW_INFO_VALID_ENTRY_B = 0;
-    localparam TW_INFO_COMPONENTS_L = 1;
-    localparam TW_INFO_COMPONENTS_H = 32;
-    localparam TW_INFO_TASKID_L = 33;
-    localparam TW_INFO_TASKID_H = 96;
-    localparam TW_INFO_ACCID_L = 97;
-    localparam TW_INFO_CW = 97; //Constant bit width of the tw info struct
-
     localparam ACK_REJECT_CODE = 8'h00;
     localparam ACK_OK_CODE = 8'h01;
     localparam ACK_FINAL_CODE = 8'h02;
@@ -92,5 +83,12 @@ package OmpSsManager;
     localparam LOCK_ID_BITS = 8;
     localparam LOCK_ID_L = 8;
     localparam LOCK_ID_H = 15;
+
+    localparam NDBGREGS = 2;
+
+    typedef struct packed {
+        logic [31:0] copy_in_opt;
+        logic [31:0] copy_out_opt;
+    } DbgRegs_t;
 
 endpackage

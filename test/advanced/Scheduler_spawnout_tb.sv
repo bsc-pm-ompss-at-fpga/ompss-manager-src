@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Scheduler_spawnout_tb;
     localparam SPAWNOUT_QUEUE_LEN = 1024;

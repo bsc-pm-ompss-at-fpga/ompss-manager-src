@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module acc_creator_sim #(
     parameter ID = 0,
@@ -254,6 +253,7 @@ module acc_creator_sim #(
                     newTasks[new_task_idx].nCops = accTypes[accTypeIdx].nCops;
                     newTasks[new_task_idx].taskType = accTypes[accTypeIdx].taskType;
                     newTasks[new_task_idx].pTid = tid;
+                    newTasks[new_task_idx].acc_id = ID;
                     newTasks[new_task_idx].smp = $urandom_range(100) <= 5;
 
                     // First argument is always the index of the newTasks array since there is no other place to save this information,

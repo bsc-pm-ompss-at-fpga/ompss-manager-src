@@ -11,12 +11,12 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Command_In #(
     parameter MAX_ACCS = 16,
     parameter ACC_BITS = $clog2(MAX_ACCS),
-    parameter SUBQUEUE_BITS = 6
+    parameter SUBQUEUE_BITS = 6,
+    parameter DBG_REGS = 0
 ) (
     input clk,
     input rstn,
@@ -34,7 +34,6 @@ module Command_In #(
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
     input  [63:0] intCmdInQueue_dout,
-    output intCmdInQueue_clk,
     //outStream
     output [63:0] outStream_TDATA,
     output logic outStream_TVALID,
@@ -45,7 +44,13 @@ module Command_In #(
     input [ACC_BITS-1:0] sched_queue_nempty_address,
     input sched_queue_nempty_write,
     input [ACC_BITS-1:0] acc_avail_wr_address,
-    input acc_avail_wr
+    input acc_avail_wr,
+    //Debug registers
+    output [31:0] copy_in_opt,
+    output [31:0] copy_out_opt,
+    output reg [MAX_ACCS-1:0] dbg_acc_avail,
+    output reg [MAX_ACCS-1:0] dbg_queue_nempty,
+    output reg [31:0] num_cmds[MAX_ACCS]
 );
 
     import OmpSsManager::*;
@@ -111,7 +116,8 @@ module Command_In #(
     reg copy_opt_finished;
 
     Command_In_copy_opt #(
-        .SUBQUEUE_BITS(SUBQUEUE_BITS)
+        .SUBQUEUE_BITS(SUBQUEUE_BITS),
+        .DBG_REGS(DBG_REGS)
     ) copy_opt (
         .clk(clk),
         .rstn(rstn),
@@ -131,12 +137,13 @@ module Command_In #(
         .first_idx(first_idx),
         .first_next_idx(first_next_idx),
         .queue_select(queue_select),
-        .cmd_type(cmd_type)
+        .cmd_type(cmd_type),
+        .copy_in_opt(copy_in_opt),
+        .copy_out_opt(copy_out_opt)
     );
 
     assign cmdin_queue_clk = clk;
     assign cmdin_queue_rst = 0;
-    assign intCmdInQueue_clk = clk;
 
     assign cmdin_queue_addr[31:3 + SUBQUEUE_BITS+ACC_BITS] = 0;
     assign cmdin_queue_addr[2:0] = 0;
@@ -374,6 +381,9 @@ module Command_In #(
                 if (outStream_TREADY) begin
                     cmd_length <= cmd_length - 1;
                     if (outStream_TLAST) begin
+                        if (DBG_REGS) begin
+                            num_cmds[acc_id] <= num_cmds[acc_id] + 32'd1;
+                        end
                         if (cmd_type == 2'd1) begin
                             state <= CLEAR_HEADER;
                         end else begin
@@ -421,6 +431,9 @@ module Command_In #(
             int i;
             for (i = 0; i < MAX_ACCS; i = i+1) begin
                 subqueue_idx[i] <= 0;
+                if (DBG_REGS) begin
+                    num_cmds[i] <= 32'd0;
+                end
             end
             state <= IDLE;
             queue_nempty <= 0;
@@ -428,6 +441,13 @@ module Command_In #(
             front_sent <= {MAX_ACCS{1'b0}};
             copy_optimized <= {MAX_ACCS{1'b0}};
             cmd_in_acc_id <= 0;
+        end
+    end
+
+    if (DBG_REGS) begin
+        always_ff @(posedge clk) begin
+            dbg_acc_avail <= acc_avail;
+            dbg_queue_nempty <= queue_nempty;
         end
     end
 

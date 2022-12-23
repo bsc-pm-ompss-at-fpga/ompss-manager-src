@@ -11,13 +11,12 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Taskwait #(
     parameter ACC_BITS = 4,
     parameter MAX_ACC_CREATORS = 16,
-    parameter TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
-    parameter TW_MEM_WIDTH = 101
+    localparam TW_MEM_BITS = $clog2(MAX_ACC_CREATORS),
+    localparam TW_MEM_WIDTH = 32
 ) (
     input clk,
     input rstn,
@@ -30,183 +29,96 @@ module Taskwait #(
     output [63:0] outStream_TDATA,
     output outStream_TVALID,
     input  outStream_TREADY,
-    output outStream_TLAST,
     output [ACC_BITS-1:0] outStream_TDEST,
     //Taskwait memory
     output [TW_MEM_BITS-1:0] twInfo_addr,
     output logic twInfo_en,
     output twInfo_we,
     output logic [TW_MEM_WIDTH-1:0] twInfo_din,
-    input  [TW_MEM_WIDTH-1:0] twInfo_dout,
-    output twInfo_clk
+    input  [TW_MEM_WIDTH-1:0] twInfo_dout
 );
 
     import OmpSsManager::*;
 
     typedef enum bit [2:0] {
         READ_HEADER,
-        READ_TID,
-        GET_ENTRY_1,
-        GET_ENTRY_2,
+        READ_PTID,
+        ISSUE_TW_MEM_READ,
+        TW_MEM_READ,
+        RESULT_COMPONENTS,
         CHECK_RESULTS,
         WAKEUP_ACC
     } State_t;
 
     State_t state;
 
-    reg [TW_MEM_BITS-1:0] not_valid_idx;
-    reg not_valid_entry_found;
-    reg task_id_not_found;
-    reg [TW_MEM_BITS-1:0] count;
-    wire [TW_MEM_BITS-1:0] prev_count;
-    wire [TW_MEM_BITS-1:0] next_count;
     reg [31:0] components;
     reg [31:0] tw_info_components;
     reg [31:0] result_components;
-    reg [31:0] tw_info_din_components;
     reg [ACC_BITS-1:0] acc_id;
-    reg [ACC_BITS-1:0] inStream_tid_r;
-    reg [63:0] task_id;
-    reg [63:0] tw_info_task_id;
-    reg tw_info_valid;
     reg _type;
-    reg update_entry;
-
-    assign twInfo_clk = clk;
-
-    assign next_count = count+1;
-    assign prev_count = count-1;
 
     assign outStream_TDATA = 64'd1;
     assign outStream_TVALID = state == WAKEUP_ACC;
     assign outStream_TDEST = acc_id;
-    assign outStream_TLAST = 1'b1;
 
-    assign twInfo_addr = count;
-    assign twInfo_we = update_entry;
+    assign twInfo_addr = acc_id[TW_MEM_BITS-1:0];
+    assign twInfo_we = state == CHECK_RESULTS;
+    assign twInfo_en = state == ISSUE_TW_MEM_READ || state == CHECK_RESULTS;
+    assign twInfo_din = result_components;
 
-    always_comb begin
-
-        inStream_TREADY = 0;
-
-        twInfo_en = update_entry;
-        twInfo_din = 112'd0;
-        twInfo_din[TW_INFO_VALID_ENTRY_B] = tw_info_valid;
-        twInfo_din[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L] = acc_id;
-        twInfo_din[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L] = tw_info_din_components;
-        twInfo_din[TW_INFO_TASKID_H:TW_INFO_TASKID_L] = task_id;
-
-        case (state)
-
-            READ_HEADER: begin
-                inStream_TREADY = 1;
-            end
-
-            READ_TID: begin
-                inStream_TREADY = 1;
-                twInfo_en = 1;
-            end
-
-            GET_ENTRY_2: begin
-                twInfo_en = 1;
-            end
-
-        endcase
-
-    end
+    assign inStream_TREADY = state == READ_HEADER || state == READ_PTID;
 
     always_ff @(posedge clk) begin
 
-        tw_info_task_id <= twInfo_dout[TW_INFO_TASKID_H:TW_INFO_TASKID_L];
-        tw_info_valid <= twInfo_dout[TW_INFO_VALID_ENTRY_B];
-        tw_info_components <= twInfo_dout[TW_INFO_COMPONENTS_H:TW_INFO_COMPONENTS_L];
-        if (_type) begin
-            if (task_id_not_found) begin
-                tw_info_din_components <= 0-components;
-            end else begin
-                tw_info_din_components <= result_components;
-            end
-        end else begin
-            if (task_id_not_found) begin
-                tw_info_din_components <= 1;
-            end else begin
-                tw_info_din_components <= result_components;
-            end
-        end
+        tw_info_components <= twInfo_dout;
         if (_type) begin
             result_components <= tw_info_components - components;
         end else begin
-            result_components <= tw_info_components + 1;
+            result_components <= tw_info_components + 32'd1;
         end
-
-        update_entry <= 0;
-
-        task_id_not_found <= 0;
 
         case (state)
 
             READ_HEADER: begin
-                inStream_tid_r <= inStream_TID;
-                not_valid_entry_found <= 0;
-                count <= 0;
                 components <= inStream_TDATA[INSTREAM_COMPONENTS_H:INSTREAM_COMPONENTS_L];
                 _type <= inStream_TDATA[TYPE_B];
                 if (inStream_TVALID) begin
-                    state <= READ_TID;
+                    state <= READ_PTID;
                 end
             end
 
-            READ_TID: begin
-                task_id <= inStream_TDATA;
-                if (inStream_TVALID) begin
-                    state <= GET_ENTRY_1;
-                end
-            end
-
-            GET_ENTRY_1: begin
-                count <= next_count;
-                acc_id <= twInfo_dout[TW_INFO_ACCID_L+ACC_BITS-1:TW_INFO_ACCID_L];
-                state <= GET_ENTRY_2;
-            end
-
-            GET_ENTRY_2: begin
-                if (!not_valid_entry_found && !tw_info_valid) begin
-                    not_valid_idx <= prev_count;
-                    not_valid_entry_found <= 1;
-                end
-                if (tw_info_valid && tw_info_task_id == task_id) begin
-                    state <= CHECK_RESULTS;
-                end else if (count == MAX_ACC_CREATORS[TW_MEM_BITS-1:0]) begin
-                    task_id_not_found <= 1;
-                    state <= CHECK_RESULTS;
+            READ_PTID: begin
+                if (_type) begin
+                    acc_id <= inStream_TID;
                 end else begin
-                    state <= GET_ENTRY_1;
+                    if (ACC_BITS == TW_MEM_BITS)
+                        acc_id <= inStream_TDATA[TW_MEM_BITS-1:0];
+                    else
+                        acc_id <= {{ACC_BITS-TW_MEM_BITS{1'b0}}, inStream_TDATA[TW_MEM_BITS-1:0]};
                 end
+                if (inStream_TVALID) begin
+                    state <= ISSUE_TW_MEM_READ;
+                end
+            end
+
+            ISSUE_TW_MEM_READ: begin
+                state <= TW_MEM_READ;
+            end
+
+            TW_MEM_READ: begin
+                state <= RESULT_COMPONENTS;
+            end
+
+            RESULT_COMPONENTS: begin
+                state <= CHECK_RESULTS;
             end
 
             CHECK_RESULTS: begin
-                if (_type) begin
-                    acc_id <= inStream_tid_r;
-                end
-                if (task_id_not_found) begin
-                    tw_info_valid <= 1;
-                    count <= not_valid_idx;
+                if (result_components == 32'd0) begin
+                    state <= WAKEUP_ACC;
                 end else begin
-                    tw_info_valid <= result_components != 0;
-                    count <= prev_count;
-                end
-                // If an accelerator asks for a taskwait without creating any tasks, there's no need to allocate
-                // memory and it can be waken up immediately
-                if (task_id_not_found && _type) begin
-                    update_entry <= components != 0;
-                    state <= components != 0 ? READ_HEADER : WAKEUP_ACC;
-                end else begin
-                    update_entry <= 1;
-                    if (!task_id_not_found && result_components == 0) begin
-                        state <= WAKEUP_ACC;
-                    end else begin
-                        state <= READ_HEADER;
-                    end
+                    state <= READ_HEADER;
                 end
             end
 

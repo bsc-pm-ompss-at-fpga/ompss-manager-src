@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 
 module axis_switch_single_master_rrobin #(
     parameter NSLAVES = 2,

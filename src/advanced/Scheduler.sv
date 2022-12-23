@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Scheduler #(
     parameter MAX_ACCS = 16,
@@ -30,7 +29,6 @@ module Scheduler #(
     output logic intCmdInQueue_we,
     output logic [63:0] intCmdInQueue_din,
     input  [63:0] intCmdInQueue_dout,
-    output intCmdInQueue_clk,
     //Spawn out queue
     output logic [31:0] spawnout_queue_addr,
     output logic spawnout_queue_en,

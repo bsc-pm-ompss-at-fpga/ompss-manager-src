@@ -1,8 +1,8 @@
-`timescale 1ns / 1ps
 
 module spawn_sim #(
     parameter SPAWNIN_SIZE = 1024,
-    parameter SPAWNOUT_SIZE = 1024
+    parameter SPAWNOUT_SIZE = 1024,
+    parameter MAX_ACC_CREATORS = 0
 ) (
     input clk,
     input rst,
@@ -213,8 +213,8 @@ module spawn_sim #(
                     assert(newTasks[task_array_idx].state == NTASK_CREATED) else begin
                         $error("Invalid task state"); $fatal;
                     end
-                    assert(newTasks[task_array_idx].pTid == ptid) else begin
-                        $error("Invalid ptid"); $fatal;
+                    assert (ptid[$clog2(MAX_ACC_CREATORS)-1:0] == newTasks[task_array_idx].acc_id) else begin
+                        $error("Invalid ptid acc id"); $fatal;
                     end
                     assert(newTasks[task_array_idx].smp || !pom) else begin
                         $error("Found not SMP task in spawnout queue with POM"); $fatal;

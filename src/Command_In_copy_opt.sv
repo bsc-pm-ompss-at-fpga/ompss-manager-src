@@ -11,10 +11,10 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-`timescale 1ns / 1ps
 
 module Command_In_copy_opt #(
-    parameter SUBQUEUE_BITS = 6
+    parameter SUBQUEUE_BITS = 6,
+    parameter DBG_REGS = 0
 ) (
     input  clk,
     input  rstn,
@@ -37,8 +37,18 @@ module Command_In_copy_opt #(
     input [SUBQUEUE_BITS-1:0] first_idx,
     input [SUBQUEUE_BITS-1:0] first_next_idx,
     input queue_select, //0 --> cmd in, 1 --> int cmd in
-    input [1:0] cmd_type //0 --> exec task, 1 --> setup inst, 2 --> exec periodic task
+    input [1:0] cmd_type, //0 --> exec task, 1 --> setup inst, 2 --> exec periodic task
+    //Debug registers
+    output reg [31:0] copy_in_opt,
+    output reg [31:0] copy_out_opt
 );
+
+    localparam COPY_IN_B = 4;
+    localparam COPY_OUT_B = 5;
+    localparam COPY_IN_CHAIN_B = 7;
+    localparam FLAG_COPY_IN_B = 0;
+    localparam FLAG_COPY_OUT_B = 1;
+    localparam FLAG_COPY_IN_CHAIN_B = 2;
 
     typedef enum bit [2:0] {
         IDLE,
@@ -65,7 +75,7 @@ module Command_In_copy_opt #(
 
     assign next_arg_idx = idx + 2;
 
-    assign copyflag_bit = flag[0] & !flag_d[2] & !flag_d[0];
+    assign copyflag_bit = flag[FLAG_COPY_IN_B] & !flag_d[FLAG_COPY_IN_CHAIN_B] & !flag_d[FLAG_COPY_IN_B];
 
     assign idx_prev = idx-1;
 
@@ -74,17 +84,17 @@ module Command_In_copy_opt #(
         cmdin_queue_en = !queue_select;
         cmdin_queue_we = 0;
         cmdin_queue_addr = idx;
-        cmdin_queue_din[7] = flag[2];
-        cmdin_queue_din[5] = flag[1] & !cmdin_queue_dout[5];
-        cmdin_queue_din[4] = flag[0];
+        cmdin_queue_din[COPY_IN_CHAIN_B] = flag[FLAG_COPY_IN_CHAIN_B];
+        cmdin_queue_din[COPY_OUT_B] = flag[FLAG_COPY_OUT_B] & !cmdin_queue_dout[COPY_OUT_B];
+        cmdin_queue_din[COPY_IN_B] = flag[FLAG_COPY_IN_B];
 
         intCmdInQueue_en = queue_select;
         intCmdInQueue_we = 0;
         intcmdin_queue_addr = idx;
         intCmdInQueue_din = intCmdInQueue_buf;
-        intCmdInQueue_din[7] = flag[2];
-        intCmdInQueue_din[5] = flag[1] & !intCmdInQueue_dout[5];
-        intCmdInQueue_din[4] = flag[0];
+        intCmdInQueue_din[COPY_IN_CHAIN_B] = flag[FLAG_COPY_IN_CHAIN_B];
+        intCmdInQueue_din[COPY_OUT_B] = flag[FLAG_COPY_OUT_B] & !intCmdInQueue_dout[COPY_OUT_B];
+        intCmdInQueue_din[COPY_IN_B] = flag[FLAG_COPY_IN_B];
 
         case (state)
 
@@ -119,13 +129,13 @@ module Command_In_copy_opt #(
                 cmdin_queue_we = 8'h01;
                 intCmdInQueue_we = 1;
                 cmdin_queue_addr = cmd_next_idx;
-                cmdin_queue_din[7] = !copyflag_bit & flag[0];
-                cmdin_queue_din[5] = flag[1];
-                cmdin_queue_din[4] = copyflag_bit;
+                cmdin_queue_din[COPY_IN_CHAIN_B] = !copyflag_bit & flag[FLAG_COPY_IN_B];
+                cmdin_queue_din[COPY_OUT_B] = flag[FLAG_COPY_OUT_B];
+                cmdin_queue_din[COPY_IN_B] = copyflag_bit;
                 intcmdin_queue_addr = cmd_next_idx;
-                intCmdInQueue_din[7] = !copyflag_bit & flag[0];
-                intCmdInQueue_din[5] = flag[1];
-                intCmdInQueue_din[4] = copyflag_bit;
+                intCmdInQueue_din[COPY_IN_CHAIN_B] = !copyflag_bit & flag[FLAG_COPY_IN_B];
+                intCmdInQueue_din[COPY_OUT_B] = flag[FLAG_COPY_OUT_B];
+                intCmdInQueue_din[COPY_IN_B] = copyflag_bit;
             end
 
             default: begin
@@ -186,11 +196,23 @@ module Command_In_copy_opt #(
 
             WRITE_FLAG_0: begin
                 idx <= idx + 3;
+                if (DBG_REGS) begin
+                    // The output copy of the current cmd arg is optimized
+                    if (flag[FLAG_COPY_OUT_B] & cmdin_queue_dout[COPY_OUT_B]) begin
+                        copy_out_opt <= copy_out_opt + 32'd1;
+                    end
+                end
                 state <= WRITE_FLAG_1;
             end
 
             WRITE_FLAG_1: begin
                 cmd_next_idx <= cmd_next_idx + 3;
+                if (DBG_REGS) begin
+                    // The input copy of the next cmd arg is optimized
+                    if (flag[FLAG_COPY_IN_B] & (flag_d[FLAG_COPY_IN_CHAIN_B] | flag_d[FLAG_COPY_IN_B])) begin
+                        copy_in_opt <= copy_in_opt + 32'd1;
+                    end
+                end
                 if (idx_prev == first_next_idx) begin
                     state <= IDLE;
                     finished <= 1;
@@ -202,6 +224,10 @@ module Command_In_copy_opt #(
         endcase
 
         if (!rstn) begin
+            if (DBG_REGS) begin
+                copy_out_opt <= 32'd0;
+                copy_in_opt <= 32'd0;
+            end
             state <= IDLE;
         end
     end
