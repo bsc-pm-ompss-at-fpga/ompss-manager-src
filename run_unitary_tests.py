@@ -10,15 +10,16 @@
 # Unauthorized copying and/or distribution of this file,                 #
 # via any medium is strictly prohibited.                                 #
 # The intellectual and technical concepts contained herein are           #
-# propietary to BSC-CNS and may be covered by Patents.                   #
+# proprietary to BSC-CNS and may be covered by Patents.                   #
 #------------------------------------------------------------------------#
 
-import os
-import sys
-import re
-import subprocess
 import argparse
-from distutils import spawn
+import os
+import re
+import shutil
+import sys
+import subprocess
+
 
 class Logger(object):
     def __init__(self):
@@ -84,18 +85,18 @@ def exec_integration_test(num_confs, repeats, task_creation, max_commands, repro
     warn = False
     msg.info('Running integration test with {} configurations, {} repetitions, {}, {} max commands, {}'.format(num_confs, repeats, 'task creation' if task_creation else 'no task creation', max_commands, hwruntime))
     p = subprocess.Popen('vivado -nojournal -nolog -notrace -mode batch -source '
-                             + os.getcwd() + '/scripts/run_integration_test.tcl -tclargs '
-                             + os.path.abspath(os.getcwd()) + ' ' 
-                             + str(num_confs) + ' '
-                             + str(repeats) + ' '
-                             + str(task_creation) + ' '
-                             + str(max_commands) + ' '
-                             + str(reproduce_conf_seed) + ' '
-                             + str(reproduce_repeat_seed) + ' '
-                             + hwruntime,
-                             cwd=prj_path,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, shell=True)
+                         + os.getcwd() + '/scripts/run_integration_test.tcl -tclargs '
+                         + os.path.abspath(os.getcwd()) + ' '
+                         + str(num_confs) + ' '
+                         + str(repeats) + ' '
+                         + str(task_creation) + ' '
+                         + str(max_commands) + ' '
+                         + str(reproduce_conf_seed) + ' '
+                         + str(reproduce_repeat_seed) + ' '
+                         + hwruntime,
+                         cwd=prj_path,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, shell=True)
 
     for line in iter(p.stdout.readline, b''):
         line = line.decode('utf-8')
@@ -103,7 +104,7 @@ def exec_integration_test(num_confs, repeats, task_creation, max_commands, repro
         if line_casefold.find('error') != -1:
             err = True                                       # timescale warning code                        module 'glbl' does not have a parameter named
         elif line_casefold.find('warning') != -1 and line.find('XSIM 43-4099') == -1 and line_casefold.find("module 'glbl'") == -1:
-           warn = True
+            warn = True
         sys.stdout.writeVerbose(line)
 
     retval = p.wait()
@@ -122,7 +123,7 @@ parser = ArgParser()
 args = parser.parse_args()
 sys.stdout = Logger()
 
-if not spawn.find_executable('vivado'):
+if not shutil.which('vivado'):
     msg.error('vivado not found. Please set PATH correctly')
 
 prj_path = os.getcwd() + '/test_projects'

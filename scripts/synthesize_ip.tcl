@@ -33,7 +33,17 @@ if { [ glob -nocomplain $project_path/synth_project.xpr ] == "" } {
     open_project $project_path/synth_project.xpr
 }
 
-set_property -dict [list CONFIG.MAX_ACCS $max_accs] [get_ips $mod_name]
+# Enable all feature to have a better resource utilization statistic
+set_property -dict [list \
+   CONFIG.MAX_ACCS $max_accs \
+   CONFIG.ENABLE_TASK_CREATION 1 \
+   CONFIG.ENABLE_DEPS 1 \
+   CONFIG.LOCK_SUPPORT 1 \
+   CONFIG.ENABLE_SPAWN_QUEUES 1 \
+   CONFIG.AXILITE_INTF 1 \
+   CONFIG.DBG_AVAIL_COUNT_EN 1 \
+   CONFIG.DBG_AVAIL_COUNT_W 64 \
+] [get_ips $mod_name]
 
 reset_run synth_1
 

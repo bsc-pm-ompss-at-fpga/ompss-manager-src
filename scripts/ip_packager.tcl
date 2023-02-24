@@ -63,6 +63,13 @@ set_property value false [ipx::get_hdl_parameters AXILITE_INTF -of_objects [ipx:
 set_property value_format bool [ipx::get_user_parameters AXILITE_INTF -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters AXILITE_INTF -of_objects [ipx::current_core]]
 
+set_property widget {checkBox} [ipgui::get_guiparamspec -name "DBG_AVAIL_COUNT_EN" -component [ipx::current_core] ]
+set_property value false [ipx::get_user_parameters DBG_AVAIL_COUNT_EN -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters DBG_AVAIL_COUNT_EN -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_user_parameters DBG_AVAIL_COUNT_EN -of_objects [ipx::current_core]]
+set_property value_format bool [ipx::get_hdl_parameters DBG_AVAIL_COUNT_EN -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {$AXILITE_INTF} [ipx::get_user_parameters DBG_AVAIL_COUNT_EN -of_objects [ipx::current_core]]
+
 set_property widget {checkBox} [ipgui::get_guiparamspec -name "LOCK_SUPPORT" -component [ipx::current_core] ]
 set_property value false [ipx::get_user_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
 set_property value false [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
@@ -70,19 +77,19 @@ set_property value_format bool [ipx::get_user_parameters LOCK_SUPPORT -of_object
 set_property value_format bool [ipx::get_hdl_parameters LOCK_SUPPORT -of_objects [ipx::current_core]]
 
 set_property widget {checkBox} [ipgui::get_guiparamspec -name "ENABLE_SPAWN_QUEUES" -component [ipx::current_core] ]
-set_property value true [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
-set_property value true [ipx::get_hdl_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property value false [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_user_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters ENABLE_SPAWN_QUEUES -of_objects [ipx::current_core]]
 
 set_property widget {checkBox} [ipgui::get_guiparamspec -name "ENABLE_TASK_CREATION" -component [ipx::current_core] ]
-set_property value true [ipx::get_user_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
-set_property value true [ipx::get_hdl_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
+set_property value false [ipx::get_user_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_user_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
 
-set_property value true [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-set_property value true [ipx::get_hdl_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
+set_property value false [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
+set_property value false [ipx::get_hdl_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
 set_property enablement_tcl_expr {$ENABLE_TASK_CREATION} [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
@@ -93,6 +100,12 @@ set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACC_
 set_property value_validation_range_minimum 2 [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
+
+set_property widget {textEdit} [ipgui::get_guiparamspec -name "DBG_AVAIL_COUNT_W" -component [ipx::current_core] ]
+set_property value_validation_type range_long [ipx::get_user_parameters DBG_AVAIL_COUNT_W -of_objects [ipx::current_core]]
+set_property value_validation_range_minimum 1 [ipx::get_user_parameters DBG_AVAIL_COUNT_W -of_objects [ipx::current_core]]
+set_property value_validation_range_maximum 64 [ipx::get_user_parameters DBG_AVAIL_COUNT_W -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {$AXILITE_INTF && $DBG_AVAIL_COUNT_EN} [ipx::get_user_parameters DBG_AVAIL_COUNT_W -of_objects [ipx::current_core]]
 
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "SPAWNIN_QUEUE_LEN" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters SPAWNIN_QUEUE_LEN -of_objects [ipx::current_core]]
@@ -132,6 +145,14 @@ foreach bram_intf $bram_list {
     set_property interface_mode master [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
     ipx::associate_bus_interfaces -busif $bram_intf -clock clk [ipx::current_core]
 }
+
+ipx::infer_bus_interface "axilite_arvalid axilite_arready axilite_araddr axilite_arprot axilite_rvalid axilite_rready axilite_rdata axilite_rresp" xilinx.com:interface:aximm_rtl:1.0 [ipx::current_core]
+ipx::add_memory_map axilite [ipx::current_core]
+set_property slave_memory_map_ref axilite [ipx::get_bus_interfaces axilite -of_objects [ipx::current_core]]
+ipx::add_address_block reg_0 [ipx::get_memory_maps axilite -of_objects [ipx::current_core]]
+set_property BASE_ADDRESS 0 [ipx::get_address_blocks reg_0 -of_objects [ipx::get_memory_maps axilite -of_objects [ipx::current_core]]]
+set_property RANGE 16384 [ipx::get_address_blocks reg_0 -of_objects [ipx::get_memory_maps axilite -of_objects [ipx::current_core]]]
+ipx::associate_bus_interfaces -busif axilite -clock clk [ipx::current_core]
 
 ipx::associate_bus_interfaces -busif lock_in -clock clk [ipx::current_core]
 ipx::associate_bus_interfaces -busif lock_out -clock clk [ipx::current_core]

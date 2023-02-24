@@ -11,7 +11,6 @@
   propietary to BSC-CNS and may be covered by Patents.
 --------------------------------------------------------------------*/
 
-
 module PicosOmpSsManager_wrapper #(
     parameter MAX_ACCS = 16,
     parameter MAX_ACC_CREATORS = 16,
@@ -25,6 +24,8 @@ module PicosOmpSsManager_wrapper #(
     parameter AXILITE_INTF = 0,
     parameter ENABLE_TASK_CREATION = 0,
     parameter ENABLE_DEPS = 0,
+    parameter DBG_AVAIL_COUNT_EN = 0,
+    parameter DBG_AVAIL_COUNT_W = 1,
     //Picos parameters
     parameter MAX_ARGS_PER_TASK = 15,
     parameter MAX_DEPS_PER_TASK = 8,
@@ -132,20 +133,8 @@ module PicosOmpSsManager_wrapper #(
     output axilite_rvalid,
     input axilite_rready,
     output [31:0] axilite_rdata,
-    output [1:0] axilite_rresp,
-    input axilite_awvalid,
-    output axilite_awready,
-    input [13:0] axilite_awaddr,
-    input [2:0] axilite_awprot,
-    input axilite_wvalid,
-    output axilite_wready,
-    input [31:0] axilite_wdata,
-    input [3:0] axilite_wstrb,
-    output axilite_bvalid,
-    input axilite_bready,
-    output [1:0] axilite_bresp
+    output [1:0] axilite_rresp
 );
-
     PicosOmpSsManager #(
         .LOCK_SUPPORT(LOCK_SUPPORT),
         .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
@@ -159,6 +148,8 @@ module PicosOmpSsManager_wrapper #(
         .AXILITE_INTF(AXILITE_INTF),
         .ENABLE_TASK_CREATION(ENABLE_TASK_CREATION),
         .ENABLE_DEPS(ENABLE_DEPS),
+        .DBG_AVAIL_COUNT_EN(DBG_AVAIL_COUNT_EN),
+        .DBG_AVAIL_COUNT_W(DBG_AVAIL_COUNT_W),
         .MAX_ARGS_PER_TASK(MAX_ARGS_PER_TASK),
         .MAX_DEPS_PER_TASK(MAX_DEPS_PER_TASK),
         .MAX_COPS_PER_TASK(MAX_COPS_PER_TASK),
@@ -250,18 +241,6 @@ module PicosOmpSsManager_wrapper #(
         .axilite_rvalid(axilite_rvalid),
         .axilite_rready(axilite_rready),
         .axilite_rdata(axilite_rdata),
-        .axilite_rresp(axilite_rresp),
-        .axilite_awvalid(axilite_awvalid),
-        .axilite_awready(axilite_awready),
-        .axilite_awaddr(axilite_awaddr),
-        .axilite_awprot(axilite_awprot),
-        .axilite_wvalid(axilite_wvalid),
-        .axilite_wready(axilite_wready),
-        .axilite_wdata(axilite_wdata),
-        .axilite_wstrb(axilite_wstrb),
-        .axilite_bvalid(axilite_bvalid),
-        .axilite_bready(axilite_bready),
-        .axilite_bresp(axilite_bresp)
+        .axilite_rresp(axilite_rresp)
     );
-
 endmodule
