@@ -1,7 +1,8 @@
 
 module axilite_controller #(
     parameter AXI_ADDR_WIDTH = 0,
-    parameter MAX_ACCS = 0
+    parameter MAX_ACCS = 0,
+    parameter DBG_AVAIL_COUNT_W = 0
 ) (
     input clk,
     input rstn,
@@ -13,17 +14,7 @@ module axilite_controller #(
     input axilite_rready,
     output [31:0] axilite_rdata,
     output [1:0] axilite_rresp,
-    input axilite_awvalid,
-    output axilite_awready,
-    input [AXI_ADDR_WIDTH-1:0] axilite_awaddr,
-    input [2:0] axilite_awprot,
-    input axilite_wvalid,
-    output axilite_wready,
-    input [31:0] axilite_wdata,
-    input [3:0] axilite_wstrb,
-    output axilite_bvalid,
-    input axilite_bready,
-    output [1:0] axilite_bresp,
+    input [DBG_AVAIL_COUNT_W-1:0] dbg_avail_count[MAX_ACCS],
     input OmpSsManager::DbgRegs_t dbg_regs,
     input [MAX_ACCS-1:0] dbg_acc_avail,
     input [MAX_ACCS-1:0] dbg_queue_nempty,
@@ -33,31 +24,33 @@ module axilite_controller #(
 
     localparam CMD_IN_N_CMDS_START_ADDR = 'h800;
     localparam CMD_IN_N_CMDS_LEN = MAX_ACCS < 64 ? MAX_ACCS*4 : 256; //64 accs * 4 bytes per acc
-    localparam CMD_IN_N_CMDS_END_ADDR   = CMD_IN_N_CMDS_START_ADDR + CMD_IN_N_CMDS_LEN;
+    localparam CMD_IN_N_CMDS_END_ADDR = CMD_IN_N_CMDS_START_ADDR + CMD_IN_N_CMDS_LEN;
 
     localparam CMD_OUT_N_CMDS_START_ADDR = 'h900; //0x800 + 256
     localparam CMD_OUT_N_CMDS_LEN = MAX_ACCS < 64 ? MAX_ACCS*4 : 256; //64 accs * 4 bytes per acc
-    localparam CMD_OUT_N_CMDS_END_ADDR   = CMD_OUT_N_CMDS_START_ADDR + CMD_OUT_N_CMDS_LEN;
+    localparam CMD_OUT_N_CMDS_END_ADDR = CMD_OUT_N_CMDS_START_ADDR + CMD_OUT_N_CMDS_LEN;
+
+    localparam AVAIL_COUNT_START_ADDR = 'hA00;
+    localparam AVAIL_COUNT_LEN = MAX_ACCS < 32 ? MAX_ACCS*8 : 256;
+    localparam AVAIL_COUNT_END_ADDR  = AVAIL_COUNT_START_ADDR + AVAIL_COUNT_LEN;
 
     typedef enum bit [1:0] {
        AR,
-       SELECT_REG,
+       SELECT_REG_1,
+       SELECT_REG_2,
        R 
     } RState_t;
 
-    typedef enum bit[1:0] {
-        AW,
-        W,
-        B
-    } WState_t;
-
     RState_t rstate;
-    WState_t wstate;
 
     reg [AXI_ADDR_WIDTH-1:0] raddr;
     reg [31:0] rdata;
     reg [1:0] rresp;
-    reg [1:0] bresp;
+    reg [31:0] cmd_in_select;
+    reg [31:0] cmd_out_select;
+    reg [DBG_AVAIL_COUNT_W-1:0] avail_count_select;
+    wire [31:0] avail_count_select_low;
+    wire [31:0] avail_count_select_high;
     wire [31:0] dbg_acc_avail_low;
     wire [31:0] dbg_acc_avail_high;
     wire [31:0] dbg_queue_nempty_low;
@@ -82,14 +75,24 @@ module axilite_controller #(
         assign dbg_queue_nempty_high = dbg_queue_nempty[63:32];
     end
 
+    if (DBG_AVAIL_COUNT_W < 32) begin
+        assign avail_count_select_low = {{32-DBG_AVAIL_COUNT_W{1'b0}}, avail_count_select};
+        assign avail_count_select_high = 32'd0;
+    end else if (DBG_AVAIL_COUNT_W == 32) begin
+        assign avail_count_select_low = avail_count_select;
+        assign avail_count_select_high = 32'd0;
+    end else if (DBG_AVAIL_COUNT_W < 64) begin
+        assign avail_count_select_low = avail_count_select[31:0];
+        assign avail_count_select_high = {{64-DBG_AVAIL_COUNT_W{1'b0}}, avail_count_select[DBG_AVAIL_COUNT_W-1:32]};
+    end else begin
+        assign avail_count_select_low = avail_count_select[31:0];
+        assign avail_count_select_high = avail_count_select[63:32];
+    end
+
     assign axilite_arready = rstate == AR;
     assign axilite_rvalid = rstate == R;
     assign axilite_rdata = rdata;
     assign axilite_rresp = rresp;
-    assign axilite_awready = wstate == AW;
-    assign axilite_wready = wstate == W;
-    assign axilite_bvalid = wstate == B;
-    assign axilite_bresp = bresp;
 
     always_ff @(posedge clk) begin
 
@@ -98,12 +101,15 @@ module axilite_controller #(
             AR: begin
                 raddr <= axilite_araddr[AXI_ADDR_WIDTH-1:0];
                 if (axilite_arvalid) begin
-                    rstate <= SELECT_REG;
+                    rstate <= SELECT_REG_1;
                 end
             end
 
-            SELECT_REG: begin
+            SELECT_REG_1: begin
                 rresp <= 2'b00;
+                cmd_in_select <= cmd_in_n_cmds[(raddr-CMD_IN_N_CMDS_START_ADDR)/4];
+                cmd_out_select <= cmd_out_n_cmds[(raddr-CMD_OUT_N_CMDS_START_ADDR)/4];
+                avail_count_select <= dbg_avail_count[(raddr-AVAIL_COUNT_START_ADDR)/8];
                 if (raddr < CMD_IN_N_CMDS_START_ADDR) begin
                     case (raddr)
 
@@ -136,18 +142,28 @@ module axilite_controller #(
                         end
 
                     endcase
+                    rstate <= R;
                 end else begin
-                    if (raddr[1:0] != 2'd0) begin
-                        rresp <= 2'b10;
-                    end else if (raddr >= CMD_IN_N_CMDS_START_ADDR && raddr < CMD_IN_N_CMDS_END_ADDR) begin
-                        rdata <= cmd_in_n_cmds[(raddr-CMD_IN_N_CMDS_START_ADDR)/4];
-                    end else if (raddr >= CMD_OUT_N_CMDS_START_ADDR && raddr < CMD_OUT_N_CMDS_END_ADDR) begin
-                        rdata <= cmd_out_n_cmds[(raddr-CMD_OUT_N_CMDS_START_ADDR)/4];
-                    end else begin
-                        rresp <= 2'b10;
-                    end
+                    rstate <= SELECT_REG_2;
                 end
+            end
 
+            SELECT_REG_2: begin
+                if (raddr[1:0] != 2'd0) begin
+                    rresp <= 2'b10;
+                end else if (raddr >= CMD_IN_N_CMDS_START_ADDR && raddr < CMD_IN_N_CMDS_END_ADDR) begin
+                    rdata <= cmd_in_select;
+                end else if (raddr >= CMD_OUT_N_CMDS_START_ADDR && raddr < CMD_OUT_N_CMDS_END_ADDR) begin
+                    rdata <= cmd_out_select;
+                end else if (raddr >= AVAIL_COUNT_START_ADDR && raddr < AVAIL_COUNT_END_ADDR) begin
+                    if (raddr[2] == 1'b0) begin
+                        rdata <= avail_count_select_low;
+                    end else begin
+                        rdata <= avail_count_select_high;
+                    end
+                end else begin
+                    rresp <= 2'b10;
+                end
                 rstate <= R;
             end
 
@@ -159,32 +175,8 @@ module axilite_controller #(
 
         endcase
 
-        case (wstate)
-        
-            AW: begin
-                if (axilite_awvalid) begin
-                    wstate <= W;
-                end
-            end
-            
-            W: begin
-                bresp <= 2'b10; //SLVERR
-                if (axilite_wvalid) begin
-                    wstate <= B;
-                end
-            end
-            
-            B: begin
-                if (axilite_bready) begin
-                    wstate <= AW;
-                end
-            end
-
-        endcase
-
         if (!rstn) begin
             rstate <= AR;
-            wstate <= AW;
         end
     end
 

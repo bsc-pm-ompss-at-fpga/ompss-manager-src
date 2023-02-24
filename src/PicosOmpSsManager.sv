@@ -24,6 +24,8 @@ module PicosOmpSsManager #(
     parameter AXILITE_INTF = 0,
     parameter ENABLE_TASK_CREATION = 0,
     parameter ENABLE_DEPS = 0,
+    parameter DBG_AVAIL_COUNT_EN = 0,
+    parameter DBG_AVAIL_COUNT_W = 1,
     //Picos parameters
     parameter MAX_ARGS_PER_TASK = 15,
     parameter MAX_DEPS_PER_TASK = 8,
@@ -133,18 +135,7 @@ module PicosOmpSsManager #(
     output axilite_rvalid,
     input axilite_rready,
     output [31:0] axilite_rdata,
-    output [1:0] axilite_rresp,
-    input axilite_awvalid,
-    output axilite_awready,
-    input [13:0] axilite_awaddr,
-    input [2:0] axilite_awprot,
-    input axilite_wvalid,
-    output axilite_wready,
-    input [31:0] axilite_wdata,
-    input [3:0] axilite_wstrb,
-    output axilite_bvalid,
-    input axilite_bready,
-    output [1:0] axilite_bresp
+    output [1:0] axilite_rresp
 );
 
     localparam TW_MEM_BITS = $clog2(MAX_ACC_CREATORS);
@@ -178,9 +169,38 @@ module PicosOmpSsManager #(
     OmpSsManager::DbgRegs_t dbg_regs;
 
     if (AXILITE_INTF) begin : GEN_AXILITE
+
+        reg [DBG_AVAIL_COUNT_W-1:0] dbg_avail_count[MAX_ACCS];
+
+        if (DBG_AVAIL_COUNT_EN) begin : AVAIL_COUNT_GEN
+
+            always_ff @(posedge clk) begin
+                for (int i = 0; i < MAX_ACCS; ++i) begin
+                    if (!dbg_acc_avail[i]) begin
+                        dbg_avail_count[i] <= dbg_avail_count[i] + {{DBG_AVAIL_COUNT_W-1{1'b0}}, 1'b1};
+                    end
+                end
+                if (!rstn) begin
+                    for (int i = 0; i < MAX_ACCS; ++i) begin
+                        dbg_avail_count[i] <= {DBG_AVAIL_COUNT_W{1'b0}};
+                    end
+                end
+            end
+
+        end else begin
+
+            always_comb begin
+                for (int i = 0; i < MAX_ACCS; ++i) begin
+                    dbg_avail_count[i] = {DBG_AVAIL_COUNT_W{1'b0}};
+                end
+            end
+
+        end
+
         axilite_controller #(
             .AXI_ADDR_WIDTH(14),
-            .MAX_ACCS(MAX_ACCS)
+            .MAX_ACCS(MAX_ACCS),
+            .DBG_AVAIL_COUNT_W(DBG_AVAIL_COUNT_W)
         ) axilite_controller_I (
             .clk(clk),
             .rstn(rstn),
@@ -192,17 +212,7 @@ module PicosOmpSsManager #(
             .axilite_rready(axilite_rready),
             .axilite_rdata(axilite_rdata),
             .axilite_rresp(axilite_rresp),
-            .axilite_awvalid(axilite_awvalid),
-            .axilite_awready(axilite_awready),
-            .axilite_awaddr(axilite_awaddr),
-            .axilite_awprot(axilite_awprot),
-            .axilite_wvalid(axilite_wvalid),
-            .axilite_wready(axilite_wready),
-            .axilite_wdata(axilite_wdata),
-            .axilite_wstrb(axilite_wstrb),
-            .axilite_bvalid(axilite_bvalid),
-            .axilite_bready(axilite_bready),
-            .axilite_bresp(axilite_bresp),
+            .dbg_avail_count(dbg_avail_count),
             .dbg_regs(dbg_regs),
             .dbg_acc_avail(dbg_acc_avail),
             .dbg_queue_nempty(dbg_queue_nempty),
@@ -214,10 +224,6 @@ module PicosOmpSsManager #(
         assign axilite_rvalid = 1'b0;
         assign axilite_rdata = 32'd0;
         assign axilite_rresp = 2'd0;
-        assign axilite_awready = 1'b0;
-        assign axilite_wready = 1'b0;
-        assign axilite_bvalid = 1'b0;
-        assign axilite_bresp = 2'd0;
     end
 
     Command_In #(

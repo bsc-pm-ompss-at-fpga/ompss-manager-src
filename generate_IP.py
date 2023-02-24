@@ -10,7 +10,7 @@
 # Unauthorized copying and/or distribution of this file,                 #
 # via any medium is strictly prohibited.                                 #
 # The intellectual and technical concepts contained herein are           #
-# propietary to BSC-CNS and may be covered by Patents.                   #
+# proprietary to BSC-CNS and may be covered by Patents.                   #
 #------------------------------------------------------------------------#
 
 import argparse
@@ -20,19 +20,18 @@ import re
 import shutil
 import subprocess
 import sys
-from distutils import spawn
 
 POM_MAJOR_VERSION = 6
-POM_MINOR_VERSION = 0
+POM_MINOR_VERSION = 1
 
-POM_PREVIOUS_MAJOR_VERSION = 5
-POM_PREVIOUS_MINOR_VERSION = 1
+POM_PREVIOUS_MAJOR_VERSION = 6
+POM_PREVIOUS_MINOR_VERSION = 0
 
 
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout
-        self.log = open('generate_IPs.log', 'w+')
+        self.log = open('generate_IP.log', 'w+')
         self.subprocess = subprocess.PIPE if args.verbose else self.log
         self.re_color = re.compile(r'\033\[[0,1][0-9,;]*m')
 
@@ -54,7 +53,7 @@ class Color:
 
 class Messages:
     def error(self, msg):
-        print(Color.RED + msg + '. Check generate_IPs.log for more information' + Color.END)
+        print(Color.RED + msg + '. Check generate_IP.log for more information' + Color.END)
         sys.exit(1)
 
     def info(self, msg):
@@ -77,7 +76,7 @@ class ArgParser:
         self.parser.add_argument('-b', '--board_part', help='board part number', metavar='BOARD_PART', type=str.lower)
         self.parser.add_argument('-v', '--verbose', help='prints Vivado messages', action='store_true', default=False)
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
-        self.parser.add_argument('--skip_synth', help='skips POM IP synthesis to generate resouce utilization report', action='store_true', default=False)
+        self.parser.add_argument('--skip_synth', help='skips POM IP synthesis to generate resource utilization report', action='store_true', default=False)
         self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
         self.parser.add_argument('--max_accs', help='maximum number of accelerators supported by the IP (def: \'16\')', type=int, default=16)
 
@@ -133,13 +132,13 @@ def parse_syntehsis_utilization_report(rpt_path, report_file, name_IP):
         # NOTE: Possible section names: Memory, BLOCKRAM
         ids = [idx for idx in range(len(rpt_data) - 1) if ((re.match('^[0-9]\. Memory\n', rpt_data[idx])
                                                            and rpt_data[idx + 1] == '---------\n') or
-                                                          (re.match('^[0-9]\. BLOCKRAM\n', rpt_data[idx])
+                                                           (re.match('^[0-9]\. BLOCKRAM\n', rpt_data[idx])
                                                            and rpt_data[idx + 1] == '-----------\n'))]
         if len(ids) != 1:
             msg.warning('Cannot find BRAM info in rpt file ' + rpt_path + '. Skipping bitstream utilization report')
             return
         elems = rpt_data[ids[0] + 6].split('|')
-        used_resources['BRAM_18K'] = int(float(elems[2].strip())*2)
+        used_resources['BRAM_18K'] = int(float(elems[2].strip()) * 2)
 
     msg.log(name_IP + ' resources utilization summary')
     for name in ['BRAM_18K', 'DSP48E', 'FF', 'LUT']:
@@ -214,7 +213,7 @@ sys.stdout = Logger()
 if (not args.skip_synth) and args.board_part is None:
     msg.error('board_part must be specified to synthetize a design')
 
-if spawn.find_executable('vivado'):
+if shutil.which('vivado'):
     if not args.skip_board_check and args.board_part is not None:
         msg.info('Checking if your current version of Vivado supports the selected board part')
         os.system('echo "if {[llength [get_parts ' + args.board_part + ']] == 0} {exit 1}" > ./board_part_check.tcl')
@@ -245,4 +244,3 @@ if not args.skip_synth:
     os.makedirs('./pom_IP/Synthesis')
 
     compute_POM_resource_utilization()
-
