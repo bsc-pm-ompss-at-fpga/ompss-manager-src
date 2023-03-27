@@ -19,7 +19,10 @@ module Scheduler #(
     parameter SUBQUEUE_BITS = $clog2(SUBQUEUE_LEN),
     parameter MAX_ACC_TYPES = 16,
     parameter SPAWNOUT_QUEUE_LEN = 1024,
-    parameter ENABLE_SPAWN_QUEUES = 1
+    parameter ENABLE_SPAWN_QUEUES = 1,
+    parameter [MAX_ACC_TYPES*8-1:0]  SCHED_COUNT = 0,
+    parameter [MAX_ACC_TYPES*8-1:0]  SCHED_ACCID = 0,
+    parameter [MAX_ACC_TYPES*32-1:0] SCHED_TTYPE = 0
 ) (
     input  clk,
     input  rstn,
@@ -37,12 +40,6 @@ module Scheduler #(
     input [63:0] spawnout_queue_dout,
     output spawnout_queue_clk,
     output spawnout_queue_rst,
-    //Bitinfo memory
-    output [31:0] bitinfo_addr,
-    output bitinfo_en,
-    input [31:0] bitinfo_dout,
-    output bitinfo_clk,
-    output bitinfo_rst,
     //inStream
     input  [63:0] inStream_TDATA,
     input  inStream_TVALID,
@@ -125,8 +122,6 @@ module Scheduler #(
     reg [SCHED_TASKTYPE_BITS-1:0] task_type;
     reg [SCHED_ARCHBITS_BITS-1:0] task_arch;
     reg [SCHED_INSNUM_BITS-1:0] task_instance_num;
-    reg [ACC_TYPE_BITS-1:0] data_idx;
-    reg [ACC_TYPE_BITS-1:0] data_idx_d;
     reg [5:0] needed_slots;
     reg [SUBQUEUE_BITS-1:0] rIdx;
     reg [SUBQUEUE_BITS-1:0] wIdx;
@@ -138,12 +133,17 @@ module Scheduler #(
     wire [5:0] cmd_num_slots;
     wire [SUBQUEUE_BITS-1:0] next_wIdx;
 
-    wire [ACC_TYPE_BITS-1:0] scheduleData_portA_addr;
-    wire scheduleData_portA_en;
-    wire [SCHED_DATA_BITS-1:0] scheduleData_portA_din;
-    wire [ACC_TYPE_BITS-1:0] scheduleData_portB_addr;
-    wire scheduleData_portB_en;
-    wire [SCHED_DATA_BITS-1:0] scheduleData_portB_dout;
+    reg [ACC_TYPE_BITS-1:0] data_idx;
+    reg [ACC_TYPE_BITS-1:0] data_idx_d;
+    wire [7:0] sched_count[MAX_ACC_TYPES];
+    wire [7:0] sched_accid[MAX_ACC_TYPES];
+    wire [31:0] sched_ttype[MAX_ACC_TYPES];
+
+    for (genvar i = 0; i < MAX_ACC_TYPES; ++i) begin
+        assign sched_count[i] = SCHED_COUNT[i*8 +: 8];
+        assign sched_accid[i] = SCHED_ACCID[i*8 +: 8];
+        assign sched_ttype[i] = SCHED_TTYPE[i*32 +: 32];
+    end
 
     assign spawnout_queue_rst = 1'b0;
 
@@ -168,34 +168,12 @@ module Scheduler #(
         assign spawnout_ret = 2'd2;
     end
 
-    Scheduler_sched_info_mem #(
-        .MAX_ACC_TYPES(MAX_ACC_TYPES),
-        .DATA_BITS(SCHED_DATA_BITS)
-    ) sched_info_mem (
-        .*
-    );
-
-    Scheduler_parse_bitinfo #(
-        .MAX_ACCS(MAX_ACCS),
-        .MAX_ACC_TYPES(MAX_ACC_TYPES),
-        .SCHED_DATA_BITS(SCHED_DATA_BITS)
-    ) bitinfo_parser (
-        .*
-    );
-
-    assign bitinfo_clk = clk;
-    assign bitinfo_rst = 0;
-
-    assign intCmdInQueue_clk = clk;
-
     assign inStream_TREADY = inStream_main_TREADY | inStream_spawnout_TREADY;
 
     assign next_acc_id = last_acc_id[data_idx_d] + 1;
     assign intCmdInQueue_addr[SUBQUEUE_BITS+ACC_BITS-1:SUBQUEUE_BITS] = accID;
     assign cmd_num_slots = 6'd3 + {1'd0, intCmdInQueue_dout[NUM_ARGS_OFFSET+3:NUM_ARGS_OFFSET], 1'b0};
     assign next_wIdx = wIdx + 1;
-    assign scheduleData_portB_addr = data_idx;
-    assign scheduleData_portB_en = state == SCHED_ASSIGN_SEARCH || state == SCHED_READ_HEADER_OTHER_2;
     assign outStream_TDEST = srcAccID;
     assign outStream_TLAST = 1'b1;
     assign picosRejectTask_id = taskID[31:0];
@@ -309,6 +287,8 @@ module Scheduler #(
 
         spawnout_state_start <= 0;
 
+        data_idx_d <= data_idx;
+
         case (state)
 
             SCHED_READ_HEADER_1: begin
@@ -363,7 +343,6 @@ module Scheduler #(
                     end else begin
                         state <= SCHED_ASSIGN_SEARCH;
                     end
-                    data_idx <= 1;
                 end
             end
 
@@ -381,16 +360,11 @@ module Scheduler #(
             end
 
             SCHED_ASSIGN_SEARCH: begin
-                //Even though MAX_ACC_TYPES can be a number which is not power of 2,
-                //there's no need to take the overflow case into account since this implementation assumes that
-                //the task type is always in the scheduleData memory
                 data_idx <= data_idx + 1;
-                scheddata_type_count <= scheduleData_portB_dout[SCHED_DATA_COUNT_L+ACC_BITS-1:SCHED_DATA_COUNT_L];
-                scheddata_type_first <= scheduleData_portB_dout[SCHED_DATA_ACCID_L+ACC_BITS-1:SCHED_DATA_ACCID_L];
-                if (scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] == task_type) begin
+                scheddata_type_count <= sched_count[data_idx];
+                scheddata_type_first <= sched_accid[data_idx];
+                if (sched_ttype[data_idx] == task_type) begin
                     state <= SCHED_ASSIGN_ACCID;
-                end else begin
-                    data_idx_d <= data_idx;
                 end
             end
 

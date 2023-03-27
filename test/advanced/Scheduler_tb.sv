@@ -52,80 +52,17 @@ module Scheduler_spawnout #(
 
 endmodule
 
-
-module Scheduler_sched_info_mem #(
-    parameter MAX_ACC_TYPES = 16,
-    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES),
-    parameter DATA_BITS = 48
-) (
-    input clk,
-    //Port A
-    input [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
-    input scheduleData_portA_en,
-    input [DATA_BITS-1:0] scheduleData_portA_din,
-    //Port B
-    input [ACC_TYPE_BITS-1:0] scheduleData_portB_addr,
-    input scheduleData_portB_en,
-    output logic [DATA_BITS-1:0] scheduleData_portB_dout
-);
-
-    import OmpSsManager::*;
-
-    always_ff @(posedge clk) begin
-        if (scheduleData_portB_addr == 0) begin
-            scheduleData_portB_dout[SCHED_DATA_COUNT_L-1:SCHED_DATA_ACCID_L] <= 0;
-            //NOTE: The count stores the real number of accels for the type -1
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_L-1:SCHED_DATA_COUNT_L] <= 3;
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] <= 34'h112344321;
-        end else if (scheduleData_portB_addr == 1) begin
-            scheduleData_portB_dout[SCHED_DATA_COUNT_L-1:SCHED_DATA_ACCID_L] <= 4;
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_L-1:SCHED_DATA_COUNT_L] <= 2;
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] <= 34'h133344333;
-        end else begin
-            scheduleData_portB_dout[SCHED_DATA_COUNT_L-1:SCHED_DATA_ACCID_L] <= 7;
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_L-1:SCHED_DATA_COUNT_L] <= 0;
-            scheduleData_portB_dout[SCHED_DATA_TASK_TYPE_H:SCHED_DATA_TASK_TYPE_L] <= 34'h000000000;
-        end
-    end
-
-endmodule
-
-
-module Scheduler_parse_bitinfo #(
-    parameter MAX_ACCS = 16,
-    parameter MAX_ACC_TYPES = 16,
-    parameter ACC_TYPE_BITS = $clog2(MAX_ACC_TYPES),
-    parameter SCHED_DATA_BITS = 48
-) (
-    input clk,
-    input rstn,
-    //Bitinfo memory
-    output [31:0] bitinfo_addr,
-    output bitinfo_en,
-    input [31:0] bitinfo_dout,
-    //Scheduling data memory
-    output reg [ACC_TYPE_BITS-1:0] scheduleData_portA_addr,
-    output scheduleData_portA_en,
-    output logic [SCHED_DATA_BITS-1:0] scheduleData_portA_din
-);
-
-    assign bitinfo_addr = 32'hDEADBEEF;
-    assign bitinfo_en = 0;
-    assign scheduleData_portA_addr = 0;
-    assign scheduleData_portA_en = 0;
-    assign scheduleData_portA_din = 48'h00DEAD0BEEF00;
-
-endmodule
-
-
 module Scheduler_tb;
     localparam MAX_ACCS = 30;
     localparam ACC_BITS = 5; //$clog2(MAX_ACCS);
     localparam SUBQUEUE_LEN = 64;
     localparam SUBQUEUE_BITS = 6; //$clog2(SUBQUEUE_LEN);
-    localparam MAX_ACC_TYPES = 16;
+    localparam MAX_ACC_TYPES = 3;
     localparam SPAWNOUT_QUEUE_LEN = 1024;
     localparam SCHED_DATA_BITS = 48;
+    localparam [MAX_ACC_TYPES*8-1:0] SCHED_COUNT = 24'h000203;
+    localparam [MAX_ACC_TYPES*8-1:0] SCHED_ACCID = 24'h070400;
+    localparam [MAX_ACC_TYPES*32-1:0] SCHED_TTYPE = 96'h000000003334433312344321;
 
     import OmpSsManager::*;
 
@@ -146,12 +83,6 @@ module Scheduler_tb;
     logic [63:0] spawnout_queue_dout;
     logic spawnout_queue_clk;
     logic spawnout_queue_rst;
-    //Bitinfo memory
-    logic [31:0] bitinfo_addr;
-    logic bitinfo_en;
-    logic [31:0] bitinfo_dout;
-    logic bitinfo_clk;
-    logic bitinfo_rst;
     //inStream
     logic [63:0] inStream_TDATA;
     logic inStream_TVALID;
@@ -177,8 +108,11 @@ module Scheduler_tb;
         .SUBQUEUE_LEN(SUBQUEUE_LEN),
         .SUBQUEUE_BITS(SUBQUEUE_BITS),
         .MAX_ACC_TYPES(MAX_ACC_TYPES),
-        .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN)
-    ) dut(
+        .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
+        .SCHED_COUNT(SCHED_COUNT),
+        .SCHED_ACCID(SCHED_ACCID),
+        .SCHED_TTYPE(SCHED_TTYPE)
+    ) dut (
         .*
     );
 

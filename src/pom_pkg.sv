@@ -58,13 +58,6 @@ package OmpSsManager;
     localparam HWR_NEWTASK_ID = 2'h2;
     localparam HWR_TASKWAIT_ID = 2'h3;
 
-    //Scheduler data mem struct
-    localparam SCHED_DATA_BITS = 48;
-    localparam SCHED_DATA_ACCID_L = 0;
-    localparam SCHED_DATA_COUNT_L = 8;
-    localparam SCHED_DATA_TASK_TYPE_L = 16;
-    localparam SCHED_DATA_TASK_TYPE_H = 47;
-
     //Scheduler module
     localparam CMD_NEWTASK_ARCHBITS_FPGA_B = 32; //Bit idx of FPGA architecture bit in New Task Command
     localparam CMD_NEWTASK_ARCHBITS_SMP_B = 33; //Bit ifx of SMP architecture bit in New Task Command

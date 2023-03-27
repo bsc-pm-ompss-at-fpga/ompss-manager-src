@@ -21,11 +21,11 @@ import shutil
 import subprocess
 import sys
 
-POM_MAJOR_VERSION = 6
-POM_MINOR_VERSION = 1
+POM_MAJOR_VERSION = 7
+POM_MINOR_VERSION = 0
 
 POM_PREVIOUS_MAJOR_VERSION = 6
-POM_PREVIOUS_MINOR_VERSION = 0
+POM_PREVIOUS_MINOR_VERSION = 1
 
 
 class Logger(object):
@@ -78,7 +78,6 @@ class ArgParser:
         self.parser.add_argument('--skip_board_check', help='skips the board part check', action='store_true', default=False)
         self.parser.add_argument('--skip_synth', help='skips POM IP synthesis to generate resource utilization report', action='store_true', default=False)
         self.parser.add_argument('--no_encrypt', help='do not encrypt IP source files', action='store_true', default=False)
-        self.parser.add_argument('--max_accs', help='maximum number of accelerators supported by the IP (def: \'16\')', type=int, default=16)
 
     def parse_args(self):
         args = self.parser.parse_args()
@@ -158,8 +157,8 @@ def compute_POM_resource_utilization():
                          + os.path.abspath(os.getcwd() + '/pom_IP/Synthesis') + ' '
                          + 'PicosOmpSsManager '
                          + args.board_part + ' '
-                         + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager') + ' '
-                         + str(args.max_accs), cwd=prj_path,
+                         + os.path.abspath(os.getcwd() + '/pom_IP/IP_packager'),
+                         cwd=prj_path,
                          stdout=sys.stdout.subprocess,
                          stderr=sys.stdout.subprocess, shell=True)
 

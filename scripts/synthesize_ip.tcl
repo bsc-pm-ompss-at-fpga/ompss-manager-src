@@ -15,7 +15,6 @@ variable project_path [lindex $argv 0]
 variable name_IP [lindex $argv 1]
 variable part [lindex $argv 2]
 variable ip_repo_path [lindex $argv 3]
-variable max_accs [lindex $argv 4]
 
 set name_IP_lower [ string tolower $name_IP ]
 set mod_name ${name_IP_lower}_0
@@ -35,7 +34,6 @@ if { [ glob -nocomplain $project_path/synth_project.xpr ] == "" } {
 
 # Enable all feature to have a better resource utilization statistic
 set_property -dict [list \
-   CONFIG.MAX_ACCS $max_accs \
    CONFIG.ENABLE_TASK_CREATION 1 \
    CONFIG.ENABLE_DEPS 1 \
    CONFIG.LOCK_SUPPORT 1 \
