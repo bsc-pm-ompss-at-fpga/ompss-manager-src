@@ -24,6 +24,19 @@ proc gen_ran_range {min max} {
    return [expr round(rand()*($max-$min)) + $min]
 }
 
+proc long_int_to_hex {bits num} {
+   set result ""
+   set div [expr int(ceil($bits/64.))]
+   for {set i 0} {$i < $div} {incr i} {
+      append result [format %016llX [expr ($num >> ($div-$i-1)*64) & 0xFFFFFFFFFFFFFFFF]]
+   }
+   set result [string trimleft $result 0]
+   if {[string len $result] == 0} {
+      set result 0
+   }
+   return $result
+}
+
 create_project -force ompps_manager_tb $prj_dir/ompps_manager_tb
 set_property simulator_language Verilog [current_project]
 set_property -name {xsim.simulate.runtime} -value {0ns} -objects [get_filesets sim_1]
@@ -32,13 +45,11 @@ add_files $root_dir/src
 add_files $root_dir/picos/src
 add_files -norecurse $root_dir/test
 
-set_property -name {xsim.compile.xvlog.more_options} -value [list \
-  -d CREATOR_GRAPH_PATH_D="$prj_dir/nest_graph.txt" \
-  -d TASKTYPE_FILE_PATH_D="$prj_dir/task_types.txt" \
-  -d COE_PATH_D="$prj_dir/bitinfo.coe" \
-] -objects [get_filesets sim_1]
+set_property verilog_define [list \
+   CREATOR_GRAPH_PATH_D="$prj_dir/nest_graph.txt" \
+   TASKTYPE_FILE_PATH_D="$prj_dir/task_types.txt" \
+] [get_filesets sim_1]
 
-update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
 for {set c 0} {$c < $num_confs} {incr c} {
@@ -104,30 +115,31 @@ for {set c 0} {$c < $num_confs} {incr c} {
    puts $fd $graph_str
    close $fd
 
-   set xtasks_bin_str ""
-   set task_types {}
-   set max_int [expr int(pow(2, 32))-1]
+   set sched_count 0
+   set sched_accid 0
+   set sched_ttype 0
+   set accid 0
+   set max_int 4294967295
+   set task_types [list]
    for {set i 0} {$i < $ntypes} {incr i} {
       # FIXME: We should check that the task_type never repeats
       set task_type [expr int(rand()*$max_int)]
+      set ninst [lindex $ninstances $i]
+      set sched_count [expr $sched_count | (($ninst-1) << $i*8)]
+      set sched_accid [expr $sched_accid | ($accid << $i*8)]
+      set sched_ttype [expr $sched_ttype | ($task_type << $i*32)]
+      incr accid $ninst
       lappend task_types $task_type
-      set bin_word [expr [lindex $ninstances $i] | (($task_type & 0xFFFF) << 16)]
-      append xtasks_bin_str [format "%08X\n" $bin_word]
-      set bin_word [expr $task_type >> 16]
-      append xtasks_bin_str [format "%08X\n" $bin_word]
-      # 11 32-bit words per task type
-      append xtasks_bin_str [string repeat "00000000\n" 9]
-      puts [format "Acc type %d\tnum instances %d" $task_type [lindex $ninstances $i]]
+      puts "Acc type $task_type\tnum instances $ninst"
    }
-
-   set bitInfo_coe "memory_initialization_radix=16;\nmemory_initialization_vector=\n"
-   append bitInfo_coe [string repeat "00000000\n" 22]
-   append bitInfo_coe $xtasks_bin_str
-   append bitInfo_coe "FFFFFFFF;\n"
-
-   set fd [open $prj_dir/bitinfo.coe w]
-   puts $fd $bitInfo_coe
-   close $fd
+   puts "sched_count $sched_count sched_accid $sched_accid sched_ttype $sched_ttype"
+   set count_bits [expr $ntypes*8]
+   set accid_bits [expr $ntypes*8]
+   set ttype_bits [expr $ntypes*32]
+   set sched_count $count_bits\\'h[long_int_to_hex $count_bits $sched_count]
+   set sched_accid $accid_bits\\'h[long_int_to_hex $accid_bits $sched_accid]
+   set sched_ttype $ttype_bits\\'h[long_int_to_hex $ttype_bits $sched_ttype]
+   puts "sched_count $sched_count sched_accid $sched_accid sched_ttype $sched_ttype"
 
    set task_types_str ""
    for {set i 0} {$i < $ntypes} {incr i} {
@@ -152,6 +164,9 @@ for {set c 0} {$c < $num_confs} {incr c} {
       MAX_NEW_TASKS="$MAX_NEW_TASKS" \
       NUM_CREATORS="$ncreators" \
       NUM_ACC_TYPES="$ntypes" \
+      SCHED_COUNT="$sched_count" \
+      SCHED_ACCID="$sched_accid" \
+      SCHED_TTYPE="$sched_ttype" \
    ] [get_filesets sim_1]
 
    launch_simulation -step compile

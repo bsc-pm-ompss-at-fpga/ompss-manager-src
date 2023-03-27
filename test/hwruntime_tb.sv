@@ -19,23 +19,22 @@ endmodule
 `ifndef TASKTYPE_FILE_PATH_D
 `define TASKTYPE_FILE_PATH_D ""
 `endif
-`ifndef COE_PATH_D
-`define COE_PATH_D ""
-`endif
 
 module hwruntime_tb #(
-    parameter NUM_ACCS = 7,
-    parameter NUM_CMDS = 1,
-    parameter MAX_NEW_TASKS = 100,
+    parameter NUM_ACCS = 0,
+    parameter NUM_CMDS = 0,
+    parameter MAX_NEW_TASKS = 0,
     parameter NUM_CREATORS = 0,
-    parameter NUM_ACC_TYPES = 4
+    parameter NUM_ACC_TYPES = 0,
+    parameter [NUM_ACC_TYPES*8-1:0] SCHED_COUNT = 0,
+    parameter [NUM_ACC_TYPES*8-1:0] SCHED_ACCID = 0,
+    parameter [NUM_ACC_TYPES*32-1:0] SCHED_TTYPE = 0
 ) ();
 
     import Glb::*;
 
     localparam CREATOR_GRAPH_PATH = `CREATOR_GRAPH_PATH_D;
     localparam TASKTYPE_FILE_PATH = `TASKTYPE_FILE_PATH_D;
-    localparam COE_PATH = `COE_PATH_D;
     localparam ACC_BITS = $clog2(NUM_ACCS) == 0 ? 1 : $clog2(NUM_ACCS);
     localparam CMDIN_SUBQUEUE_LEN = 64;
     localparam CMDOUT_SUBQUEUE_LEN = 64;
@@ -308,11 +307,6 @@ module hwruntime_tb #(
     wire [31:0] cmdout_queue_addr;
     wire [63:0] cmdout_queue_din;
     wire [63:0] cmdout_queue_dout;
-    wire bitinfo_clk;
-    wire bitinfo_rst;
-    wire bitinfo_en;
-    wire [31:0] bitinfo_addr;
-    wire [31:0] bitinfo_dout;
     wire axilite_arvalid;
     wire axilite_arready;
     wire [13:0] axilite_araddr;
@@ -386,7 +380,10 @@ module hwruntime_tb #(
         .CMDOUT_SUBQUEUE_LEN(CMDOUT_SUBQUEUE_LEN),
         .ENABLE_SPAWN_QUEUES(NUM_CREATORS != 0),
         .ENABLE_TASK_CREATION(NUM_CREATORS != 0),
-        .ENABLE_DEPS(NUM_CREATORS != 0)
+        .ENABLE_DEPS(NUM_CREATORS != 0),
+        .SCHED_COUNT(SCHED_COUNT),
+        .SCHED_ACCID(SCHED_ACCID),
+        .SCHED_TTYPE(SCHED_TTYPE)
     ) POM_I (
         .*
     );
@@ -438,16 +435,6 @@ module hwruntime_tb #(
         .spawn_out(spawn_in),
         .taskwait_in(taskwait_out),
         .taskwait_out(taskwait_in)
-    );
-
-    bitinfo_mem #(
-        .COE_PATH(COE_PATH)
-    ) BITINFO_MEM_I (
-        .clk(bitinfo_clk),
-        .rst(bitinfo_rst),
-        .en(bitinfo_en),
-        .addr(bitinfo_addr),
-        .dout(bitinfo_dout)
     );
 
     dual_port_32_bit_mem_wrapper #(

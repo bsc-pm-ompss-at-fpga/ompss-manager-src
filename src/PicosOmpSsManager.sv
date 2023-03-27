@@ -26,6 +26,10 @@ module PicosOmpSsManager #(
     parameter ENABLE_DEPS = 0,
     parameter DBG_AVAIL_COUNT_EN = 0,
     parameter DBG_AVAIL_COUNT_W = 1,
+    //Scheduler parameters
+    parameter [MAX_ACC_TYPES*8-1:0]  SCHED_COUNT = 0,
+    parameter [MAX_ACC_TYPES*8-1:0]  SCHED_ACCID = 0,
+    parameter [MAX_ACC_TYPES*32-1:0] SCHED_TTYPE = 0,
     //Picos parameters
     parameter MAX_ARGS_PER_TASK = 15,
     parameter MAX_DEPS_PER_TASK = 8,
@@ -121,12 +125,6 @@ module PicosOmpSsManager #(
     output [31:0] cmdout_queue_addr,
     output [63:0] cmdout_queue_din,
     input  [63:0] cmdout_queue_dout,
-    //BitInfo
-    output bitinfo_clk,
-    output bitinfo_rst,
-    output bitinfo_en,
-    output [31:0] bitinfo_addr,
-    input  [31:0] bitinfo_dout,
     //AXI Lite interface
     input axilite_arvalid,
     output axilite_arready,
@@ -458,13 +456,11 @@ module PicosOmpSsManager #(
             .SUBQUEUE_LEN(CMDIN_SUBQUEUE_LEN),
             .MAX_ACC_TYPES(MAX_ACC_TYPES),
             .SPAWNOUT_QUEUE_LEN(SPAWNOUT_QUEUE_LEN),
-            .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES)
+            .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES),
+            .SCHED_COUNT(SCHED_COUNT),
+            .SCHED_ACCID(SCHED_ACCID),
+            .SCHED_TTYPE(SCHED_TTYPE)
         ) Scheduler_I (
-            .bitinfo_addr(bitinfo_addr),
-            .bitinfo_clk(bitinfo_clk),
-            .bitinfo_dout(bitinfo_dout),
-            .bitinfo_en(bitinfo_en),
-            .bitinfo_rst(bitinfo_rst),
             .clk(clk),
             .inStream_TDATA(Scheduler_inStream_tdata),
             .inStream_TID(Scheduler_inStream_tid),
@@ -704,10 +700,6 @@ module PicosOmpSsManager #(
         assign spawn_out_tdata = '0;
         assign spawn_out_tdest = '0;
         assign spawn_out_tlast = 1'b0;
-        assign bitinfo_clk = 1'b0;
-        assign bitinfo_rst = 1'b0;
-        assign bitinfo_en = 1'b0;
-        assign bitinfo_addr = '0;
     end
 
 endmodule

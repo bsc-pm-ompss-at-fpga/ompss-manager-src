@@ -57,6 +57,33 @@ file copy -force $root_dir/${hwruntime_short}_logo.png $packager_dir
 ipx::add_file $packager_dir/${hwruntime_short}_logo.png [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]
 set_property type LOGO [ipx::get_files ${hwruntime_short}_logo.png -of_objects [ipx::get_file_groups xilinx_utilityxitfiles -of_objects [ipx::current_core]]]
 
+set_property widget {hexEdit} [ipgui::get_guiparamspec -name "SCHED_COUNT" -component [ipx::current_core] ]
+set_property value 0x00000000000000000000000000000000 [ipx::get_user_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property value 0x00000000000000000000000000000000 [ipx::get_hdl_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property value_bit_string_length 128 [ipx::get_user_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property value_bit_string_length 128 [ipx::get_hdl_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_user_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_hdl_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {$ENABLE_TASK_CREATION} [ipx::get_user_parameters SCHED_COUNT -of_objects [ipx::current_core]]
+
+set_property widget {hexEdit} [ipgui::get_guiparamspec -name "SCHED_ACCID" -component [ipx::current_core] ]
+set_property value 0x00000000000000000000000000000000 [ipx::get_user_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property value 0x00000000000000000000000000000000 [ipx::get_hdl_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property value_bit_string_length 128 [ipx::get_user_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property value_bit_string_length 128 [ipx::get_hdl_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_user_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_hdl_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {$ENABLE_TASK_CREATION} [ipx::get_user_parameters SCHED_ACCID -of_objects [ipx::current_core]]
+
+set_property widget {hexEdit} [ipgui::get_guiparamspec -name "SCHED_TTYPE" -component [ipx::current_core] ]
+set_property value 0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 [ipx::get_user_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property value 0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 [ipx::get_hdl_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property value_bit_string_length 512 [ipx::get_user_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property value_bit_string_length 512 [ipx::get_hdl_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_user_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property value_format bitString [ipx::get_hdl_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+set_property enablement_tcl_expr {$ENABLE_TASK_CREATION} [ipx::get_user_parameters SCHED_TTYPE -of_objects [ipx::current_core]]
+
 set_property widget {checkBox} [ipgui::get_guiparamspec -name "AXILITE_INTF" -component [ipx::current_core] ]
 set_property value false [ipx::get_user_parameters AXILITE_INTF -of_objects [ipx::current_core]]
 set_property value false [ipx::get_hdl_parameters AXILITE_INTF -of_objects [ipx::current_core]]
@@ -192,15 +219,11 @@ ipx::associate_bus_interfaces -busif cmdin_out -clock clk [ipx::current_core]
 ipx::associate_bus_interfaces -busif cmdout_in -clock clk [ipx::current_core]
 ipx::associate_bus_interfaces -clock clk -reset rstn [ipx::current_core]
 
-set bram_list {cmdin_queue cmdout_queue bitinfo}
+set bram_list {cmdin_queue cmdout_queue}
 foreach bram_intf $bram_list {
     ipx::remove_bus_interface ${bram_intf}_clk [ipx::current_core]
     ipx::remove_bus_interface ${bram_intf}_rst [ipx::current_core]
-    if {$bram_intf == "bitinfo"} {
-        ipx::infer_bus_interface "${bram_intf}_addr ${bram_intf}_clk ${bram_intf}_dout ${bram_intf}_en ${bram_intf}_rst" xilinx.com:interface:bram_rtl:1.0 [ipx::current_core]
-    } else {
-        ipx::infer_bus_interface "${bram_intf}_addr ${bram_intf}_clk ${bram_intf}_din ${bram_intf}_dout ${bram_intf}_en ${bram_intf}_rst ${bram_intf}_we" xilinx.com:interface:bram_rtl:1.0 [ipx::current_core]
-    }
+    ipx::infer_bus_interface "${bram_intf}_addr ${bram_intf}_clk ${bram_intf}_din ${bram_intf}_dout ${bram_intf}_en ${bram_intf}_rst ${bram_intf}_we" xilinx.com:interface:bram_rtl:1.0 [ipx::current_core]
     set_property interface_mode master [ipx::get_bus_interfaces $bram_intf -of_objects [ipx::current_core]]
     ipx::associate_bus_interfaces -busif $bram_intf -clock clk [ipx::current_core]
 }
@@ -214,7 +237,6 @@ set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfa
 set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfaces spawn_out -of_objects [ipx::current_core]]
 set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfaces taskwait_in -of_objects [ipx::current_core]]
 set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfaces taskwait_out -of_objects [ipx::current_core]]
-set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfaces bitinfo -of_objects [ipx::current_core]]
 
 ipgui::add_page -name {Picos} -component [ipx::current_core] -display_name {Picos}
 set_property display_name {POM} [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core] ]
