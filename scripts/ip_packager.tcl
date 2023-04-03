@@ -44,7 +44,7 @@ ipx::package_project -root_dir $packager_dir -vendor bsc -library ompss -taxonom
 
 set_property name [string tolower $name_IP] [ipx::current_core]
 set_property version $current_version [ipx::current_core]
-set_property display_name $name_IP [ipx::current_core]
+set_property display_name "Picos OmpSs Manager" [ipx::current_core]
 set_property description $name_IP [ipx::current_core]
 set_property vendor_display_name {Barcelona Supercomputing Center (BSC-CNS)} [ipx::current_core]
 set_property company_url https://pm.bsc.es/ompss-at-fpga [ipx::current_core]
