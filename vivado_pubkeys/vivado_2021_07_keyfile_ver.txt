@@ -1,0 +1,29 @@
+`pragma protect version = 2
+`pragma protect encrypt_agent = "XILINX"
+`pragma protect encrypt_agent_info = "Xilinx Encryption Tool 2022"
+
+`pragma protect begin_commonblock
+`pragma protect control error_handling = "delegated"
+`pragma protect control runtime_visibility = "delegated"
+`pragma protect control child_visibility = "delegated"
+`pragma protect control decryption=(activity==simulation) ? "false" : "true"
+`pragma protect end_commonblock
+
+`pragma protect begin_toolblock
+`pragma protect rights_digest_method="sha256"
+`pragma protect key_keyowner = "Xilinx", key_keyname= "xilinxt_2021_07", key_method = "rsa", key_public_key
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvyr1vj1oMct1BYueFRx0
+/cf6aPkgzIjCFpPHosRvAsY1i7yjxwdWIdY441tDTTq+UAynD/CU79R/86JXIZct
+heAebBBkOyeT5DwZijkvXtkOeY+0d1QFU+DFhlBo6Dv92e3F5XFyDHLms40HdSMK
+7cL7z6TaT2YuKTxmr7qnUq87sfTTpbUu6LImP6jML3F3pAe8FDNRvLHxPha5lQAV
+usx1MB/T9Iruf4868T2BqMJCWjAFaZK6V3OnKhhFKFXKtK+zpWqVN7XWqORxW7L/
+97pZhLiVE5COh22lTbEBEfZGHYzZwlHaIFGCHVxkV+pGRF3ng00bHRko9asLI/qn
+lQIDAQAB
+`pragma protect control xilinx_configuration_visible = "false"
+`pragma protect control xilinx_enable_modification = "false"
+`pragma protect control xilinx_enable_probing = "false"
+`pragma protect control xilinx_enable_netlist_export = "false"
+`pragma protect control xilinx_enable_bitstream = "true"
+`pragma protect control xilinx_schematic_visibility="false"
+`pragma protect control decryption=(xilinx_activity==simulation) ? "false" : "true"
+`pragma protect end_toolblock = ""
