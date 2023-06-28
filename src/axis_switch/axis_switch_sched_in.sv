@@ -1,6 +1,5 @@
 
 module axis_switch_sched_in #(
-    parameter ENABLE_DEPS = 0,
     parameter ID_WIDTH = 0,
     localparam DATA_WIDTH = 64
 ) (
@@ -23,7 +22,7 @@ module axis_switch_sched_in #(
     output M00_AXIS_tlast
 );
 
-    localparam NSLAVES = ENABLE_DEPS ? 2 : 1;
+    localparam NSLAVES = 1;
     localparam NMASTERS = 1;
 
     wire [NSLAVES-1:0] s_valid;
@@ -43,15 +42,7 @@ module axis_switch_sched_in #(
     assign s_id[ID_WIDTH*0 +: ID_WIDTH] = S00_AXIS_tid;
     assign s_last[0] = S00_AXIS_tlast;
 
-    if (ENABLE_DEPS) begin
-        assign s_valid[1] = S01_AXIS_tvalid;
-        assign S01_AXIS_tready = s_ready[1];
-        assign s_data[DATA_WIDTH*1 +: DATA_WIDTH] = S01_AXIS_tdata;
-        assign s_id[ID_WIDTH*1 +: ID_WIDTH] = S01_AXIS_tid;
-        assign s_last[1] = S01_AXIS_tlast;
-    end else begin
-        assign S01_AXIS_tready = 1'b0;
-    end
+	assign S01_AXIS_tready = 1'b0;
 
     assign M00_AXIS_tvalid = m_valid[0];
     assign m_ready[0] = M00_AXIS_tready;

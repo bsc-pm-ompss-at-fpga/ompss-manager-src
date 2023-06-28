@@ -23,7 +23,6 @@ module PicosOmpSsManager #(
     parameter ENABLE_SPAWN_QUEUES = 0,
     parameter AXILITE_INTF = 0,
     parameter ENABLE_TASK_CREATION = 0,
-    parameter ENABLE_DEPS = 0,
     parameter DBG_AVAIL_COUNT_EN = 0,
     parameter DBG_AVAIL_COUNT_W = 1,
     //Scheduler parameters
@@ -34,13 +33,6 @@ module PicosOmpSsManager #(
     parameter MAX_ARGS_PER_TASK = 15,
     parameter MAX_DEPS_PER_TASK = 8,
     parameter MAX_COPS_PER_TASK = 15,
-    parameter NUM_DCTS = 1,
-    parameter TM_SIZE = 128,
-    parameter DM_SIZE = 512,
-    parameter VM_SIZE = 512,
-    parameter DM_DS = "BINTREE",
-    parameter DM_HASH = "P_PEARSON",
-    parameter HASH_T_SIZE = 64,
     //localparams
     localparam ACC_BITS = $clog2(MAX_ACCS)
 ) (
@@ -413,43 +405,11 @@ module PicosOmpSsManager #(
             .tw_info_we(Cutoff_tw_info_we)
         );
 
-        if (ENABLE_DEPS) begin : GEN_DEPS
-            picos_top #(
-                .MAX_ARGS_PER_TASK(MAX_ARGS_PER_TASK),
-                .MAX_DEPS_PER_TASK(MAX_DEPS_PER_TASK),
-                .MAX_COPS_PER_TASK(MAX_COPS_PER_TASK),
-                .NUM_DCTS(NUM_DCTS),
-                .TM_SIZE(TM_SIZE),
-                .DM_SIZE(DM_SIZE),
-                .VM_SIZE(VM_SIZE),
-                .DM_DS(DM_DS),
-                .DM_HASH(DM_HASH),
-                .HASH_T_SIZE(HASH_T_SIZE),
-                .PTID_WIDTH(TW_MEM_BITS)
-            ) Picos_I (
-                .clk(clk),
-                .finish_task_tdata(Picos_finish_task_tdata),
-                .finish_task_tready(Picos_finish_task_tready),
-                .finish_task_tvalid(Picos_finish_task_tvalid),
-                .new_task_tdata(new_task_tdata),
-                .new_task_tready(new_task_tready),
-                .new_task_tvalid(new_task_tvalid),
-                .picos_full(Picos_picos_full),
-                .ready_task_tdata(Picos_ready_task_tdata),
-                .ready_task_tlast(Picos_ready_task_tlast),
-                .ready_task_tready(Picos_ready_task_tready),
-                .ready_task_tvalid(Picos_ready_task_tvalid),
-                .retry_id(Scheduler_picosRejectTask_id),
-                .retry_valid(Scheduler_picosRejectTask_valid),
-                .rstn(rstn)
-            );
-        end else begin
-            assign Picos_finish_task_tready = 1'b0;
-            assign new_task_tready = 1'b0;
-            assign Picos_ready_task_tvalid = 1'b0;
-            assign Picos_ready_task_tdata = '0;
-            assign Picos_ready_task_tlast = 1'b0;
-        end
+		assign Picos_finish_task_tready = 1'b0;
+		assign new_task_tready = 1'b0;
+		assign Picos_ready_task_tvalid = 1'b0;
+		assign Picos_ready_task_tdata = '0;
+		assign Picos_ready_task_tlast = 1'b0;
 
         Scheduler #(
             .MAX_ACCS(MAX_ACCS),
@@ -613,7 +573,6 @@ module PicosOmpSsManager #(
         );
 
         axis_switch_sched_in #(
-            .ENABLE_DEPS(ENABLE_DEPS),
             .ID_WIDTH(ACC_BITS)
         ) Sched_inStream_Inter (
             .clk(clk),

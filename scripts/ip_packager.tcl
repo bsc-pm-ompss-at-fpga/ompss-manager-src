@@ -115,13 +115,6 @@ set_property value false [ipx::get_hdl_parameters ENABLE_TASK_CREATION -of_objec
 set_property value_format bool [ipx::get_user_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
 set_property value_format bool [ipx::get_hdl_parameters ENABLE_TASK_CREATION -of_objects [ipx::current_core]]
 
-set_property value false [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-set_property value false [ipx::get_hdl_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-set_property enablement_tcl_expr {$ENABLE_TASK_CREATION} [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-set_property value_format bool [ipx::get_hdl_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-ipx::update_dependency [ipx::get_user_parameters ENABLE_DEPS -of_objects [ipx::current_core]]
-
 set_property widget {textEdit} [ipgui::get_guiparamspec -name "MAX_ACC_CREATORS" -component [ipx::current_core] ]
 set_property value_validation_type range_long [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
 set_property value_validation_range_minimum 2 [ipx::get_user_parameters MAX_ACC_CREATORS -of_objects [ipx::current_core]]
@@ -147,22 +140,6 @@ set_property value_validation_range_minimum 4 [ipx::get_user_parameters SPAWNOUT
 # Arbitrary max range
 set_property value_validation_range_maximum 8192 [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
 set_property enablement_tcl_expr {$ENABLE_SPAWN_QUEUES} [ipx::get_user_parameters SPAWNOUT_QUEUE_LEN -of_objects [ipx::current_core]]
-
-set_property display_name {DM DS} [ipgui::get_guiparamspec -name "DM_DS" -component [ipx::current_core] ]
-set_property tooltip {Data structure of the dependence memory} [ipgui::get_guiparamspec -name "DM_DS" -component [ipx::current_core] ]
-set_property widget {comboBox} [ipgui::get_guiparamspec -name "DM_DS" -component [ipx::current_core] ]
-set_property value_validation_type list [ipx::get_user_parameters DM_DS -of_objects [ipx::current_core]]
-set_property value_validation_list {BINTREE LINKEDLIST} [ipx::get_user_parameters DM_DS -of_objects [ipx::current_core]]
-
-set_property display_name {DM HASH} [ipgui::get_guiparamspec -name "DM_HASH" -component [ipx::current_core] ]
-set_property tooltip {Dependence memory hash function} [ipgui::get_guiparamspec -name "DM_HASH" -component [ipx::current_core] ]
-set_property widget {comboBox} [ipgui::get_guiparamspec -name "DM_HASH" -component [ipx::current_core] ]
-set_property value_validation_type list [ipx::get_user_parameters DM_HASH -of_objects [ipx::current_core]]
-set_property value_validation_list {P_PEARSON XOR} [ipx::get_user_parameters DM_HASH -of_objects [ipx::current_core]]
-
-set_property widget {comboBox} [ipgui::get_guiparamspec -name "NUM_DCTS" -component [ipx::current_core] ]
-set_property value_validation_type list [ipx::get_user_parameters NUM_DCTS -of_objects [ipx::current_core]]
-set_property value_validation_list {1 2 4} [ipx::get_user_parameters NUM_DCTS -of_objects [ipx::current_core]]
 
 set bram_list {spawnin_queue spawnout_queue}
 foreach bram_intf $bram_list {
@@ -241,15 +218,6 @@ set_property enablement_dependency {$ENABLE_TASK_CREATION} [ipx::get_bus_interfa
 ipgui::add_page -name {Picos} -component [ipx::current_core] -display_name {Picos}
 set_property display_name {POM} [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core] ]
 set_property tooltip {} [ipgui::get_pagespec -name "Page 0" -component [ipx::current_core] ]
-
-set picos_params [list DM_DS DM_HASH DM_SIZE VM_SIZE HASH_T_SIZE NUM_DCTS TM_SIZE]
-
-set i 0
-foreach param $picos_params {
-    set_property enablement_tcl_expr {$ENABLE_TASK_CREATION && $ENABLE_DEPS} [ipx::get_user_parameters $param -of_objects [ipx::current_core]]
-    ipgui::move_param -component [ipx::current_core] -order $i [ipgui::get_guiparamspec -name $param -component [ipx::current_core]] -parent [ipgui::get_pagespec -name "Picos" -component [ipx::current_core]]
-    incr i
-}
 
 set_property previous_version_for_upgrade bsc:ompss:[string tolower $name_IP]:$previous_version [ipx::current_core]
 set_property core_revision 1 [ipx::current_core]

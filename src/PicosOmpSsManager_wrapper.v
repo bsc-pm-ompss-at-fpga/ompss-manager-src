@@ -23,7 +23,6 @@ module PicosOmpSsManager_wrapper #(
     parameter ENABLE_SPAWN_QUEUES = 0,
     parameter AXILITE_INTF = 0,
     parameter ENABLE_TASK_CREATION = 0,
-    parameter ENABLE_DEPS = 0,
     parameter DBG_AVAIL_COUNT_EN = 0,
     parameter DBG_AVAIL_COUNT_W = 1,
     //Scheduler parameters
@@ -33,14 +32,7 @@ module PicosOmpSsManager_wrapper #(
     //Picos parameters
     parameter MAX_ARGS_PER_TASK = 15,
     parameter MAX_DEPS_PER_TASK = 8,
-    parameter MAX_COPS_PER_TASK = 15,
-    parameter NUM_DCTS = 1,
-    parameter TM_SIZE = 128,
-    parameter DM_SIZE = 512,
-    parameter VM_SIZE = 512,
-    parameter DM_DS = "BINTREE",
-    parameter DM_HASH = "P_PEARSON",
-    parameter HASH_T_SIZE = 64
+    parameter MAX_COPS_PER_TASK = 15
 ) (
     //Clock and resets
     input  clk,
@@ -145,7 +137,6 @@ module PicosOmpSsManager_wrapper #(
         .ENABLE_SPAWN_QUEUES(ENABLE_SPAWN_QUEUES),
         .AXILITE_INTF(AXILITE_INTF),
         .ENABLE_TASK_CREATION(ENABLE_TASK_CREATION),
-        .ENABLE_DEPS(ENABLE_DEPS),
         .DBG_AVAIL_COUNT_EN(DBG_AVAIL_COUNT_EN),
         .DBG_AVAIL_COUNT_W(DBG_AVAIL_COUNT_W),
         .SCHED_COUNT(SCHED_COUNT),
@@ -153,14 +144,7 @@ module PicosOmpSsManager_wrapper #(
         .SCHED_TTYPE(SCHED_TTYPE),
         .MAX_ARGS_PER_TASK(MAX_ARGS_PER_TASK),
         .MAX_DEPS_PER_TASK(MAX_DEPS_PER_TASK),
-        .MAX_COPS_PER_TASK(MAX_COPS_PER_TASK),
-        .NUM_DCTS(NUM_DCTS),
-        .TM_SIZE(TM_SIZE),
-        .DM_SIZE(DM_SIZE),
-        .VM_SIZE(VM_SIZE),
-        .DM_DS(DM_DS),
-        .DM_HASH(DM_HASH),
-        .HASH_T_SIZE(HASH_T_SIZE)
+        .MAX_COPS_PER_TASK(MAX_COPS_PER_TASK)
     ) PicosOmpSsManager_I (
         .clk(clk),
         .rstn(rstn),
